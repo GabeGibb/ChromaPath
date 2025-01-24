@@ -1,4 +1,4 @@
-import { Board, GameState, Paths } from "./types";
+import { Board, GameState, Paths } from "./Types";
 
 export class FlowFreeRenderer {
 	private canvas: HTMLCanvasElement;

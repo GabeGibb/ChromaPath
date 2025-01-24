@@ -1,13 +1,14 @@
-import { Board, GameState, Point } from "./types";
+import { BoardGenerator } from "./BoardGenerator";
+import { Board, GameState, Point } from "./Types";
 
 export class FlowFreeGame {
 	private state: GameState;
 	private boardSize: number;
-	private colors: string[];
+	private boardGenerator: BoardGenerator;
 
 	constructor(size: number = 5) {
 		this.boardSize = size;
-		this.colors = ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff"];
+		this.boardGenerator = new BoardGenerator();
 		this.state = this.initializeState();
 	}
 
@@ -22,30 +23,7 @@ export class FlowFreeGame {
 	}
 
 	private generateBoard(): Board {
-		const board = Array(this.boardSize)
-			.fill(null)
-			.map(() => Array(this.boardSize).fill(null));
-		const usedPositions = new Set<string>();
-
-		for (let i = 0; i < Math.min(this.colors.length, Math.floor((this.boardSize * this.boardSize) / 2)); i++) {
-			for (let j = 0; j < 2; j++) {
-				let pos: Point;
-				do {
-					pos = {
-						x: Math.floor(Math.random() * this.boardSize),
-						y: Math.floor(Math.random() * this.boardSize),
-					};
-				} while (usedPositions.has(`${pos.x},${pos.y}`));
-
-				usedPositions.add(`${pos.x},${pos.y}`);
-				board[pos.y][pos.x] = {
-					color: this.colors[i],
-					isEndpoint: true,
-				};
-			}
-		}
-
-		return board;
+		return this.boardGenerator.generateBoard(this.boardSize);
 	}
 
 	private isValidMove(x: number, y: number, color: string): boolean {
@@ -68,6 +46,12 @@ export class FlowFreeGame {
 
 	public handleCellClick(x: number, y: number): void {
 		const cell = this.state.board[y][x];
+		// Handle endpoint clicks
+		if (cell?.isEndpoint) {
+			this.state.currentColor = cell.color;
+			this.state.startPoint = { x, y };
+			this.state.paths[cell.color] = [{ x, y }];
+		}
 
 		// Check if clicked on any existing path
 		for (const [color, path] of Object.entries(this.state.paths)) {
@@ -79,16 +63,10 @@ export class FlowFreeGame {
 				return;
 			}
 		}
-
-		// Handle endpoint clicks as before
-		if (cell?.isEndpoint) {
-			this.state.currentColor = cell.color;
-			this.state.startPoint = { x, y };
-			this.state.paths[cell.color] = [{ x, y }];
-		}
 	}
 
 	public handleDrag(x: number, y: number): void {
+		// Check if dragging has started or mouse is down
 		if (!this.state.currentColor || !this.state.startPoint) return;
 
 		const currentPath = this.state.paths[this.state.currentColor];
@@ -118,6 +96,41 @@ export class FlowFreeGame {
 				// Adding move must be adjacent
 				if (Math.abs(x - lastPoint.x) + Math.abs(y - lastPoint.y) === 1) {
 					this.state.paths[this.state.currentColor] = [...currentPath, { x, y }];
+				} else {
+					// If the move is not adjacent or backtracking, find a path to the endpoint with a custom implementation
+					// TODO: THIS CAN CRASH EVERYTHING
+					const startPoint = currentPath[0];
+					const visited = new Set<string>();
+					const queue: { point: { x: number; y: number }; path: { x: number; y: number }[] }[] = [
+						{ point: startPoint, path: [startPoint] },
+					];
+					const target = { x, y }; // Define the target endpoint
+
+					while (queue.length > 0) {
+						const { point, path } = queue.shift()!;
+
+						// Mark the current point as visited
+						visited.add(`${point.x},${point.y}`);
+
+						// If the current point is the target, update the path and exit
+						if (point.x === target.x && point.y === target.y) {
+							this.state.paths[this.state.currentColor] = path;
+							return;
+						}
+
+						// Get all valid neighbors that haven't been visited
+						const neighbors = this.boardGenerator.getValidNeighbors(this.state.board, point, visited);
+
+						// Add neighbors to the queue with updated paths
+						for (const neighbor of neighbors) {
+							if (!visited.has(`${neighbor.x},${neighbor.y}`)) {
+								queue.push({
+									point: neighbor,
+									path: [...path, neighbor],
+								});
+							}
+						}
+					}
 				}
 			}
 		}

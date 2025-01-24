@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import { FlowFreeGame } from "./GameLogic";
 import { FlowFreeRenderer } from "./Renderer";
-import { FlowFreeGame } from "./gameLogic";
 
 interface Props {
 	width?: number;
@@ -71,12 +71,14 @@ const ChromaPath: React.FC<Props> = ({ width = 400, height = 400, initialSize = 
 
 		canvas.addEventListener("pointerdown", handlePointerDown);
 		canvas.addEventListener("pointermove", handlePointerMove);
-		canvas.addEventListener("pointerup", handlePointerUp);
+		// canvas.addEventListener("pointerup", handlePointerUp);
+		document.addEventListener("pointerup", handlePointerUp);
 
 		return () => {
 			canvas.removeEventListener("pointerdown", handlePointerDown);
 			canvas.removeEventListener("pointermove", handlePointerMove);
-			canvas.removeEventListener("pointerup", handlePointerUp);
+			// canvas.removeEventListener("pointerup", handlePointerUp);
+			document.removeEventListener("pointerup", handlePointerUp);
 		};
 	}, [boardSize]);
 
@@ -101,8 +103,8 @@ const ChromaPath: React.FC<Props> = ({ width = 400, height = 400, initialSize = 
 					className="px-4 py-2 border rounded"
 				>
 					<option value={5}>5x5</option>
-					<option value={6}>6x6</option>
-					<option value={7}>7x7</option>
+					<option value={10}>10x10</option>
+					<option value={15}>15x15</option>
 				</select>
 			</div>
 		</div>
