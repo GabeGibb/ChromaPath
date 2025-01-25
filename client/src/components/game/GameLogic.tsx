@@ -152,8 +152,14 @@ export class ChromaPathGame {
 
 		while (queue.length > 0) {
 			const { point, path } = queue.shift()!;
-			// Check if point is at endpoint
+
+			// Path length and collision checks
+			if (this.checkPathCollision(path)) {
+				continue;
+			}
+
 			// TODO: Fix this condition
+			// If we are at an endpoint that is not the target, skip it
 			if (path.length > 1 && this.isAtEndpoint(point, start) && target.x !== point.x && target.y !== point.y) {
 				continue;
 			}
