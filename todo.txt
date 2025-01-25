@@ -1,0 +1,3 @@
+- When dragging be able to continue from last path dont just create a new path
+- More vibrant hues
+- Better board generation

@@ -57,9 +57,55 @@ export class BoardGenerator {
 
 	private convertIndicesToColors(numColors: number, board: Board) {
 		const indexToColorMap: { [key: string]: string } = {};
-		for (let i = 0; i < numColors; i++) {
-			const hue = (i * 360) / numColors;
-			indexToColorMap[i.toString()] = `hsl(${hue}, 100%, 50%)`;
+
+		function maximizePairwiseDistance(numColors: number): string[] {
+			const colors: number[][] = [];
+
+			// Generate permutations of high and low RGB values
+			const levels = [0, 255, 128]; // High, low, and medium values
+			for (const r of levels) {
+				for (const g of levels) {
+					for (const b of levels) {
+						colors.push([r, g, b]);
+					}
+				}
+			}
+
+			// Select `numColors` points, maximizing pairwise distance
+			const selectedColors: number[][] = [];
+			selectedColors.push(colors[0]); // Start with the first color
+
+			while (selectedColors.length < numColors && colors.length > 0) {
+				let maxDistance = 0;
+				let nextColor: number[] | null = null;
+
+				for (const color of colors) {
+					const minDistanceToSet = Math.min(...selectedColors.map((c) => distance3D(c, color)));
+
+					if (minDistanceToSet > maxDistance) {
+						maxDistance = minDistanceToSet;
+						nextColor = color;
+					}
+				}
+
+				if (nextColor) {
+					selectedColors.push(nextColor);
+					colors.splice(colors.indexOf(nextColor), 1); // Remove selected color
+				}
+			}
+
+			return selectedColors.map(([r, g, b]) => `rgb(${r}, ${g}, ${b})`);
+		}
+
+		function distance3D(a: number[], b: number[]): number {
+			return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
+		}
+
+		// Generate and assign colors
+		const colors = maximizePairwiseDistance(numColors);
+
+		for (let i = 0; i < colors.length; i++) {
+			indexToColorMap[i.toString()] = colors[i];
 		}
 
 		for (let y = 0; y < this.boardSize; y++) {

@@ -94,7 +94,7 @@ export class ChromaPathRenderer {
 		this.drawGradientCell(mouseX, mouseY, color, 0.01);
 	}
 
-	private drawGradientCell(x: number, y: number, color: string, aValue: number = 0.03): void {
+	private drawGradientCell(x: number, y: number, color: string, aValue: number = 0.04): void {
 		const cellX = x * this.cellSize;
 		const cellY = y * this.cellSize;
 
