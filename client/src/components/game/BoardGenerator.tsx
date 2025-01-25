@@ -46,10 +46,10 @@ export class BoardGenerator {
 	private async generateValidBoard(board: Board): Promise<boolean> {
 		// Try to place each color's endpoints
 		this.curColorIndex = 0;
-		const colorsMap = this.convertIndicesToColors(this.boardSize, board);
+		const colorsMap = this.convertIndicesToColors(25, board);
 		while (true) {
-			const color = this.curColorIndex.toString();
-			if (this.placeColorEndpoints(board, colorsMap[color])) {
+			const color = colorsMap[this.curColorIndex.toString()];
+			if (this.placeColorEndpoints(board, color)) {
 				this.curColorIndex++;
 				const GameState: GameState = {
 					board: board,
@@ -61,7 +61,7 @@ export class BoardGenerator {
 					mouseY: 0,
 				};
 				this.renderer?.render(GameState, this.boardSize);
-				await new Promise((resolve) => setTimeout(resolve, 500));
+				await new Promise((resolve) => setTimeout(resolve, 50));
 			} else {
 				return false;
 			}

@@ -145,7 +145,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	}, [boardSize]);
 
 	const handleNewLevel = async () => {
-		if (gameActionsNotReady) return;
+		if (gameActionsNotReady && !boardGenerating) return;
 		setBoardGenerating(true);
 		const board = await boardGeneratorRef.current.generateBoard(boardSize);
 		setBoardGenerating(false);
