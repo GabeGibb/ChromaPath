@@ -5,6 +5,7 @@ export class ChromaPathRenderer {
 	private ctx: CanvasRenderingContext2D;
 	private cellSize: number;
 	public initialized: boolean = false;
+	public showNumbers: boolean = true;
 
 	constructor(container: HTMLDivElement) {
 		this.canvas = document.createElement("canvas");
@@ -50,6 +51,7 @@ export class ChromaPathRenderer {
 		let currentIndex = 0;
 
 		// First pass - assign indices to colors
+		// TODO: Could do if show numbers here
 		board.forEach((row) => {
 			row.forEach((cell) => {
 				if (cell?.isEndpoint && !colorToIndex.has(cell.color)) {
@@ -73,7 +75,7 @@ export class ChromaPathRenderer {
 					);
 					this.ctx.fill();
 
-					if (board.length > 10) {
+					if (this.showNumbers) {
 						this.ctx.fillStyle = this.getHighContrastColor(cell.color);
 						this.ctx.font = `${this.cellSize / 3}px Sour Gummy`;
 						this.ctx.textAlign = "center";
@@ -123,10 +125,10 @@ export class ChromaPathRenderer {
 		const mouseX = state.mouseX;
 		const mouseY = state.mouseY;
 		const color = state.currentColor || "rgb(255, 255, 255)";
-		this.drawGradientCell(mouseX, mouseY, color, 0.01);
+		this.drawGradientCell(mouseX, mouseY, color, 0.02);
 	}
 
-	private drawGradientCell(x: number, y: number, color: string, aValue: number = 0.04): void {
+	private drawGradientCell(x: number, y: number, color: string, aValue: number = 0.05): void {
 		const cellX = x * this.cellSize;
 		const cellY = y * this.cellSize;
 
@@ -139,8 +141,7 @@ export class ChromaPathRenderer {
 			this.cellSize / 2
 		);
 		gradient.addColorStop(0, `${color.slice(0, -1)}, ${aValue})`);
-		// gradient.addColorStop(0.2, "rgba(255, 255, 255, 0)");
-
+		// gradient.addColorStop(0.2, `${color.slice(0, -1)}, ${aValue})`);
 		this.ctx.fillStyle = gradient;
 		this.ctx.fillRect(cellX, cellY, this.cellSize, this.cellSize);
 	}

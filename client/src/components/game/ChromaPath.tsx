@@ -150,13 +150,13 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 				className="w-screen h-[100vw] md:w-[85vh] md:h-[85vh] border border-neutral rounded-lg shadow-lg"
 			/>
 			<div className="flex gap-4">
-				<button onClick={handleNewLevel} className="btn btn-primary">
+				<button onClick={handleNewLevel} className="btn btn-primary m-auto">
 					New Level
 				</button>
 				<select
 					value={boardSize}
 					onChange={(e) => setBoardSize(Number(e.target.value))}
-					className="select w-full max-w-xs focus:outline-0 focus:border-0"
+					className="select w-full max-w-xs focus:outline-0 focus:border-0 m-auto"
 				>
 					{Array.from({ length: 22 }, (_, i) => (
 						<option key={i + 4} value={i + 4}>
@@ -164,6 +164,22 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 						</option>
 					))}
 				</select>
+				{/* <fieldset className="fieldset p-4 bg-base-100 border border-base-300 rounded-box w-64"> */}
+				<label className="flex items-center space-x-2">
+					<span>Show Numbers</span>
+
+					<input
+						type="checkbox"
+						defaultChecked={true}
+						onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+							if (!gameRef.current || !rendererRef.current) return;
+							rendererRef.current.showNumbers = e.target.checked;
+							rendererRef.current?.render(gameRef.current?.getState(), boardSize);
+						}}
+						className="checkbox checkbox-neutral"
+					/>
+				</label>
+				{/* </fieldset> */}
 			</div>
 		</div>
 	);
