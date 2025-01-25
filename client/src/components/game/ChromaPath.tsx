@@ -3,12 +3,10 @@ import { ChromaPathGame } from "./GameLogic";
 import { ChromaPathRenderer } from "./Renderer";
 
 interface Props {
-	width?: number;
-	height?: number;
 	initialSize?: number;
 }
 
-const ChromaPath: React.FC<Props> = ({ width = 400, height = 400, initialSize = 5 }) => {
+const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	const canvasRef = useRef<HTMLDivElement>(null);
 	const gameRef = useRef<ChromaPathGame | null>(null);
 	const rendererRef = useRef<ChromaPathRenderer | null>(null);
@@ -33,7 +31,6 @@ const ChromaPath: React.FC<Props> = ({ width = 400, height = 400, initialSize = 
 		if (!gameRef.current || !rendererRef.current || !rendererRef.current.initialized) return;
 
 		const canvas = rendererRef.current.getCanvas();
-		const cellSize = width / boardSize;
 
 		const handlePointerDown = (event: PointerEvent) => {
 			if (!gameRef.current || !rendererRef.current) return;
