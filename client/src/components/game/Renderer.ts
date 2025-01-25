@@ -22,9 +22,9 @@ export class ChromaPathRenderer {
 		this.cellSize = this.canvas.width / boardSize;
 		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 		this.drawGrid(boardSize);
-		this.drawBoard(state.board);
 		this.drawHover(state);
 		this.drawPaths(state);
+		this.drawBoard(state.board);
 	}
 
 	public resize(container: HTMLDivElement) {
@@ -45,8 +45,20 @@ export class ChromaPathRenderer {
 			this.ctx.stroke();
 		}
 	}
-
 	private drawBoard(board: Board): void {
+		const colorToIndex = new Map<string, number>();
+		let currentIndex = 0;
+
+		// First pass - assign indices to colors
+		board.forEach((row) => {
+			row.forEach((cell) => {
+				if (cell?.isEndpoint && !colorToIndex.has(cell.color)) {
+					colorToIndex.set(cell.color, currentIndex++);
+				}
+			});
+		});
+
+		// Draw board
 		board.forEach((row, y) => {
 			row.forEach((cell, x) => {
 				if (cell?.isEndpoint) {
@@ -60,9 +72,29 @@ export class ChromaPathRenderer {
 						Math.PI * 2
 					);
 					this.ctx.fill();
+
+					if (board.length > 10) {
+						this.ctx.fillStyle = this.getHighContrastColor(cell.color);
+						this.ctx.font = `${this.cellSize / 3}px Sour Gummy`;
+						this.ctx.textAlign = "center";
+						this.ctx.textBaseline = "middle";
+						this.ctx.fillText(
+							colorToIndex.get(cell.color)!.toString(),
+							x * this.cellSize + this.cellSize / 2,
+							y * this.cellSize + this.cellSize / 2
+						);
+					}
 				}
 			});
 		});
+	}
+
+	private getHighContrastColor(color: string): string {
+		const r = parseInt(color.slice(4, 7));
+		const g = parseInt(color.slice(9, 12));
+		const b = parseInt(color.slice(14, 17));
+		const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+		return brightness > 125 ? "#000000" : "#ffffff";
 	}
 
 	private drawPaths(state: GameState): void {

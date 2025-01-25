@@ -158,7 +158,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 					onChange={(e) => setBoardSize(Number(e.target.value))}
 					className="select w-full max-w-xs focus:outline-0 focus:border-0"
 				>
-					{Array.from({ length: 20 }, (_, i) => (
+					{Array.from({ length: 22 }, (_, i) => (
 						<option key={i + 4} value={i + 4}>
 							{i + 4}x{i + 4}
 						</option>

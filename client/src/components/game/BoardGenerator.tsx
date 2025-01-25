@@ -4,6 +4,7 @@ export class BoardGenerator {
 	private boardSize: number = 5;
 	private readonly maxAttempts = 1000;
 	private curColorIndex = 0;
+	private minDistanceBetweenEndpoints = 3;
 
 	constructor() {}
 
@@ -13,6 +14,7 @@ export class BoardGenerator {
 		for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
 			const board = this.initializeEmptyBoard();
 			if (this.generateValidBoard(board)) {
+				// If board valid remove paths
 				this.removeNonEndpoints(board);
 				return board;
 			}
@@ -38,7 +40,6 @@ export class BoardGenerator {
 	}
 
 	private generateValidBoard(board: Board): boolean {
-		// Shuffle colors to randomize placement order
 		// Try to place each color's endpoints
 		this.curColorIndex = 0;
 		while (true) {
@@ -55,69 +56,6 @@ export class BoardGenerator {
 		}
 	}
 
-	private convertIndicesToColors(numColors: number, board: Board) {
-		const indexToColorMap: { [key: string]: string } = {};
-
-		function maximizePairwiseDistance(numColors: number): string[] {
-			const colors: number[][] = [];
-
-			// Generate permutations of high and low RGB values
-			const levels = [0, 255, 128]; // High, low, and medium values
-			for (const r of levels) {
-				for (const g of levels) {
-					for (const b of levels) {
-						colors.push([r, g, b]);
-					}
-				}
-			}
-
-			// Select `numColors` points, maximizing pairwise distance
-			const selectedColors: number[][] = [];
-			selectedColors.push(colors[0]); // Start with the first color
-
-			while (selectedColors.length < numColors && colors.length > 0) {
-				let maxDistance = 0;
-				let nextColor: number[] | null = null;
-
-				for (const color of colors) {
-					const minDistanceToSet = Math.min(...selectedColors.map((c) => distance3D(c, color)));
-
-					if (minDistanceToSet > maxDistance) {
-						maxDistance = minDistanceToSet;
-						nextColor = color;
-					}
-				}
-
-				if (nextColor) {
-					selectedColors.push(nextColor);
-					colors.splice(colors.indexOf(nextColor), 1); // Remove selected color
-				}
-			}
-
-			return selectedColors.map(([r, g, b]) => `rgb(${r}, ${g}, ${b})`);
-		}
-
-		function distance3D(a: number[], b: number[]): number {
-			return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
-		}
-
-		// Generate and assign colors
-		const colors = maximizePairwiseDistance(numColors);
-
-		for (let i = 0; i < colors.length; i++) {
-			indexToColorMap[i.toString()] = colors[i];
-		}
-
-		for (let y = 0; y < this.boardSize; y++) {
-			for (let x = 0; x < this.boardSize; x++) {
-				const cell = board[y][x];
-				if (cell) {
-					cell.color = indexToColorMap[cell.color];
-				}
-			}
-		}
-	}
-
 	private placeColorEndpoints(board: Board, color: string): boolean {
 		const emptyCells = this.findEmptyCells(board);
 		for (let i = 0; i < emptyCells.length; i++) {
@@ -129,9 +67,9 @@ export class BoardGenerator {
 			if (!start) return false;
 
 			// Arbitrarily repeat path finding
-			for (let j = 0; j < this.boardSize * 2; j++) {
+			// TODO: investigate
+			for (let j = 0; j < this.boardSize; j++) {
 				board[start.y][start.x] = { color, isEndpoint: true };
-
 				// Try to find a valid path to place the second endpoint
 				const path = this.findValidPath(board, start);
 				if (!path) {
@@ -181,7 +119,7 @@ export class BoardGenerator {
 	private findValidPath(board: Board, start: Point): Point[] | null {
 		const visited = new Set<string>();
 		const queue: { point: Point; path: Point[] }[] = [{ point: start, path: [start] }];
-		const minPathLength = Math.max(3, this.boardSize * 1.2 - this.curColorIndex); // Arbitrary magic number that decreases with more colors
+		const minPathLength = Math.max(this.minDistanceBetweenEndpoints, this.boardSize * 1.2 - this.curColorIndex); // Arbitrary magic number that decreases with more colors
 		const maxPathLength = Math.floor(this.boardSize * this.boardSize); // No limit really
 
 		while (queue.length > 0) {
@@ -197,10 +135,11 @@ export class BoardGenerator {
 				return path;
 			}
 
-			const shuffledNeighbors = neighbors.sort(() => Math.random() - 0.5);
+			// ! THIS LINE ADDS RANDOMNESS TO THE PATH BUT IS EXPENSIVE
+			// const shuffledNeighbors = neighbors.sort(() => Math.random() - 0.5);
 
 			if (path.length < maxPathLength) {
-				for (const neighbor of shuffledNeighbors) {
+				for (const neighbor of neighbors) {
 					queue.push({
 						point: neighbor,
 						path: [...path, neighbor],
@@ -251,7 +190,7 @@ export class BoardGenerator {
 			}
 		}
 
-		return !regions.some((region) => region.length <= 3);
+		return !regions.some((region) => region.length <= this.minDistanceBetweenEndpoints);
 	}
 
 	public getValidNeighbors(board: Board, point: Point, visited: Set<string>, includeEndpoint: boolean = false): Point[] {
@@ -294,11 +233,76 @@ export class BoardGenerator {
 			}
 		}
 
-		// if (colorCount.size < this.boardSize) {
+		// if (colorCount.size < this.boardSize / 2) {
 		// 	return false;
 		// }
 
 		// Check that all placed colors have exactly two endpoints
 		return [...colorCount.values()].every((count) => count === 2);
+	}
+
+	private convertIndicesToColors(numColors: number, board: Board) {
+		const indexToColorMap: { [key: string]: string } = {};
+
+		function maximizePairwiseDistance(numColors: number): string[] {
+			const colors: number[][] = [];
+
+			// Generate permutations of high and low RGB values
+			const levels = [0, 255, 128]; // High, low, and medium values
+			for (const r of levels) {
+				for (const g of levels) {
+					for (const b of levels) {
+						if (r === 0 && g === 0 && b === 0) continue; // Skip black
+						if (r === 255 && g === 255 && b === 255) continue; // Skip white
+						colors.push([r, g, b]);
+					}
+				}
+			}
+
+			// Select `numColors` points, maximizing pairwise distance
+			const selectedColors: number[][] = [];
+			selectedColors.push(colors[0]); // Start with the first color
+
+			while (selectedColors.length < numColors && colors.length > 0) {
+				let maxDistance = 0;
+				let nextColor: number[] | null = null;
+
+				for (const color of colors) {
+					const minDistanceToSet = Math.min(...selectedColors.map((c) => distance3D(c, color)));
+
+					if (minDistanceToSet > maxDistance) {
+						maxDistance = minDistanceToSet;
+						nextColor = color;
+					}
+				}
+
+				if (nextColor) {
+					selectedColors.push(nextColor);
+					colors.splice(colors.indexOf(nextColor), 1); // Remove selected color
+				}
+			}
+
+			return selectedColors.map(([r, g, b]) => `rgb(${r}, ${g}, ${b})`);
+		}
+
+		function distance3D(a: number[], b: number[]): number {
+			return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
+		}
+
+		// Generate and assign colors
+		const colors = maximizePairwiseDistance(numColors);
+
+		for (let i = 0; i < colors.length; i++) {
+			indexToColorMap[i.toString()] = colors[i];
+		}
+
+		for (let y = 0; y < this.boardSize; y++) {
+			for (let x = 0; x < this.boardSize; x++) {
+				const cell = board[y][x];
+				if (cell) {
+					cell.color = indexToColorMap[cell.color];
+				}
+			}
+		}
 	}
 }
