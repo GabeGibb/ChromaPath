@@ -46,10 +46,10 @@ export class BoardGenerator {
 	private async generateValidBoard(board: Board): Promise<boolean> {
 		// Try to place each color's endpoints
 		this.curColorIndex = 0;
-		const colorsMap = this.convertIndicesToColors(23);
+		const colorsMap = this.convertIndicesToColors(50);
 		while (true) {
 			const color = colorsMap[this.curColorIndex.toString()];
-			console.log(color, Object.keys(colorsMap).length, this.curColorIndex);
+			// console.log(color, Object.keys(colorsMap).length, this.curColorIndex);
 			if (this.placeColorEndpoints(board, color)) {
 				this.curColorIndex++;
 				const GameState: GameState = {
@@ -63,13 +63,14 @@ export class BoardGenerator {
 				};
 				this.renderer?.render(GameState, this.boardSize);
 			} else {
-				// alert("Failed to place color endpoints");
+				console.log("Failed to place color endpoints");
+				// await new Promise((resolve) => setTimeout(resolve, 10000));
 				return false;
 			}
 			if (this.validateBoard(board)) {
 				return true;
 			}
-			await new Promise((resolve) => setTimeout(resolve, 50));
+			// await new Promise((resolve) => setTimeout(resolve, 500));
 		}
 	}
 
@@ -83,41 +84,37 @@ export class BoardGenerator {
 
 			if (!start) return false;
 
-			// Arbitrarily repeat path finding
-			// TODO: investigate
-			for (let j = 0; j < this.boardSize; j++) {
-				board[start.y][start.x] = { color, isEndpoint: true };
-				// Try to find a valid path to place the second endpoint
-				const path = this.findValidPath(board, start);
-				if (!path) {
-					board[start.y][start.x] = null;
-					// return false;
-					continue;
-				}
+			board[start.y][start.x] = { color, isEndpoint: true };
+			const path = this.findValidPath(board, start);
 
-				const end = path[path.length - 1];
-				board[end.y][end.x] = { color, isEndpoint: true };
-
-				// Place the path (optional - can be left empty for puzzle generation)
-				for (const point of path.slice(1, -1)) {
-					board[point.y][point.x] = { color, isEndpoint: false };
-				}
-				// Check if board state is still valid after placing the path
-				if (!this.validateBoardStateOk(board, path)) {
-					board[start.y][start.x] = null;
-					// return false;
-					board[end.y][end.x] = null;
-
-					for (const point of path.slice(1, -1)) {
-						board[point.y][point.x] = null;
-					}
-					continue;
-				}
-				return true;
+			if (!path) {
+				board[start.y][start.x] = null;
+				continue;
 			}
+
+			const end = path[path.length - 1];
+			board[end.y][end.x] = { color, isEndpoint: true };
+
+			// Place the path
+			for (const point of path.slice(1, -1)) {
+				board[point.y][point.x] = { color, isEndpoint: false };
+			}
+			// Check if board state is still valid after placing the path
+			if (!this.validateBoardStateOk(board, path)) {
+				// If not valid remove the path
+				board[start.y][start.x] = null;
+				board[end.y][end.x] = null;
+
+				for (const point of path.slice(1, -1)) {
+					board[point.y][point.x] = null;
+				}
+				continue;
+			}
+
+			return true;
 		}
 
-		return false;
+		return false; // Return false if no valid placement was found
 	}
 
 	private findEmptyCells(board: Board): Point[] {
@@ -137,7 +134,6 @@ export class BoardGenerator {
 		const visited = new Set<string>();
 		const queue: { point: Point; path: Point[] }[] = [{ point: start, path: [start] }];
 		const minPathLength = Math.max(this.minDistanceBetweenEndpoints, this.boardSize * 1.2 - this.curColorIndex); // Arbitrary magic number that decreases with more colors
-		const maxPathLength = Math.floor(this.boardSize * this.boardSize); // No limit really
 
 		while (queue.length > 0) {
 			const { point, path } = queue.shift()!;
@@ -153,15 +149,13 @@ export class BoardGenerator {
 			}
 
 			// ! THIS LINE ADDS RANDOMNESS TO THE PATH BUT IS EXPENSIVE
-			// const shuffledNeighbors = neighbors.sort(() => Math.random() - 0.5);
+			const shuffledNeighbors = neighbors.sort(() => Math.random() - 0.5);
 
-			if (path.length < maxPathLength) {
-				for (const neighbor of neighbors) {
-					queue.push({
-						point: neighbor,
-						path: [...path, neighbor],
-					});
-				}
+			for (const neighbor of shuffledNeighbors) {
+				queue.push({
+					point: neighbor,
+					path: [...path, neighbor],
+				});
 			}
 		}
 
@@ -265,7 +259,7 @@ export class BoardGenerator {
 			const colors: number[][] = [];
 
 			// Generate permutations of high and low RGB values
-			const levels = [0, 255, 128]; // High, low, and medium values
+			const levels = [0, 255, 85, 170]; // High, low, and medium values
 			for (const r of levels) {
 				for (const g of levels) {
 					for (const b of levels) {
