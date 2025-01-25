@@ -76,6 +76,7 @@ export class ChromaPathRenderer {
 					this.ctx.fill();
 
 					if (this.showNumbers) {
+						console.log(cell.color);
 						this.ctx.fillStyle = this.getHighContrastColor(cell.color);
 						this.ctx.font = `${this.cellSize / 3}px Sour Gummy`;
 						this.ctx.textAlign = "center";

@@ -4,17 +4,15 @@ import { Board, GameState, Point } from "./Types";
 export class ChromaPathGame {
 	private state: GameState;
 	private boardSize: number;
-	private boardGenerator: BoardGenerator;
 
-	constructor(size: number = 5) {
+	constructor(newBoard: Board, size: number) {
 		this.boardSize = size;
-		this.boardGenerator = new BoardGenerator();
-		this.state = this.initializeState();
+		this.state = this.initializeState(newBoard);
 	}
 
-	private initializeState(): GameState {
+	private initializeState(newBoard: Board): GameState {
 		return {
-			board: this.generateBoard(),
+			board: newBoard,
 			paths: {},
 			currentColor: null,
 			startPoint: null,
@@ -22,10 +20,6 @@ export class ChromaPathGame {
 			mouseX: 0,
 			mouseY: 0,
 		};
-	}
-
-	private generateBoard(): Board {
-		return this.boardGenerator.generateBoard(this.boardSize);
 	}
 
 	private isValidMove(x: number, y: number, color: string): boolean {
@@ -130,7 +124,9 @@ export class ChromaPathGame {
 
 			visited.add(`${point.x},${point.y}`);
 
-			const neighbors = this.boardGenerator
+			// TODO: THIS SHOULD NOT INSANTIATE
+			const boardGenerator = new BoardGenerator();
+			const neighbors = boardGenerator
 				.getValidNeighbors(this.state.board, point, visited, true)
 				.filter((n) => !path.some((p) => p.x === n.x && p.y === n.y))
 				.sort(() => Math.random() - 0.5);
@@ -207,8 +203,8 @@ export class ChromaPathGame {
 		return this.state;
 	}
 
-	public reset(size?: number): void {
+	public reset(newBoard: Board, size?: number): void {
 		if (size) this.boardSize = size;
-		this.state = this.initializeState();
+		this.state = this.initializeState(newBoard);
 	}
 }

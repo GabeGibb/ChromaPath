@@ -1,19 +1,23 @@
-import { Board, Point } from "./Types";
+import { ChromaPathRenderer } from "./Renderer";
+import { Board, GameState, Point } from "./Types";
 
 export class BoardGenerator {
 	private boardSize: number = 5;
 	private readonly maxAttempts = 1000;
 	private curColorIndex = 0;
 	private minDistanceBetweenEndpoints = 3;
+	private renderer: ChromaPathRenderer | null = null;
 
-	constructor() {}
+	constructor(renderer: ChromaPathRenderer | null = null) {
+		this.renderer = renderer;
+	}
 
-	generateBoard(boardSize: number): Board {
+	async generateBoard(boardSize: number): Promise<Board> {
 		this.boardSize = boardSize;
 
 		for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
 			const board = this.initializeEmptyBoard();
-			if (this.generateValidBoard(board)) {
+			if (await this.generateValidBoard(board)) {
 				// If board valid remove paths
 				this.removeNonEndpoints(board);
 				return board;
@@ -39,13 +43,25 @@ export class BoardGenerator {
 		}
 	}
 
-	private generateValidBoard(board: Board): boolean {
+	private async generateValidBoard(board: Board): Promise<boolean> {
 		// Try to place each color's endpoints
 		this.curColorIndex = 0;
+		const colorsMap = this.convertIndicesToColors(this.boardSize, board);
 		while (true) {
 			const color = this.curColorIndex.toString();
-			if (this.placeColorEndpoints(board, color)) {
+			if (this.placeColorEndpoints(board, colorsMap[color])) {
 				this.curColorIndex++;
+				const GameState: GameState = {
+					board: board,
+					paths: {},
+					currentColor: null,
+					startPoint: null,
+					completed: false,
+					mouseX: 0,
+					mouseY: 0,
+				};
+				this.renderer?.render(GameState, this.boardSize);
+				await new Promise((resolve) => setTimeout(resolve, 500));
 			} else {
 				return false;
 			}
@@ -295,14 +311,15 @@ export class BoardGenerator {
 		for (let i = 0; i < colors.length; i++) {
 			indexToColorMap[i.toString()] = colors[i];
 		}
+		return indexToColorMap;
 
-		for (let y = 0; y < this.boardSize; y++) {
-			for (let x = 0; x < this.boardSize; x++) {
-				const cell = board[y][x];
-				if (cell) {
-					cell.color = indexToColorMap[cell.color];
-				}
-			}
-		}
+		// for (let y = 0; y < this.boardSize; y++) {
+		// 	for (let x = 0; x < this.boardSize; x++) {
+		// 		const cell = board[y][x];
+		// 		if (cell) {
+		// 			cell.color = indexToColorMap[cell.color];
+		// 		}
+		// 	}
+		// }
 	}
 }

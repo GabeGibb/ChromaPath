@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { BoardGenerator } from "./BoardGenerator";
 import { ChromaPathGame } from "./GameLogic";
 import { ChromaPathRenderer } from "./Renderer";
 
@@ -10,29 +11,40 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	const canvasRef = useRef<HTMLDivElement>(null);
 	const gameRef = useRef<ChromaPathGame | null>(null);
 	const rendererRef = useRef<ChromaPathRenderer | null>(null);
+	const boardGeneratorRef = useRef<BoardGenerator | null>(null);
 	const [boardSize, setBoardSize] = useState(initialSize);
+	const [boardGenerating, setBoardGenerating] = useState<boolean>(true);
+
+	const gameActionsNotReady = !gameRef.current || !rendererRef.current || !rendererRef.current.initialized || boardGenerating;
 
 	useEffect(() => {
 		if (!canvasRef.current) return;
-		gameRef.current = new ChromaPathGame(boardSize);
-		rendererRef.current = new ChromaPathRenderer(canvasRef.current);
+		async function initializeBoard() {
+			rendererRef.current = new ChromaPathRenderer(canvasRef.current!);
+			boardGeneratorRef.current = new BoardGenerator(rendererRef.current);
+			const board = await boardGeneratorRef.current?.generateBoard(boardSize);
+			gameRef.current = new ChromaPathGame(board, boardSize);
 
-		const renderer = rendererRef.current;
-		const game = gameRef.current;
+			const renderer = rendererRef.current;
+			const game = gameRef.current;
 
-		renderer.render(game.getState(), boardSize);
+			renderer.render(game.getState(), boardSize);
+		}
+		initializeBoard();
 
 		return () => {
-			renderer.destroy();
+			if (rendererRef.current) {
+				rendererRef.current.destroy();
+			}
 		};
 	}, []);
 
 	useEffect(() => {
-		if (!gameRef.current || !rendererRef.current || !rendererRef.current.initialized) return;
+		if (gameActionsNotReady) return;
 
 		const canvas = rendererRef.current.getCanvas();
 		const handleMouseMove = (event: MouseEvent) => {
-			if (!gameRef.current || !rendererRef.current) return;
+			if (gameActionsNotReady) return;
 
 			const rect = canvas.getBoundingClientRect();
 			const canvasWidth = rect.width;
@@ -52,7 +64,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		};
 
 		const handlePointerDown = (event: PointerEvent | Touch) => {
-			if (!gameRef.current || !rendererRef.current) return;
+			if (gameActionsNotReady) return;
 
 			const rect = canvas.getBoundingClientRect();
 			const canvasWidth = rect.width;
@@ -69,7 +81,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		};
 
 		const handlePointerMove = (event: PointerEvent | Touch) => {
-			if (!gameRef.current || !rendererRef.current) return;
+			if (gameActionsNotReady) return;
 
 			const rect = canvas.getBoundingClientRect();
 			const canvasWidth = rect.width;
@@ -96,7 +108,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		};
 
 		const handlePointerUp = () => {
-			if (!gameRef.current || !rendererRef.current) return;
+			if (gameActionsNotReady) return;
 
 			const gameComplete = gameRef.current?.endDrag();
 			rendererRef.current?.render(gameRef.current?.getState(), boardSize);
@@ -106,7 +118,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 			}
 		};
 		const handleWindowResize = () => {
-			if (!gameRef.current || !rendererRef.current) return;
+			if (gameActionsNotReady) return;
 			rendererRef.current.resize(canvasRef.current!);
 			rendererRef.current?.render(gameRef.current?.getState(), boardSize);
 		};
@@ -132,9 +144,12 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		};
 	}, [boardSize]);
 
-	const handleNewLevel = () => {
-		if (!gameRef.current || !rendererRef.current) return;
-		gameRef.current?.reset(boardSize);
+	const handleNewLevel = async () => {
+		if (gameActionsNotReady) return;
+		setBoardGenerating(true);
+		const board = await boardGeneratorRef.current.generateBoard(boardSize);
+		setBoardGenerating(false);
+		gameRef.current?.reset(board, boardSize);
 		rendererRef.current?.render(gameRef.current?.getState(), boardSize);
 	};
 
@@ -164,7 +179,6 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 						</option>
 					))}
 				</select>
-				{/* <fieldset className="fieldset p-4 bg-base-100 border border-base-300 rounded-box w-64"> */}
 				<label className="flex items-center space-x-2">
 					<span>Show Numbers</span>
 
@@ -179,7 +193,6 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 						className="checkbox checkbox-neutral"
 					/>
 				</label>
-				{/* </fieldset> */}
 			</div>
 		</div>
 	);

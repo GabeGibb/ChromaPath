@@ -2,3 +2,10 @@
 - More vibrant hues
 - Better board generation
 - Going of canvas and back on causes problems
+- vh broken for mobile
+- create a visualizer for generation
+
+- identify extra features
+-- time trial?
+-- server side board generation?
+-- login / stats?
