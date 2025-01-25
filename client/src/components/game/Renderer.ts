@@ -66,6 +66,7 @@ export class FlowFreeRenderer {
 				this.ctx.strokeStyle = color;
 				this.ctx.lineWidth = this.cellSize / 4;
 				this.ctx.lineCap = "round";
+				this.ctx.lineJoin = "round"; // Add this line to make the paths rounded
 
 				this.ctx.moveTo(path[0].x * this.cellSize + this.cellSize / 2, path[0].y * this.cellSize + this.cellSize / 2);
 

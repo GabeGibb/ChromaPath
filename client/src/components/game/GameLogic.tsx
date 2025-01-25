@@ -98,37 +98,40 @@ export class FlowFreeGame {
 					this.state.paths[this.state.currentColor] = [...currentPath, { x, y }];
 				} else {
 					// If the move is not adjacent or backtracking, find a path to the endpoint with a custom implementation
-					// TODO: THIS CAN CRASH EVERYTHING
+					// TODO: THIS CAN CRASH EVERYTHING + CAN OVERLAP PATHS
 					const startPoint = currentPath[0];
 					const visited = new Set<string>();
-					const queue: { point: { x: number; y: number }; path: { x: number; y: number }[] }[] = [
-						{ point: startPoint, path: [startPoint] },
-					];
-					const target = { x, y }; // Define the target endpoint
+					const maxPathLength = this.boardSize * this.boardSize; // Prevent infinite paths
+					const queue: { point: Point; path: Point[] }[] = [{ point: startPoint, path: [startPoint] }];
+					const target = { x, y };
 
 					while (queue.length > 0) {
 						const { point, path } = queue.shift()!;
 
-						// Mark the current point as visited
-						visited.add(`${point.x},${point.y}`);
+						// Check if the point is in a path
+						if (currentPath.some((p) => p.x === point.x && p.y === point.y)) continue;
+						// Skip too-long paths
+						if (path.length > maxPathLength) continue;
 
-						// If the current point is the target, update the path and exit
 						if (point.x === target.x && point.y === target.y) {
 							this.state.paths[this.state.currentColor] = path;
 							return;
 						}
 
-						// Get all valid neighbors that haven't been visited
-						const neighbors = this.boardGenerator.getValidNeighbors(this.state.board, point, visited);
+						// Only mark as visited after checking target
+						visited.add(`${point.x},${point.y}`);
 
-						// Add neighbors to the queue with updated paths
+						const neighbors = this.boardGenerator
+							.getValidNeighbors(this.state.board, point, visited)
+							.filter((n) => !path.some((p) => p.x === n.x && p.y === n.y)); // Prevent path overlap
+
+						neighbors.sort(() => Math.random() - 0.5); // Randomize neighbor order
+
 						for (const neighbor of neighbors) {
-							if (!visited.has(`${neighbor.x},${neighbor.y}`)) {
-								queue.push({
-									point: neighbor,
-									path: [...path, neighbor],
-								});
-							}
+							queue.push({
+								point: neighbor,
+								path: [...path, neighbor],
+							});
 						}
 					}
 				}
@@ -136,15 +139,19 @@ export class FlowFreeGame {
 		}
 	}
 
-	public endDrag(): void {
+	public endDrag(): boolean {
 		this.state.currentColor = null;
 		this.state.startPoint = null;
-		this.checkCompletion();
+		return this.checkCompletion();
 	}
 
-	private checkCompletion(): void {
-		// TODO: Implement completion logic
-		this.state.completed = false;
+	private checkCompletion(): boolean {
+		let total = 0;
+		for (const path in this.state.paths) {
+			total += this.state.paths[path].length;
+		}
+
+		return total === this.boardSize * this.boardSize;
 	}
 
 	public getState(): GameState {

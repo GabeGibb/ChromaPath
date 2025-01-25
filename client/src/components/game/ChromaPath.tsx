@@ -13,7 +13,6 @@ const ChromaPath: React.FC<Props> = ({ width = 400, height = 400, initialSize = 
 	const gameRef = useRef<FlowFreeGame | null>(null);
 	const rendererRef = useRef<FlowFreeRenderer | null>(null);
 	const [boardSize, setBoardSize] = useState(initialSize);
-	const [level, setLevel] = useState(1);
 
 	useEffect(() => {
 		if (!canvasRef.current) return;
@@ -65,8 +64,12 @@ const ChromaPath: React.FC<Props> = ({ width = 400, height = 400, initialSize = 
 		const handlePointerUp = () => {
 			if (!gameRef.current || !rendererRef.current) return;
 
-			gameRef.current?.endDrag();
+			const gameComplete = gameRef.current?.endDrag();
 			rendererRef.current?.render(gameRef.current?.getState(), boardSize);
+
+			if (gameComplete) {
+				handleNewLevel();
+			}
 		};
 
 		canvas.addEventListener("pointerdown", handlePointerDown);
@@ -86,25 +89,30 @@ const ChromaPath: React.FC<Props> = ({ width = 400, height = 400, initialSize = 
 		if (!gameRef.current || !rendererRef.current) return;
 		gameRef.current?.reset(boardSize);
 		rendererRef.current?.render(gameRef.current?.getState(), boardSize);
-		setLevel((prev) => prev + 1);
 	};
+
+	useEffect(() => {
+		handleNewLevel();
+	}, [boardSize]);
 
 	return (
 		<div className="flex flex-col items-center gap-4">
-			<div className="text-xl font-bold">Flow Free - Level {level}</div>
-			<div ref={canvasRef} className="border border-gray-300 rounded-lg shadow-lg" />
+			<div className="text-2xl font-bold text-neutral-content">ChromaPath</div>
+			<div ref={canvasRef} className="border border-neutral rounded-lg shadow-lg" />
 			<div className="flex gap-4">
-				<button onClick={handleNewLevel} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+				<button onClick={handleNewLevel} className="btn btn-primary">
 					New Level
 				</button>
 				<select
 					value={boardSize}
 					onChange={(e) => setBoardSize(Number(e.target.value))}
-					className="px-4 py-2 border rounded"
+					className="select w-full max-w-xs focus:outline-0 focus:border-0"
 				>
-					<option value={5}>5x5</option>
-					<option value={10}>10x10</option>
-					<option value={15}>15x15</option>
+					{Array.from({ length: 16 }, (_, i) => (
+						<option key={i + 5} value={i + 5}>
+							{i + 5}x{i + 5}
+						</option>
+					))}
 				</select>
 			</div>
 		</div>

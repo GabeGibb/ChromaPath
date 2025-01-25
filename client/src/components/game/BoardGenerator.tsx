@@ -3,7 +3,7 @@ import { Board, Point } from "./Types";
 export class BoardGenerator {
 	private boardSize: number = 5;
 	private colors: string[] = [];
-	private readonly maxAttempts = 100;
+	private readonly maxAttempts = 10000;
 
 	constructor() {}
 
@@ -17,6 +17,7 @@ export class BoardGenerator {
 		for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
 			const board = this.initializeEmptyBoard();
 			if (this.generateValidBoard(board)) {
+				this.removeNonEndpoints(board);
 				return board;
 			}
 		}
@@ -29,10 +30,21 @@ export class BoardGenerator {
 			.map(() => Array(this.boardSize).fill(null));
 	}
 
+	private removeNonEndpoints(board: Board) {
+		for (let y = 0; y < this.boardSize; y++) {
+			for (let x = 0; x < this.boardSize; x++) {
+				const cell = board[y][x];
+				if (!cell?.isEndpoint) {
+					// If the cell is not an endpoint remove it
+					board[y][x] = null;
+				}
+			}
+		}
+	}
+
 	private generateValidBoard(board: Board): boolean {
 		// Shuffle colors to randomize placement order
 		const shuffledColors = [...this.colors].sort(() => Math.random() - 0.5);
-		console.log(shuffledColors);
 		for (const color of shuffledColors) {
 			if (!this.placeColorEndpoints(board, color)) {
 				return false;
@@ -55,13 +67,19 @@ export class BoardGenerator {
 			return false;
 		}
 
+		// If board state not ok after placing second endpoint, remove it and return false
+		if (!this.validateBoardStateOk(board, path[path.length - 1], path)) {
+			board[start.y][start.x] = null;
+			return false;
+		}
+
 		const end = path[path.length - 1];
 		board[end.y][end.x] = { color, isEndpoint: true };
 
 		// Place the path (optional - can be left empty for puzzle generation)
-		// for (const point of path.slice(1, -1)) {
-		//     board[point.y][point.x] = { color, isEndpoint: false };
-		// }
+		for (const point of path.slice(1, -1)) {
+			board[point.y][point.x] = { color, isEndpoint: false };
+		}
 
 		return true;
 	}
@@ -83,7 +101,7 @@ export class BoardGenerator {
 		const visited = new Set<string>();
 		const queue: { point: Point; path: Point[] }[] = [{ point: start, path: [start] }];
 		const minPathLength = 3;
-		const maxPathLength = Math.floor(this.boardSize * 1.5); // Allows for longer, winding paths
+		const maxPathLength = Math.floor(this.boardSize * this.boardSize); // Allows for longer, winding paths
 
 		while (queue.length > 0) {
 			const { point, path } = queue.shift()!;
@@ -97,7 +115,7 @@ export class BoardGenerator {
 
 			// Chance to end the path increases with length
 			const pathLengthFactor = (path.length - minPathLength) / (maxPathLength - minPathLength);
-			const endChance = Math.max(0, pathLengthFactor * 0.4); // 40% max chance to end
+			const endChance = Math.max(0, pathLengthFactor * 0.8); // max chance to end
 
 			if (
 				path.length >= minPathLength &&
@@ -123,6 +141,52 @@ export class BoardGenerator {
 
 		return null;
 	}
+
+	private validateBoardStateOk(board: Board, point: Point, currentPath: Point[]): boolean {
+		// Get all empty cells
+		const emptyCells: Point[] = [];
+		for (let y = 0; y < this.boardSize; y++) {
+			for (let x = 0; x < this.boardSize; x++) {
+				if (!board[y][x] && !currentPath.some((p) => p.x === x && p.y === y)) {
+					emptyCells.push({ x, y });
+				}
+			}
+		}
+
+		// Group empty cells into connected regions
+		const regions: Point[][] = [];
+		const visited = new Set<string>();
+
+		for (const cell of emptyCells) {
+			const key = `${cell.x},${cell.y}`;
+			if (!visited.has(key)) {
+				const region: Point[] = [];
+				const queue: Point[] = [cell];
+
+				while (queue.length > 0) {
+					const current = queue.shift()!;
+					const currentKey = `${current.x},${current.y}`;
+
+					if (!visited.has(currentKey)) {
+						visited.add(currentKey);
+						region.push(current);
+
+						// Add unvisited neighbors
+						const neighbors = this.getValidNeighbors(board, current, visited);
+						for (const neighbor of neighbors) {
+							if (!visited.has(`${neighbor.x},${neighbor.y}`)) {
+								queue.push(neighbor);
+							}
+						}
+					}
+				}
+				regions.push(region);
+			}
+		}
+
+		// Check if any region is too small (3 or fewer cells)
+		return !regions.some((region) => region.length <= 3);
+	}
 	public getValidNeighbors(board: Board, point: Point, visited: Set<string>): Point[] {
 		const directions = [
 			{ dx: 0, dy: -1 }, // up
@@ -142,7 +206,7 @@ export class BoardGenerator {
 					x < this.boardSize &&
 					y >= 0 &&
 					y < this.boardSize &&
-					(!board[y][x] || !board[y][x]?.isEndpoint) &&
+					!board[y][x] && // Check if cell is empty
 					!visited.has(`${x},${y}`)
 			);
 	}
@@ -154,13 +218,17 @@ export class BoardGenerator {
 		for (let y = 0; y < this.boardSize; y++) {
 			for (let x = 0; x < this.boardSize; x++) {
 				const cell = board[y][x];
+				if (!cell) {
+					return false;
+				}
 				if (cell?.isEndpoint) {
 					colorCount.set(cell.color, (colorCount.get(cell.color) || 0) + 1);
 				}
 			}
 		}
-
-		// Verify each color has exactly two endpoints
+		// Allow partially filled board during generation
 		return [...colorCount.values()].every((count) => count === 2);
+		// // Verify each color has exactly two endpoints
+		// return [...colorCount.values()].every((count) => count === 2);
 	}
 }
