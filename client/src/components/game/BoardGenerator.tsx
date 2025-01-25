@@ -68,7 +68,7 @@ export class BoardGenerator {
 		}
 
 		// If board state not ok after placing second endpoint, remove it and return false
-		if (!this.validateBoardStateOk(board, path[path.length - 1], path)) {
+		if (!this.validateBoardStateOk(board, path)) {
 			board[start.y][start.x] = null;
 			return false;
 		}
@@ -142,7 +142,7 @@ export class BoardGenerator {
 		return null;
 	}
 
-	private validateBoardStateOk(board: Board, point: Point, currentPath: Point[]): boolean {
+	private validateBoardStateOk(board: Board, currentPath: Point[]): boolean {
 		// Get all empty cells
 		const emptyCells: Point[] = [];
 		for (let y = 0; y < this.boardSize; y++) {
@@ -187,7 +187,7 @@ export class BoardGenerator {
 		// Check if any region is too small (3 or fewer cells)
 		return !regions.some((region) => region.length <= 3);
 	}
-	public getValidNeighbors(board: Board, point: Point, visited: Set<string>): Point[] {
+	public getValidNeighbors(board: Board, point: Point, visited: Set<string>, includeEndpoint: boolean = false): Point[] {
 		const directions = [
 			{ dx: 0, dy: -1 }, // up
 			{ dx: 1, dy: 0 }, // right
@@ -206,7 +206,7 @@ export class BoardGenerator {
 					x < this.boardSize &&
 					y >= 0 &&
 					y < this.boardSize &&
-					!board[y][x] && // Check if cell is empty
+					(!board[y][x] || (includeEndpoint && board[y][x]?.isEndpoint)) && // Check if cell is empty or include endpoints if specified
 					!visited.has(`${x},${y}`)
 			);
 	}

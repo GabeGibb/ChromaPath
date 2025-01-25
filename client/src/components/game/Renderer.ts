@@ -1,4 +1,4 @@
-import { Board, GameState, Paths } from "./Types";
+import { Board, GameState } from "./Types";
 
 export class FlowFreeRenderer {
 	private canvas: HTMLCanvasElement;
@@ -23,7 +23,8 @@ export class FlowFreeRenderer {
 		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 		this.drawGrid(boardSize);
 		this.drawBoard(state.board);
-		this.drawPaths(state.paths);
+		this.drawHover(state);
+		this.drawPaths(state);
 	}
 
 	private drawGrid(boardSize: number): void {
@@ -59,7 +60,8 @@ export class FlowFreeRenderer {
 		});
 	}
 
-	private drawPaths(paths: Paths): void {
+	private drawPaths(state: GameState): void {
+		const paths = state.paths;
 		Object.entries(paths).forEach(([color, path]) => {
 			if (path.length > 1) {
 				this.ctx.beginPath();
@@ -76,6 +78,37 @@ export class FlowFreeRenderer {
 				this.ctx.stroke();
 			}
 		});
+	}
+
+	private drawHover(state: GameState): void {
+		const mouseX = state.mouseX;
+		const mouseY = state.mouseY;
+		const mousePosX = mouseX * this.cellSize;
+		const mousePosY = mouseY * this.cellSize;
+
+		// Remove cell-based calculation to allow smooth movement
+		const gradient = this.ctx.createRadialGradient(mousePosX, mousePosY, 0, mousePosX, mousePosY, this.cellSize * 2);
+
+		// gradient.addColorStop(0, "rgba(255, 255, 255, 0.2)");
+		// gradient.addColorStop(0.2, "rgba(255, 255, 255, 0.05)");
+		// gradient.addColorStop(1, "rgba(255, 255, 255, 0.01)");
+
+		// Draw larger gradient area for smoother effect
+		this.ctx.fillStyle = gradient;
+		this.ctx.fillRect(mousePosX - this.cellSize * 2, mousePosY - this.cellSize * 2, this.cellSize * 4, this.cellSize * 4);
+
+		// Get current cell
+		const cellX = Math.floor(mouseX);
+		const cellY = Math.floor(mouseY);
+
+		// Highlight current cell
+		this.ctx.fillStyle = "rgba(255, 255, 255, 0.01)";
+		this.ctx.fillRect(cellX * this.cellSize, cellY * this.cellSize, this.cellSize, this.cellSize);
+
+		// Glowing border
+		this.ctx.strokeStyle = "rgba(255, 255, 255, 0.01)";
+		this.ctx.lineWidth = 2;
+		this.ctx.strokeRect(cellX * this.cellSize, cellY * this.cellSize, this.cellSize, this.cellSize);
 	}
 
 	public destroy(): void {

@@ -19,6 +19,8 @@ export class FlowFreeGame {
 			currentColor: null,
 			startPoint: null,
 			completed: false,
+			mouseX: 0,
+			mouseY: 0,
 		};
 	}
 
@@ -66,83 +68,100 @@ export class FlowFreeGame {
 	}
 
 	public handleDrag(x: number, y: number): void {
-		// Check if dragging has started or mouse is down
 		if (!this.state.currentColor || !this.state.startPoint) return;
 
 		const currentPath = this.state.paths[this.state.currentColor];
 		const lastPoint = currentPath[currentPath.length - 1];
 
-		// Check if valid
-		if (this.isValidMove(x, y, this.state.currentColor)) {
-			// Check if the move is backtracking
-			const backtrackIndex = currentPath.findIndex((p) => p.x === x && p.y === y);
-			if (backtrackIndex !== -1) {
-				this.state.paths[this.state.currentColor] = currentPath.slice(0, backtrackIndex + 1);
-			} else {
-				// Find endpoints for current color
-				const endpoints = this.state.board
-					.flatMap((row, i) =>
-						row.map((cell, j) => (cell?.color === this.state.currentColor && cell.isEndpoint ? { x: j, y: i } : null))
-					)
-					.filter((point): point is Point => point !== null);
+		if (!this.isValidMove(x, y, this.state.currentColor)) return;
 
-				// Check if last point is already at an endpoint
-				const isAtEndpoint = endpoints.some(
-					(ep) => ep.x === lastPoint.x && ep.y === lastPoint.y && ep !== this.state.startPoint // Ensure it's not the start point
-				);
+		// Handle backtracking
+		const backtrackIndex = currentPath.findIndex((p) => p.x === x && p.y === y);
+		if (backtrackIndex !== -1) {
+			this.state.paths[this.state.currentColor] = currentPath.slice(0, backtrackIndex + 1);
+			return;
+		}
 
-				if (isAtEndpoint && currentPath.length > 1) return;
+		// Check if at non-start endpoint
+		const isAtEndpoint = this.isAtEndpoint(lastPoint, this.state.startPoint);
+		if (isAtEndpoint && currentPath.length > 1) return;
 
-				// Adding move must be adjacent
-				if (Math.abs(x - lastPoint.x) + Math.abs(y - lastPoint.y) === 1) {
-					this.state.paths[this.state.currentColor] = [...currentPath, { x, y }];
-				} else {
-					// If the move is not adjacent or backtracking, find a path to the endpoint with a custom implementation
-					// TODO: THIS CAN CRASH EVERYTHING + CAN OVERLAP PATHS
-					const startPoint = currentPath[0];
-					const visited = new Set<string>();
-					const maxPathLength = this.boardSize * this.boardSize; // Prevent infinite paths
-					const queue: { point: Point; path: Point[] }[] = [{ point: startPoint, path: [startPoint] }];
-					const target = { x, y };
+		// Handle adjacent moves
+		if (Math.abs(x - lastPoint.x) + Math.abs(y - lastPoint.y) === 1) {
+			this.state.paths[this.state.currentColor] = [...currentPath, { x, y }];
+			return;
+		}
 
-					while (queue.length > 0) {
-						const { point, path } = queue.shift()!;
+		// Handle non-adjacent moves
+		this.findPathToPoint(currentPath[0], { x, y });
+	}
 
-						// Check if the point is in a path
-						if (currentPath.some((p) => p.x === point.x && p.y === point.y)) continue;
-						// Skip too-long paths
-						if (path.length > maxPathLength) continue;
+	private isAtEndpoint(point: Point, startPoint: Point): boolean {
+		const cell = this.state.board[point.y]?.[point.x];
+		return !!(
+			cell?.isEndpoint &&
+			cell.color === this.state.currentColor &&
+			(point.x !== startPoint.x || point.y !== startPoint.y)
+		);
+	}
 
-						if (point.x === target.x && point.y === target.y) {
-							this.state.paths[this.state.currentColor] = path;
-							return;
-						}
+	private findPathToPoint(start: Point, target: Point): void {
+		const visited = new Set<string>();
+		const queue = [{ point: start, path: [start] }];
 
-						// Only mark as visited after checking target
-						visited.add(`${point.x},${point.y}`);
+		while (queue.length > 0) {
+			const { point, path } = queue.shift()!;
 
-						const neighbors = this.boardGenerator
-							.getValidNeighbors(this.state.board, point, visited)
-							.filter((n) => !path.some((p) => p.x === n.x && p.y === n.y)); // Prevent path overlap
-
-						neighbors.sort(() => Math.random() - 0.5); // Randomize neighbor order
-
-						for (const neighbor of neighbors) {
-							queue.push({
-								point: neighbor,
-								path: [...path, neighbor],
-							});
-						}
-					}
+			if (path.length > this.boardSize * this.boardSize || this.checkPathCollision(path)) continue;
+			if (point.x === target.x && point.y === target.y) {
+				if (this.state.currentColor) {
+					this.state.paths[this.state.currentColor] = path;
 				}
+				return;
+			}
+
+			visited.add(`${point.x},${point.y}`);
+
+			const neighbors = this.boardGenerator
+				.getValidNeighbors(this.state.board, point, visited, true)
+				.filter((n) => !path.some((p) => p.x === n.x && p.y === n.y))
+				.sort(() => Math.random() - 0.5);
+
+			for (const neighbor of neighbors) {
+				queue.push({ point: neighbor, path: [...path, neighbor] });
 			}
 		}
+	}
+
+	private checkPathCollision(currentPath: Point[]): boolean {
+		// Skip if no current path
+		if (!currentPath.length) return false;
+
+		// Check collision with other paths
+		for (const [color, path] of Object.entries(this.state.paths)) {
+			// Skip checking against current color's path
+			if (color === this.state.currentColor) continue;
+
+			// Check if any point in current path intersects with other paths
+			const hasCollision = currentPath.some((currentPoint) =>
+				path.some((pathPoint) => currentPoint.x === pathPoint.x && currentPoint.y === pathPoint.y)
+			);
+
+			if (hasCollision) return true;
+		}
+
+		return false;
 	}
 
 	public endDrag(): boolean {
 		this.state.currentColor = null;
 		this.state.startPoint = null;
 		return this.checkCompletion();
+	}
+
+	public handleMouseMove(x: number, y: number): void {
+		this.state.mouseX = x;
+		this.state.mouseY = y;
 	}
 
 	private checkCompletion(): boolean {

@@ -72,10 +72,24 @@ const ChromaPath: React.FC<Props> = ({ width = 400, height = 400, initialSize = 
 			}
 		};
 
+		const handleMouseMove = (event: MouseEvent) => {
+			if (!gameRef.current || !rendererRef.current) return;
+
+			const rect = canvas.getBoundingClientRect();
+			const x = (event.clientX - rect.left) / cellSize;
+			const y = (event.clientY - rect.top) / cellSize;
+
+			if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
+				gameRef.current?.handleMouseMove(x, y);
+				rendererRef.current?.render(gameRef.current?.getState(), boardSize);
+			}
+		};
+
 		canvas.addEventListener("pointerdown", handlePointerDown);
 		canvas.addEventListener("pointermove", handlePointerMove);
 		// canvas.addEventListener("pointerup", handlePointerUp);
 		document.addEventListener("pointerup", handlePointerUp);
+		canvas.addEventListener("mousemove", handleMouseMove);
 
 		return () => {
 			canvas.removeEventListener("pointerdown", handlePointerDown);

@@ -20,4 +20,6 @@ export type GameState = {
 	currentColor: string | null;
 	startPoint: Point | null;
 	completed: boolean;
+	mouseX: number;
+	mouseY: number;
 };
