@@ -2,18 +2,13 @@ import { Board, Point } from "./Types";
 
 export class BoardGenerator {
 	private boardSize: number = 5;
-	private colors: string[] = [];
 	private readonly maxAttempts = 10000;
 
 	constructor() {}
 
-	// TODO: THIS SHIT DONT WORK
 	generateBoard(boardSize: number): Board {
 		this.boardSize = boardSize;
-		this.colors = Array.from({ length: this.boardSize }, (_, i) => {
-			const hue = (i * 360) / this.boardSize; // evenly spaced hues
-			return `hsl(${hue}, 100%, 50%)`; // full saturation and medium lightness
-		});
+
 		for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
 			const board = this.initializeEmptyBoard();
 			if (this.generateValidBoard(board)) {
@@ -35,7 +30,6 @@ export class BoardGenerator {
 			for (let x = 0; x < this.boardSize; x++) {
 				const cell = board[y][x];
 				if (!cell?.isEndpoint) {
-					// If the cell is not an endpoint remove it
 					board[y][x] = null;
 				}
 			}
@@ -44,14 +38,37 @@ export class BoardGenerator {
 
 	private generateValidBoard(board: Board): boolean {
 		// Shuffle colors to randomize placement order
-		const shuffledColors = [...this.colors].sort(() => Math.random() - 0.5);
-		for (const color of shuffledColors) {
-			if (!this.placeColorEndpoints(board, color)) {
+		// Try to place each color's endpoints
+		let i = 0;
+		while (true) {
+			const color = i.toString();
+			if (this.placeColorEndpoints(board, color)) {
+				i++;
+			} else {
 				return false;
 			}
+			if (this.validateBoard(board)) {
+				this.convertIndicesToColors(i, board);
+				return true;
+			}
+		}
+	}
+
+	private convertIndicesToColors(numColors: number, board: Board) {
+		const indexToColorMap: { [key: string]: string } = {};
+		for (let i = 0; i < numColors; i++) {
+			const hue = (i * 360) / numColors;
+			indexToColorMap[i.toString()] = `hsl(${hue}, 100%, 50%)`;
 		}
 
-		return this.validateBoard(board);
+		for (let y = 0; y < this.boardSize; y++) {
+			for (let x = 0; x < this.boardSize; x++) {
+				const cell = board[y][x];
+				if (cell) {
+					cell.color = indexToColorMap[cell.color];
+				}
+			}
+		}
 	}
 
 	private placeColorEndpoints(board: Board, color: string): boolean {
@@ -67,7 +84,7 @@ export class BoardGenerator {
 			return false;
 		}
 
-		// If board state not ok after placing second endpoint, remove it and return false
+		// Check if board state is still valid after placing the path
 		if (!this.validateBoardStateOk(board, path)) {
 			board[start.y][start.x] = null;
 			return false;
@@ -100,8 +117,8 @@ export class BoardGenerator {
 	private findValidPath(board: Board, start: Point): Point[] | null {
 		const visited = new Set<string>();
 		const queue: { point: Point; path: Point[] }[] = [{ point: start, path: [start] }];
-		const minPathLength = 3;
-		const maxPathLength = Math.floor(this.boardSize * this.boardSize); // Allows for longer, winding paths
+		const minPathLength = this.boardSize;
+		const maxPathLength = Math.floor(this.boardSize * this.boardSize);
 
 		while (queue.length > 0) {
 			const { point, path } = queue.shift()!;
@@ -110,12 +127,9 @@ export class BoardGenerator {
 			if (visited.has(key)) continue;
 			visited.add(key);
 
-			// Get valid neighbors before checking for endpoint
-			const neighbors = this.getValidNeighbors(board, point, visited);
-
-			// Chance to end the path increases with length
+			const neighbors = this.getValidNeighbors(board, point, visited, false);
 			const pathLengthFactor = (path.length - minPathLength) / (maxPathLength - minPathLength);
-			const endChance = Math.max(0, pathLengthFactor * 0.8); // max chance to end
+			const endChance = Math.max(0, pathLengthFactor * 0);
 
 			if (
 				path.length >= minPathLength &&
@@ -125,10 +139,8 @@ export class BoardGenerator {
 				return path;
 			}
 
-			// Randomize neighbor order for more varied paths
 			const shuffledNeighbors = neighbors.sort(() => Math.random() - 0.5);
 
-			// Only continue if path isn't too long
 			if (path.length < maxPathLength) {
 				for (const neighbor of shuffledNeighbors) {
 					queue.push({
@@ -143,7 +155,6 @@ export class BoardGenerator {
 	}
 
 	private validateBoardStateOk(board: Board, currentPath: Point[]): boolean {
-		// Get all empty cells
 		const emptyCells: Point[] = [];
 		for (let y = 0; y < this.boardSize; y++) {
 			for (let x = 0; x < this.boardSize; x++) {
@@ -153,7 +164,6 @@ export class BoardGenerator {
 			}
 		}
 
-		// Group empty cells into connected regions
 		const regions: Point[][] = [];
 		const visited = new Set<string>();
 
@@ -171,7 +181,6 @@ export class BoardGenerator {
 						visited.add(currentKey);
 						region.push(current);
 
-						// Add unvisited neighbors
 						const neighbors = this.getValidNeighbors(board, current, visited);
 						for (const neighbor of neighbors) {
 							if (!visited.has(`${neighbor.x},${neighbor.y}`)) {
@@ -184,15 +193,15 @@ export class BoardGenerator {
 			}
 		}
 
-		// Check if any region is too small (3 or fewer cells)
 		return !regions.some((region) => region.length <= 3);
 	}
+
 	public getValidNeighbors(board: Board, point: Point, visited: Set<string>, includeEndpoint: boolean = false): Point[] {
 		const directions = [
-			{ dx: 0, dy: -1 }, // up
-			{ dx: 1, dy: 0 }, // right
-			{ dx: 0, dy: 1 }, // down
-			{ dx: -1, dy: 0 }, // left
+			{ dx: 0, dy: -1 },
+			{ dx: 1, dy: 0 },
+			{ dx: 0, dy: 1 },
+			{ dx: -1, dy: 0 },
 		];
 
 		return directions
@@ -206,18 +215,18 @@ export class BoardGenerator {
 					x < this.boardSize &&
 					y >= 0 &&
 					y < this.boardSize &&
-					(!board[y][x] || (includeEndpoint && board[y][x]?.isEndpoint)) && // Check if cell is empty or include endpoints if specified
+					(!board[y][x] || (includeEndpoint && board[y][x]?.isEndpoint)) &&
 					!visited.has(`${x},${y}`)
 			);
 	}
 
 	private validateBoard(board: Board): boolean {
-		// Check if all colors are placed with valid endpoints
 		const colorCount = new Map<string, number>();
 
 		for (let y = 0; y < this.boardSize; y++) {
 			for (let x = 0; x < this.boardSize; x++) {
 				const cell = board[y][x];
+				// If any cell is null return false
 				if (!cell) {
 					return false;
 				}
@@ -226,9 +235,8 @@ export class BoardGenerator {
 				}
 			}
 		}
-		// Allow partially filled board during generation
+
+		// Check that all placed colors have exactly two endpoints
 		return [...colorCount.values()].every((count) => count === 2);
-		// // Verify each color has exactly two endpoints
-		// return [...colorCount.values()].every((count) => count === 2);
 	}
 }

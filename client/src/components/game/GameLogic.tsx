@@ -84,10 +84,12 @@ export class FlowFreeGame {
 
 		// Check if at non-start endpoint
 		const isAtEndpoint = this.isAtEndpoint(lastPoint, this.state.startPoint);
+		const adjacentBeyond = isAtEndpoint && currentPath.length > 1;
+
 		if (isAtEndpoint && currentPath.length > 1) return;
 
 		// Handle adjacent moves
-		if (Math.abs(x - lastPoint.x) + Math.abs(y - lastPoint.y) === 1) {
+		if (Math.abs(x - lastPoint.x) + Math.abs(y - lastPoint.y) === 1 && !adjacentBeyond) {
 			this.state.paths[this.state.currentColor] = [...currentPath, { x, y }];
 			return;
 		}
@@ -111,9 +113,15 @@ export class FlowFreeGame {
 
 		while (queue.length > 0) {
 			const { point, path } = queue.shift()!;
+			// Check if point is at endpoint
+			// TODO: Fix this condition
+			if (path.length > 1 && this.isAtEndpoint(point, start) && target.x !== point.x && target.y !== point.y) {
+				continue;
+			}
 
-			if (path.length > this.boardSize * this.boardSize || this.checkPathCollision(path)) continue;
+			if (path.length > this.boardSize * this.boardSize || this.checkPathCollision(path)) continue; // Prevent infinite loops
 			if (point.x === target.x && point.y === target.y) {
+				// Found path
 				if (this.state.currentColor) {
 					this.state.paths[this.state.currentColor] = path;
 				}
@@ -148,6 +156,27 @@ export class FlowFreeGame {
 			);
 
 			if (hasCollision) return true;
+		}
+
+		// For currentPath make sure it does not intersect with any endpoint not of same color
+		const currentColor = this.state.currentColor;
+		const currentPathEnd = currentPath[currentPath.length - 1];
+		const currentPathStart = currentPath[0];
+		for (let y = 0; y < this.boardSize; y++) {
+			for (let x = 0; x < this.boardSize; x++) {
+				const cell = this.state.board[y][x];
+				if (cell?.isEndpoint && cell.color !== currentColor) {
+					if (currentPath.some((p) => p.x === x && p.y === y)) {
+						return true;
+					}
+					if (currentPathStart.x === x && currentPathStart.y === y) {
+						return true;
+					}
+					if (currentPathEnd.x === x && currentPathEnd.y === y) {
+						return true;
+					}
+				}
+			}
 		}
 
 		return false;
