@@ -94,6 +94,7 @@ export class ChromaPathGame {
 			return;
 		}
 
+		// TODO: FIX THIS TO BE A BIT BETTER
 		this.findPathToPoint(currentPath[0], { x, y });
 	}
 
@@ -113,13 +114,13 @@ export class ChromaPathGame {
 		while (queue.length > 0) {
 			const { point, path } = queue.shift()!;
 			// Check if point is at endpoint
-			// TODO: Fix this condition AHHH
+
 			if (path.length > 1 && this.isAtEndpoint(point, start) && target.x !== point.x && target.y !== point.y) {
 				continue;
 			}
 
 			if (path.length > this.boardSize * this.boardSize || this.checkPathCollision(path)) continue; // Prevent infinite loops
-			if (point.x === target.x && point.y === target.y) {
+			if ((point.x === target.x && point.y === target.y) || this.isAtEndpoint(point, start)) {
 				// Found path
 				if (this.state.currentColor) {
 					this.state.paths[this.state.currentColor] = path;
