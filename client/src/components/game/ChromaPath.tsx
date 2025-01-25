@@ -22,7 +22,9 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		async function initializeBoard() {
 			rendererRef.current = new ChromaPathRenderer(canvasRef.current!);
 			boardGeneratorRef.current = new BoardGenerator(rendererRef.current);
+			setBoardGenerating(true);
 			const board = await boardGeneratorRef.current.generateBoard(boardSize);
+			setBoardGenerating(false);
 			if (!board) return;
 
 			gameRef.current = new ChromaPathGame(board, boardSize);

@@ -102,39 +102,73 @@ export class ChromaPathGame {
 	}
 
 	private findPathToPoint(start: Point, target: Point): boolean {
+		// Helper to calculate manhattan distance (heuristic)
+		const manhattanDistance = (p1: Point, p2: Point): number => {
+			return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
+		};
+
 		const visited = new Set<string>();
-		const queue = [{ point: start, path: [start] }];
+		// Priority queue with cost estimate (f = g + h)
+		const queue: Array<{
+			point: Point;
+			path: Point[];
+			f: number;
+		}> = [
+			{
+				point: start,
+				path: [start],
+				f: manhattanDistance(start, target),
+			},
+		];
 
 		while (queue.length > 0) {
+			// Get the path with lowest estimated cost
+			queue.sort((a, b) => a.f - b.f);
 			const { point, path } = queue.shift()!;
-			// Check if point is at endpoint
 
-			if (path.length > 1 && this.isAtEndpoint(point, start) && target.x !== point.x && target.y !== point.y) {
+			// If the point is the endpoint but it's not the target, skip
+			if (this.isAtEndpoint(point, start) && target.x !== point.x && target.y !== point.y) {
+				path.pop();
+			}
+
+			// Path length and collision checks
+			if (this.checkPathCollision(path)) {
 				continue;
 			}
 
-			if (path.length > this.boardSize * this.boardSize || this.checkPathCollision(path)) continue; // Prevent infinite loops
-			if ((point.x === target.x && point.y === target.y) || this.isAtEndpoint(point, start)) {
-				// Found path
+			// Check if we've reached the target or a valid endpoint
+			if (point.x === target.x && point.y === target.y) {
 				if (this.state.currentColor) {
 					this.state.paths[this.state.currentColor] = path;
 				}
+				console.log("ok");
 				return true;
 			}
 
-			visited.add(`${point.x},${point.y}`);
+			const pointKey = `${point.x},${point.y}`;
+			if (visited.has(pointKey)) continue;
+			visited.add(pointKey);
 
-			// TODO: THIS SHOULD NOT INSANTIATE
+			// Get and evaluate neighbors
 			const boardGenerator = new BoardGenerator();
-			const neighbors = boardGenerator
-				.getValidNeighbors(this.state.board, point, visited, true)
-				.filter((n) => !path.some((p) => p.x === n.x && p.y === n.y))
-				.sort(() => Math.random() - 0.5);
-
+			const neighbors = boardGenerator.getValidNeighbors(this.state.board, point, visited, true);
+			console.log(neighbors);
 			for (const neighbor of neighbors) {
-				queue.push({ point: neighbor, path: [...path, neighbor] });
+				// g = current path length
+				const g = path.length;
+				// h = estimated distance to target
+				const h = manhattanDistance(neighbor, target);
+				// f = g + h (total estimated cost)
+				const f = g + h;
+
+				queue.push({
+					point: neighbor,
+					path: [...path, neighbor],
+					f: f,
+				});
 			}
 		}
+
 		return false;
 	}
 

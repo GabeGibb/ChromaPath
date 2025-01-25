@@ -130,6 +130,15 @@ export class BoardGenerator {
 		return emptyCells;
 	}
 
+	private shuffleArray(array: any[]) {
+		const shuffled = [...array];
+		for (let i = shuffled.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+		}
+		return shuffled;
+	}
+
 	private findValidPath(board: Board, start: Point): Point[] | null {
 		const visited = new Set<string>();
 		const queue: { point: Point; path: Point[] }[] = [{ point: start, path: [start] }];
@@ -149,9 +158,9 @@ export class BoardGenerator {
 			}
 
 			// ! THIS LINE ADDS RANDOMNESS TO THE PATH BUT IS EXPENSIVE
-			const shuffledNeighbors = neighbors.sort(() => Math.random() - 0.5);
+			// const shuffledNeighbors = this.shuffleArray(neighbors);
 
-			for (const neighbor of shuffledNeighbors) {
+			for (const neighbor of neighbors) {
 				queue.push({
 					point: neighbor,
 					path: [...path, neighbor],
@@ -171,7 +180,9 @@ export class BoardGenerator {
 				}
 			}
 		}
+		// TODO: Maybe check for some suspect regions?
 
+		// Original region size validation
 		const regions: Point[][] = [];
 		const visited = new Set<string>();
 
