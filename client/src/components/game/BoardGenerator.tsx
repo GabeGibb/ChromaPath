@@ -46,9 +46,10 @@ export class BoardGenerator {
 	private async generateValidBoard(board: Board): Promise<boolean> {
 		// Try to place each color's endpoints
 		this.curColorIndex = 0;
-		const colorsMap = this.convertIndicesToColors(25, board);
+		const colorsMap = this.convertIndicesToColors(23);
 		while (true) {
 			const color = colorsMap[this.curColorIndex.toString()];
+			console.log(color, Object.keys(colorsMap).length, this.curColorIndex);
 			if (this.placeColorEndpoints(board, color)) {
 				this.curColorIndex++;
 				const GameState: GameState = {
@@ -61,14 +62,14 @@ export class BoardGenerator {
 					mouseY: 0,
 				};
 				this.renderer?.render(GameState, this.boardSize);
-				await new Promise((resolve) => setTimeout(resolve, 50));
 			} else {
+				// alert("Failed to place color endpoints");
 				return false;
 			}
 			if (this.validateBoard(board)) {
-				this.convertIndicesToColors(this.curColorIndex, board);
 				return true;
 			}
+			await new Promise((resolve) => setTimeout(resolve, 50));
 		}
 	}
 
@@ -257,7 +258,7 @@ export class BoardGenerator {
 		return [...colorCount.values()].every((count) => count === 2);
 	}
 
-	private convertIndicesToColors(numColors: number, board: Board) {
+	private convertIndicesToColors(numColors: number) {
 		const indexToColorMap: { [key: string]: string } = {};
 
 		function maximizePairwiseDistance(numColors: number): string[] {
@@ -312,14 +313,5 @@ export class BoardGenerator {
 			indexToColorMap[i.toString()] = colors[i];
 		}
 		return indexToColorMap;
-
-		// for (let y = 0; y < this.boardSize; y++) {
-		// 	for (let x = 0; x < this.boardSize; x++) {
-		// 		const cell = board[y][x];
-		// 		if (cell) {
-		// 			cell.color = indexToColorMap[cell.color];
-		// 		}
-		// 	}
-		// }
 	}
 }

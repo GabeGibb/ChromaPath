@@ -48,7 +48,7 @@ export class ChromaPathRenderer {
 	}
 	private drawBoard(board: Board): void {
 		const colorToIndex = new Map<string, number>();
-		let currentIndex = 0;
+		let currentIndex = 1;
 
 		// First pass - assign indices to colors
 		// TODO: Could do if show numbers here
@@ -76,7 +76,6 @@ export class ChromaPathRenderer {
 					this.ctx.fill();
 
 					if (this.showNumbers) {
-						console.log(cell.color);
 						this.ctx.fillStyle = this.getHighContrastColor(cell.color);
 						this.ctx.font = `${this.cellSize / 3}px Sour Gummy`;
 						this.ctx.textAlign = "center";

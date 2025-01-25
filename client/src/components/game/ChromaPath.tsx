@@ -22,27 +22,29 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		async function initializeBoard() {
 			rendererRef.current = new ChromaPathRenderer(canvasRef.current!);
 			boardGeneratorRef.current = new BoardGenerator(rendererRef.current);
-			const board = await boardGeneratorRef.current?.generateBoard(boardSize);
-			gameRef.current = new ChromaPathGame(board, boardSize);
+			const board = await boardGeneratorRef.current.generateBoard(boardSize);
+			if (!board) return;
 
+			gameRef.current = new ChromaPathGame(board, boardSize);
 			const renderer = rendererRef.current;
 			const game = gameRef.current;
 
-			renderer.render(game.getState(), boardSize);
+			const state = game.getState();
+			if (state) renderer.render(state, boardSize);
 		}
 		initializeBoard();
 
 		return () => {
-			if (rendererRef.current) {
-				rendererRef.current.destroy();
-			}
+			rendererRef.current?.destroy();
 		};
 	}, []);
 
 	useEffect(() => {
 		if (gameActionsNotReady) return;
+		const renderer = rendererRef.current!;
+		const game = gameRef.current!;
+		const canvas = renderer.getCanvas();
 
-		const canvas = rendererRef.current.getCanvas();
 		const handleMouseMove = (event: MouseEvent) => {
 			if (gameActionsNotReady) return;
 
@@ -50,17 +52,15 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 			const canvasWidth = rect.width;
 			const cellSize = canvasWidth / boardSize;
 
-			let x = Math.floor((event.clientX - rect.left) / cellSize);
-			let y = Math.floor((event.clientY - rect.top) / cellSize);
+			const x = Math.floor((event.clientX - rect.left) / cellSize);
+			const y = Math.floor((event.clientY - rect.top) / cellSize);
 
-			// Clamp x and y to be within bounds
-			x = Math.max(0, Math.min(x, boardSize - 1));
-			y = Math.max(0, Math.min(y, boardSize - 1));
+			const clampedX = Math.max(0, Math.min(x, boardSize - 1));
+			const clampedY = Math.max(0, Math.min(y, boardSize - 1));
 
-			if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
-				gameRef.current?.handleMouseMove(x, y);
-				rendererRef.current?.render(gameRef.current?.getState(), boardSize);
-			}
+			game.handleMouseMove(clampedX, clampedY);
+			const state = game.getState();
+			if (state) renderer.render(state, boardSize);
 		};
 
 		const handlePointerDown = (event: PointerEvent | Touch) => {
@@ -72,12 +72,12 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 
 			const x = Math.floor((event.clientX - rect.left) / cellSize);
 			const y = Math.floor((event.clientY - rect.top) / cellSize);
-			// Clamp x and y to be within bounds
 			const clampedX = Math.max(0, Math.min(x, boardSize - 1));
 			const clampedY = Math.max(0, Math.min(y, boardSize - 1));
 
-			gameRef.current?.handleCellClick(clampedX, clampedY);
-			rendererRef.current?.render(gameRef.current?.getState(), boardSize);
+			game.handleCellClick(clampedX, clampedY);
+			const state = game.getState();
+			if (state) renderer.render(state, boardSize);
 		};
 
 		const handlePointerMove = (event: PointerEvent | Touch) => {
@@ -89,12 +89,12 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 
 			const x = Math.floor((event.clientX - rect.left) / cellSize);
 			const y = Math.floor((event.clientY - rect.top) / cellSize);
-			// Clamp x and y to be within bounds
 			const clampedX = Math.max(0, Math.min(x, boardSize - 1));
 			const clampedY = Math.max(0, Math.min(y, boardSize - 1));
 
-			gameRef.current?.handleDrag(clampedX, clampedY);
-			rendererRef.current?.render(gameRef.current?.getState(), boardSize);
+			game.handleDrag(clampedX, clampedY);
+			const state = game.getState();
+			if (state) renderer.render(state, boardSize);
 		};
 
 		const handleTouchMove = (event: TouchEvent) => {
@@ -110,17 +110,20 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		const handlePointerUp = () => {
 			if (gameActionsNotReady) return;
 
-			const gameComplete = gameRef.current?.endDrag();
-			rendererRef.current?.render(gameRef.current?.getState(), boardSize);
+			const gameComplete = game.endDrag();
+			const state = game.getState();
+			if (state) renderer.render(state, boardSize);
 
 			if (gameComplete) {
 				handleNewLevel();
 			}
 		};
+
 		const handleWindowResize = () => {
-			if (gameActionsNotReady) return;
-			rendererRef.current.resize(canvasRef.current!);
-			rendererRef.current?.render(gameRef.current?.getState(), boardSize);
+			if (gameActionsNotReady || !canvasRef.current) return;
+			renderer.resize(canvasRef.current);
+			const state = game.getState();
+			if (state) renderer.render(state, boardSize);
 		};
 
 		document.addEventListener("pointerdown", handlePointerDown);
@@ -142,15 +145,18 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 			document.removeEventListener("touchend", handlePointerUp);
 			removeEventListener("resize", handleWindowResize);
 		};
-	}, [boardSize]);
+	}, [boardSize, gameActionsNotReady]);
 
 	const handleNewLevel = async () => {
 		if (gameActionsNotReady && !boardGenerating) return;
 		setBoardGenerating(true);
-		const board = await boardGeneratorRef.current.generateBoard(boardSize);
+		const board = await boardGeneratorRef.current?.generateBoard(boardSize);
 		setBoardGenerating(false);
+		if (!board) return;
+
 		gameRef.current?.reset(board, boardSize);
-		rendererRef.current?.render(gameRef.current?.getState(), boardSize);
+		const state = gameRef.current?.getState();
+		if (state) rendererRef.current?.render(state, boardSize);
 	};
 
 	useEffect(() => {
@@ -181,14 +187,14 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 				</select>
 				<label className="flex items-center space-x-2">
 					<span>Show Numbers</span>
-
 					<input
 						type="checkbox"
 						defaultChecked={true}
 						onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 							if (!gameRef.current || !rendererRef.current) return;
 							rendererRef.current.showNumbers = e.target.checked;
-							rendererRef.current?.render(gameRef.current?.getState(), boardSize);
+							const state = gameRef.current.getState();
+							if (state) rendererRef.current.render(state, boardSize);
 						}}
 						className="checkbox checkbox-neutral"
 					/>
