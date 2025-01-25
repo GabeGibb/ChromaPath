@@ -2,7 +2,8 @@ import { Board, Point } from "./Types";
 
 export class BoardGenerator {
 	private boardSize: number = 5;
-	private readonly maxAttempts = 10000;
+	private readonly maxAttempts = 1000;
+	private curNumColors = 0;
 
 	constructor() {}
 
@@ -39,16 +40,16 @@ export class BoardGenerator {
 	private generateValidBoard(board: Board): boolean {
 		// Shuffle colors to randomize placement order
 		// Try to place each color's endpoints
-		let i = 0;
+		this.curNumColors = 0;
 		while (true) {
-			const color = i.toString();
+			const color = this.curNumColors.toString();
 			if (this.placeColorEndpoints(board, color)) {
-				i++;
+				this.curNumColors++;
 			} else {
 				return false;
 			}
 			if (this.validateBoard(board)) {
-				this.convertIndicesToColors(i, board);
+				this.convertIndicesToColors(this.curNumColors, board);
 				return true;
 			}
 		}
@@ -72,36 +73,53 @@ export class BoardGenerator {
 	}
 
 	private placeColorEndpoints(board: Board, color: string): boolean {
-		const start = this.findRandomEmptyCell(board);
-		if (!start) return false;
+		const emptyCells = this.findEmptyCells(board);
+		for (let i = 0; i < emptyCells.length * 5; i++) {
+			// Get next random empty cell
+			const randIndex = Math.floor(Math.random() * emptyCells.length);
+			const start = emptyCells[randIndex];
+			emptyCells.splice(randIndex, 1);
 
-		board[start.y][start.x] = { color, isEndpoint: true };
+			if (!start) return false;
 
-		// Try to find a valid path to place the second endpoint
-		const path = this.findValidPath(board, start);
-		if (!path) {
-			board[start.y][start.x] = null;
-			return false;
+			// Arbitrarily repeat path finding
+			for (let j = 0; j < this.boardSize * 2; j++) {
+				board[start.y][start.x] = { color, isEndpoint: true };
+
+				// Try to find a valid path to place the second endpoint
+				const path = this.findValidPath(board, start);
+				if (!path) {
+					board[start.y][start.x] = null;
+					// return false;
+					continue;
+				}
+
+				const end = path[path.length - 1];
+				board[end.y][end.x] = { color, isEndpoint: true };
+
+				// Place the path (optional - can be left empty for puzzle generation)
+				for (const point of path.slice(1, -1)) {
+					board[point.y][point.x] = { color, isEndpoint: false };
+				}
+				// Check if board state is still valid after placing the path
+				if (!this.validateBoardStateOk(board, path)) {
+					board[start.y][start.x] = null;
+					// return false;
+					board[end.y][end.x] = null;
+
+					for (const point of path.slice(1, -1)) {
+						board[point.y][point.x] = null;
+					}
+					continue;
+				}
+				return true;
+			}
 		}
 
-		// Check if board state is still valid after placing the path
-		if (!this.validateBoardStateOk(board, path)) {
-			board[start.y][start.x] = null;
-			return false;
-		}
-
-		const end = path[path.length - 1];
-		board[end.y][end.x] = { color, isEndpoint: true };
-
-		// Place the path (optional - can be left empty for puzzle generation)
-		for (const point of path.slice(1, -1)) {
-			board[point.y][point.x] = { color, isEndpoint: false };
-		}
-
-		return true;
+		return false;
 	}
 
-	private findRandomEmptyCell(board: Board): Point | null {
+	private findEmptyCells(board: Board): Point[] {
 		const emptyCells: Point[] = [];
 		for (let y = 0; y < this.boardSize; y++) {
 			for (let x = 0; x < this.boardSize; x++) {
@@ -110,15 +128,15 @@ export class BoardGenerator {
 				}
 			}
 		}
-		if (emptyCells.length === 0) return null;
-		return emptyCells[Math.floor(Math.random() * emptyCells.length)];
+
+		return emptyCells;
 	}
 
 	private findValidPath(board: Board, start: Point): Point[] | null {
 		const visited = new Set<string>();
 		const queue: { point: Point; path: Point[] }[] = [{ point: start, path: [start] }];
-		const minPathLength = this.boardSize;
-		const maxPathLength = Math.floor(this.boardSize * this.boardSize);
+		const minPathLength = Math.max(3, this.boardSize * 1.2 - this.curNumColors);
+		const maxPathLength = Math.floor(this.boardSize * this.boardSize); // No limit really
 
 		while (queue.length > 0) {
 			const { point, path } = queue.shift()!;
@@ -131,11 +149,7 @@ export class BoardGenerator {
 			const pathLengthFactor = (path.length - minPathLength) / (maxPathLength - minPathLength);
 			const endChance = Math.max(0, pathLengthFactor * 0);
 
-			if (
-				path.length >= minPathLength &&
-				!board[point.y][point.x] &&
-				(neighbors.length === 0 || Math.random() < endChance)
-			) {
+			if (path.length >= minPathLength && !board[point.y][point.x] && neighbors.length === 0) {
 				return path;
 			}
 
@@ -234,6 +248,11 @@ export class BoardGenerator {
 					colorCount.set(cell.color, (colorCount.get(cell.color) || 0) + 1);
 				}
 			}
+		}
+		// !
+		// TODO: RM?
+		if (colorCount.size < this.boardSize) {
+			return false;
 		}
 
 		// Check that all placed colors have exactly two endpoints

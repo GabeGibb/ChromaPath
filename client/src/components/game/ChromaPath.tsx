@@ -31,39 +31,6 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		if (!gameRef.current || !rendererRef.current || !rendererRef.current.initialized) return;
 
 		const canvas = rendererRef.current.getCanvas();
-
-		const handlePointerDown = (event: PointerEvent) => {
-			if (!gameRef.current || !rendererRef.current) return;
-
-			const rect = canvas.getBoundingClientRect();
-			const canvasWidth = rect.width;
-			const cellSize = canvasWidth / boardSize;
-
-			const x = Math.floor((event.clientX - rect.left) / cellSize);
-			const y = Math.floor((event.clientY - rect.top) / cellSize);
-
-			if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
-				gameRef.current?.handleCellClick(x, y);
-				rendererRef.current?.render(gameRef.current?.getState(), boardSize);
-			}
-		};
-
-		const handlePointerMove = (event: PointerEvent) => {
-			if (!gameRef.current || !rendererRef.current) return;
-
-			const rect = canvas.getBoundingClientRect();
-			const canvasWidth = rect.width;
-			const cellSize = canvasWidth / boardSize;
-
-			const x = Math.floor((event.clientX - rect.left) / cellSize);
-			const y = Math.floor((event.clientY - rect.top) / cellSize);
-
-			if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
-				gameRef.current?.handleDrag(x, y);
-				rendererRef.current?.render(gameRef.current?.getState(), boardSize);
-			}
-		};
-
 		const handleMouseMove = (event: MouseEvent) => {
 			if (!gameRef.current || !rendererRef.current) return;
 
@@ -71,13 +38,61 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 			const canvasWidth = rect.width;
 			const cellSize = canvasWidth / boardSize;
 
-			const x = Math.floor((event.clientX - rect.left) / cellSize);
-			const y = Math.floor((event.clientY - rect.top) / cellSize);
+			let x = Math.floor((event.clientX - rect.left) / cellSize);
+			let y = Math.floor((event.clientY - rect.top) / cellSize);
+
+			// Clamp x and y to be within bounds
+			x = Math.max(0, Math.min(x, boardSize - 1));
+			y = Math.max(0, Math.min(y, boardSize - 1));
 
 			if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
 				gameRef.current?.handleMouseMove(x, y);
 				rendererRef.current?.render(gameRef.current?.getState(), boardSize);
 			}
+		};
+
+		const handlePointerDown = (event: PointerEvent | Touch) => {
+			if (!gameRef.current || !rendererRef.current) return;
+
+			const rect = canvas.getBoundingClientRect();
+			const canvasWidth = rect.width;
+			const cellSize = canvasWidth / boardSize;
+
+			const x = Math.floor((event.clientX - rect.left) / cellSize);
+			const y = Math.floor((event.clientY - rect.top) / cellSize);
+			// Clamp x and y to be within bounds
+			const clampedX = Math.max(0, Math.min(x, boardSize - 1));
+			const clampedY = Math.max(0, Math.min(y, boardSize - 1));
+
+			gameRef.current?.handleCellClick(clampedX, clampedY);
+			rendererRef.current?.render(gameRef.current?.getState(), boardSize);
+		};
+
+		const handlePointerMove = (event: PointerEvent | Touch) => {
+			if (!gameRef.current || !rendererRef.current) return;
+
+			const rect = canvas.getBoundingClientRect();
+			const canvasWidth = rect.width;
+			const cellSize = canvasWidth / boardSize;
+
+			const x = Math.floor((event.clientX - rect.left) / cellSize);
+			const y = Math.floor((event.clientY - rect.top) / cellSize);
+			// Clamp x and y to be within bounds
+			const clampedX = Math.max(0, Math.min(x, boardSize - 1));
+			const clampedY = Math.max(0, Math.min(y, boardSize - 1));
+
+			gameRef.current?.handleDrag(clampedX, clampedY);
+			rendererRef.current?.render(gameRef.current?.getState(), boardSize);
+		};
+
+		const handleTouchMove = (event: TouchEvent) => {
+			const touch = event.touches[0];
+			handlePointerMove(touch);
+		};
+
+		const handleTouchStart = (event: TouchEvent) => {
+			const touch = event.touches[0];
+			handlePointerDown(touch);
 		};
 
 		const handlePointerUp = () => {
@@ -90,60 +105,24 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 				handleNewLevel();
 			}
 		};
-
 		const handleWindowResize = () => {
 			if (!gameRef.current || !rendererRef.current) return;
 			rendererRef.current.resize(canvasRef.current!);
 			rendererRef.current?.render(gameRef.current?.getState(), boardSize);
 		};
 
-		canvas.addEventListener("pointerdown", handlePointerDown);
-		canvas.addEventListener("pointermove", handlePointerMove);
+		document.addEventListener("pointerdown", handlePointerDown);
+		document.addEventListener("pointermove", handlePointerMove);
 		document.addEventListener("pointerup", handlePointerUp);
 		canvas.addEventListener("mousemove", handleMouseMove);
-		// TODO: CLEANUP
-		const handleTouchStart = (event: TouchEvent) => {
-			if (!gameRef.current || !rendererRef.current) return;
-
-			const rect = canvas.getBoundingClientRect();
-			const canvasWidth = rect.width;
-			const cellSize = canvasWidth / boardSize;
-
-			const touch = event.touches[0];
-			const x = Math.floor((touch.clientX - rect.left) / cellSize);
-			const y = Math.floor((touch.clientY - rect.top) / cellSize);
-
-			if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
-				gameRef.current?.handleCellClick(x, y);
-				rendererRef.current?.render(gameRef.current?.getState(), boardSize);
-			}
-		};
-
 		canvas.addEventListener("touchstart", handleTouchStart);
-		const handleTouchMove = (event: TouchEvent) => {
-			if (!gameRef.current || !rendererRef.current) return;
-
-			const rect = canvas.getBoundingClientRect();
-			const canvasWidth = rect.width;
-			const cellSize = canvasWidth / boardSize;
-
-			const touch = event.touches[0];
-			const x = Math.floor((touch.clientX - rect.left) / cellSize);
-			const y = Math.floor((touch.clientY - rect.top) / cellSize);
-
-			if (x >= 0 && x < boardSize && y >= 0 && y < boardSize) {
-				gameRef.current?.handleDrag(x, y);
-				rendererRef.current?.render(gameRef.current?.getState(), boardSize);
-			}
-		};
-
 		canvas.addEventListener("touchmove", handleTouchMove);
 		document.addEventListener("touchend", handlePointerUp);
 		addEventListener("resize", handleWindowResize);
 
 		return () => {
-			canvas.removeEventListener("pointerdown", handlePointerDown);
-			canvas.removeEventListener("pointermove", handlePointerMove);
+			document.removeEventListener("pointerdown", handlePointerDown);
+			document.removeEventListener("pointermove", handlePointerMove);
 			document.removeEventListener("pointerup", handlePointerUp);
 			canvas.removeEventListener("mousemove", handleMouseMove);
 			canvas.removeEventListener("touchstart", handleTouchStart);
@@ -168,7 +147,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 			<div className="text-2xl font-bold text-neutral-content">ChromaPath</div>
 			<div
 				ref={canvasRef}
-				className="w-screen h-[100vw] md:w-[800px] md:h-[800px] border border-neutral rounded-lg shadow-lg"
+				className="w-screen h-[100vw] md:w-[85vh] md:h-[85vh] border border-neutral rounded-lg shadow-lg"
 			/>
 			<div className="flex gap-4">
 				<button onClick={handleNewLevel} className="btn btn-primary">
@@ -179,9 +158,9 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 					onChange={(e) => setBoardSize(Number(e.target.value))}
 					className="select w-full max-w-xs focus:outline-0 focus:border-0"
 				>
-					{Array.from({ length: 16 }, (_, i) => (
-						<option key={i + 5} value={i + 5}>
-							{i + 5}x{i + 5}
+					{Array.from({ length: 20 }, (_, i) => (
+						<option key={i + 4} value={i + 4}>
+							{i + 4}x{i + 4}
 						</option>
 					))}
 				</select>

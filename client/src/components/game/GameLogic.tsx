@@ -94,7 +94,6 @@ export class ChromaPathGame {
 			return;
 		}
 
-		// Handle non-adjacent moves
 		this.findPathToPoint(currentPath[0], { x, y });
 	}
 
@@ -107,14 +106,14 @@ export class ChromaPathGame {
 		);
 	}
 
-	private findPathToPoint(start: Point, target: Point): void {
+	private findPathToPoint(start: Point, target: Point): boolean {
 		const visited = new Set<string>();
 		const queue = [{ point: start, path: [start] }];
 
 		while (queue.length > 0) {
 			const { point, path } = queue.shift()!;
 			// Check if point is at endpoint
-			// TODO: Fix this condition
+			// TODO: Fix this condition AHHH
 			if (path.length > 1 && this.isAtEndpoint(point, start) && target.x !== point.x && target.y !== point.y) {
 				continue;
 			}
@@ -125,7 +124,7 @@ export class ChromaPathGame {
 				if (this.state.currentColor) {
 					this.state.paths[this.state.currentColor] = path;
 				}
-				return;
+				return true;
 			}
 
 			visited.add(`${point.x},${point.y}`);
@@ -139,6 +138,7 @@ export class ChromaPathGame {
 				queue.push({ point: neighbor, path: [...path, neighbor] });
 			}
 		}
+		return false;
 	}
 
 	private checkPathCollision(currentPath: Point[]): boolean {

@@ -74,10 +74,12 @@ export class ChromaPathRenderer {
 				this.ctx.lineWidth = this.cellSize / 4;
 				this.ctx.lineCap = "round";
 				this.ctx.lineJoin = "round"; // Add this line to make the paths rounded
+				this.drawGradientCell(path[0].x, path[0].y, color);
 
 				this.ctx.moveTo(path[0].x * this.cellSize + this.cellSize / 2, path[0].y * this.cellSize + this.cellSize / 2);
-
 				for (let i = 1; i < path.length; i++) {
+					this.drawGradientCell(path[i].x, path[i].y, color);
+
 					this.ctx.lineTo(path[i].x * this.cellSize + this.cellSize / 2, path[i].y * this.cellSize + this.cellSize / 2);
 				}
 				this.ctx.stroke();
@@ -88,32 +90,27 @@ export class ChromaPathRenderer {
 	private drawHover(state: GameState): void {
 		const mouseX = state.mouseX;
 		const mouseY = state.mouseY;
-		const mousePosX = mouseX * this.cellSize;
-		const mousePosY = mouseY * this.cellSize;
+		const color = state.currentColor || "rgb(255, 255, 255)";
+		this.drawGradientCell(mouseX, mouseY, color, 0.01);
+	}
 
-		// Remove cell-based calculation to allow smooth movement
-		const gradient = this.ctx.createRadialGradient(mousePosX, mousePosY, 0, mousePosX, mousePosY, this.cellSize * 2);
+	private drawGradientCell(x: number, y: number, color: string, aValue: number = 0.03): void {
+		const cellX = x * this.cellSize;
+		const cellY = y * this.cellSize;
 
-		// gradient.addColorStop(0, "rgba(255, 255, 255, 0.2)");
-		// gradient.addColorStop(0.2, "rgba(255, 255, 255, 0.05)");
-		// gradient.addColorStop(1, "rgba(255, 255, 255, 0.01)");
+		const gradient = this.ctx.createRadialGradient(
+			cellX + this.cellSize / 2,
+			cellY + this.cellSize / 2,
+			0,
+			cellX + this.cellSize / 2,
+			cellY + this.cellSize / 2,
+			this.cellSize / 2
+		);
+		gradient.addColorStop(0, `${color.slice(0, -1)}, ${aValue})`);
+		// gradient.addColorStop(0.2, "rgba(255, 255, 255, 0)");
 
-		// Draw larger gradient area for smoother effect
 		this.ctx.fillStyle = gradient;
-		this.ctx.fillRect(mousePosX - this.cellSize * 2, mousePosY - this.cellSize * 2, this.cellSize * 4, this.cellSize * 4);
-
-		// Get current cell
-		const cellX = Math.floor(mouseX);
-		const cellY = Math.floor(mouseY);
-
-		// Highlight current cell
-		this.ctx.fillStyle = "rgba(255, 255, 255, 0.01)";
-		this.ctx.fillRect(cellX * this.cellSize, cellY * this.cellSize, this.cellSize, this.cellSize);
-
-		// Glowing border
-		this.ctx.strokeStyle = "rgba(255, 255, 255, 0.01)";
-		this.ctx.lineWidth = 2;
-		this.ctx.strokeRect(cellX * this.cellSize, cellY * this.cellSize, this.cellSize, this.cellSize);
+		this.ctx.fillRect(cellX, cellY, this.cellSize, this.cellSize);
 	}
 
 	public destroy(): void {
