@@ -1,17 +1,17 @@
 import { Board, GameState } from "./Types";
 
-export class FlowFreeRenderer {
+export class ChromaPathRenderer {
 	private canvas: HTMLCanvasElement;
 	private ctx: CanvasRenderingContext2D;
 	private cellSize: number;
 	public initialized: boolean = false;
 
-	constructor(container: HTMLDivElement, width: number, height: number) {
+	constructor(container: HTMLDivElement) {
 		this.canvas = document.createElement("canvas");
-		this.canvas.width = width;
-		this.canvas.height = height;
+		this.canvas.width = container.clientWidth;
+		this.canvas.height = container.clientHeight;
 		this.ctx = this.canvas.getContext("2d")!;
-		this.cellSize = width / 5;
+		this.cellSize = this.canvas.width / 5;
 
 		container.appendChild(this.canvas);
 		this.initialized = true;
@@ -25,6 +25,11 @@ export class FlowFreeRenderer {
 		this.drawBoard(state.board);
 		this.drawHover(state);
 		this.drawPaths(state);
+	}
+
+	public resize(container: HTMLDivElement) {
+		this.canvas.width = container.clientWidth;
+		this.canvas.height = container.clientHeight;
 	}
 
 	private drawGrid(boardSize: number): void {

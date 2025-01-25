@@ -1,7 +1,7 @@
 import { BoardGenerator } from "./BoardGenerator";
 import { Board, GameState, Point } from "./Types";
 
-export class FlowFreeGame {
+export class ChromaPathGame {
 	private state: GameState;
 	private boardSize: number;
 	private boardGenerator: BoardGenerator;
