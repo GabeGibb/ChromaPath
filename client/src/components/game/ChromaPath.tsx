@@ -1,5 +1,5 @@
+import { BoardGenerator } from "@chromapath/shared";
 import React, { useEffect, useRef, useState } from "react";
-import { BoardGenerator } from "./BoardGenerator";
 import { ChromaPathGame } from "./GameLogic";
 import { ChromaPathRenderer } from "./Renderer";
 
@@ -21,7 +21,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		if (!canvasRef.current) return;
 		async function initializeBoard() {
 			rendererRef.current = new ChromaPathRenderer(canvasRef.current!);
-			boardGeneratorRef.current = new BoardGenerator(rendererRef.current);
+			boardGeneratorRef.current = new BoardGenerator();
 			setBoardGenerating(true);
 			const board = await boardGeneratorRef.current.generateBoard(boardSize);
 			setBoardGenerating(false);

@@ -1,5 +1,4 @@
-import { ChromaPathRenderer } from "./Renderer";
-import { Board, GameState, Point } from "./Types";
+import { Board, Point } from "./types";
 
 export function getValidNeighbors(board: Board, point: Point, visited: Set<string>, includeEndpoint: boolean = false): Point[] {
 	const directions = [
@@ -28,17 +27,13 @@ export function getValidNeighbors(board: Board, point: Point, visited: Set<strin
 export class BoardGenerator {
 	private boardSize: number = 5;
 	private board: Board = [];
-	private readonly maxAttempts = Infinity;
+	private readonly maxAttempts = 1000;
 	private curColorIndex = 0;
 	private minDistanceBetweenEndpoints = 3;
-	private renderer: ChromaPathRenderer | null = null;
 	private maxNumColors = 50;
 	private colorsArray: string[] = [];
-	private enableAnimation: boolean = false;
 
-	constructor(renderer: ChromaPathRenderer | null = null) {
-		this.renderer = renderer;
-	}
+	constructor() {}
 
 	async generateBoard(boardSize: number): Promise<Board> {
 		this.boardSize = boardSize;
@@ -80,25 +75,7 @@ export class BoardGenerator {
 
 		while (true) {
 			if (this.placeColorEndpoints()) {
-				// * animation logic
-				if (this.enableAnimation) {
-					const gameState: GameState = {
-						board: this.board,
-						paths: {},
-						currentColor: null,
-						startPoint: null,
-						completed: false,
-						mouseX: 0,
-						mouseY: 0,
-					};
-
-					await new Promise<void>((resolve) =>
-						requestAnimationFrame(() => {
-							this.renderer?.render(gameState, this.boardSize);
-							resolve();
-						})
-					);
-				}
+				this.curColorIndex++;
 
 				if (this.validateBoard()) {
 					return true;
@@ -137,7 +114,7 @@ export class BoardGenerator {
 			}
 
 			// Check if board state is still valid after placing the path
-			if (!this.validateBoardStateOk(this.board, path)) {
+			if (!this.hasPotentialForValidSolution(path)) {
 				// If not valid remove the path
 				this.board[start.y][start.x] = null;
 				this.board[end.y][end.x] = null;
@@ -147,11 +124,7 @@ export class BoardGenerator {
 				}
 				continue;
 			}
-			this.curColorIndex++;
-			// if (!this.placeColorEndpoints()) {
-			// 	this.curColorIndex--;
-			// 	return false;
-			// }
+
 			return true;
 		}
 
@@ -199,9 +172,9 @@ export class BoardGenerator {
 			}
 
 			// ! THIS LINE ADDS RANDOMNESS TO THE PATH BUT IS EXPENSIVE
-			const shuffledNeighbors = this.shuffleArray(neighbors);
+			// const shuffledNeighbors = this.shuffleArray(neighbors);
 
-			for (const neighbor of shuffledNeighbors) {
+			for (const neighbor of neighbors) {
 				queue.push({
 					point: neighbor,
 					path: [...path, neighbor],
@@ -212,18 +185,17 @@ export class BoardGenerator {
 		return null;
 	}
 
-	private validateBoardStateOk(board: Board, currentPath: Point[]): boolean {
+	private hasPotentialForValidSolution(currentPath: Point[]): boolean {
 		const emptyCells: Point[] = [];
 		for (let y = 0; y < this.boardSize; y++) {
 			for (let x = 0; x < this.boardSize; x++) {
-				if (!board[y][x] && !currentPath.some((p) => p.x === x && p.y === y)) {
+				if (!this.board[y][x] && !currentPath.some((p) => p.x === x && p.y === y)) {
 					emptyCells.push({ x, y });
 				}
 			}
 		}
-		// TODO: Maybe check for some suspect regions?
 
-		// Original region size validation
+		// Region detection and validation
 		const regions: Point[][] = [];
 		const visited = new Set<string>();
 
@@ -241,7 +213,7 @@ export class BoardGenerator {
 						visited.add(currentKey);
 						region.push(current);
 
-						const neighbors = this.getValidNeighbors(current, visited);
+						const neighbors = this.getValidNeighbors(current, visited, true);
 						for (const neighbor of neighbors) {
 							if (!visited.has(`${neighbor.x},${neighbor.y}`)) {
 								queue.push(neighbor);
@@ -253,7 +225,14 @@ export class BoardGenerator {
 			}
 		}
 
-		return !regions.some((region) => region.length <= this.minDistanceBetweenEndpoints);
+		// Check for problematic 2-cell regions
+		for (const region of regions) {
+			if (region.length < this.minDistanceBetweenEndpoints) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	public getValidNeighbors(point: Point, visited: Set<string>, includeEndpoint: boolean = false): Point[] {

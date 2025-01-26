@@ -1,4 +1,4 @@
-import { getValidNeighbors } from "./BoardGenerator";
+import { getValidNeighbors } from "@chromapath/shared";
 import { Board, GameState, Point } from "./Types";
 
 export class ChromaPathGame {

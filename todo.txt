@@ -1,8 +1,9 @@
-- Make dragging be able to drag close to another item
-- More vibrant hues
 - Better board generation
+- make dragging not as expensive
 
 - identify extra features
+- Make dragging be able to drag close to another item
+- More vibrant hues
 -- time trial?
 -- server side board generation?
 -- login / stats?
