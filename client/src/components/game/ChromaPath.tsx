@@ -176,7 +176,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	}, [boardSize]);
 
 	return (
-		<div className="h-full w-full flex flex-col justify-evenly items-center gap-4 touch-none">
+		<div className="h-full w-full flex flex-col justify-evenly items-center gap-4 touch-none select-none">
 			<div className="text-2xl font-bold text-neutral-content">ChromaPath</div>
 			<div
 				ref={canvasRef} // TODO: Improve view widths

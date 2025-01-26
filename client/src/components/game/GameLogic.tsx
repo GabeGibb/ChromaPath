@@ -4,6 +4,8 @@ import { Board, GameState, Point } from "./Types";
 export class ChromaPathGame {
 	private state: GameState;
 	private boardSize: number;
+	private pastMouseX: number = -1;
+	private pastMouseY: number = -1;
 
 	constructor(newBoard: Board, size: number) {
 		this.boardSize = size;
@@ -94,6 +96,12 @@ export class ChromaPathGame {
 	// }
 
 	public handleDrag(x: number, y: number): void {
+		// Prevent unnecessary updates
+		// TODO: Unsure if this is actually faster
+		if (this.pastMouseX === this.state.mouseX && this.pastMouseY === this.state.mouseY) return;
+		this.pastMouseX = this.state.mouseX;
+		this.pastMouseY = this.state.mouseY;
+
 		if (!this.state.currentColor || !this.state.startPoint) return;
 
 		const currentPath = this.state.paths[this.state.currentColor];
