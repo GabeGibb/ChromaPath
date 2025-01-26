@@ -123,6 +123,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 
 		const handleWindowResize = () => {
 			if (gameActionsNotReady || !canvasRef.current) return;
+			console.log("ho");
 			renderer.resize(canvasRef.current);
 			const state = game.getState();
 			if (state) renderer.render(state, boardSize);
@@ -169,8 +170,8 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		<div className="h-full w-full flex flex-col justify-evenly items-center gap-4 touch-none">
 			<div className="text-2xl font-bold text-neutral-content">ChromaPath</div>
 			<div
-				ref={canvasRef}
-				className="w-screen h-[100vw] md:w-[85vh] md:h-[85vh] border border-neutral rounded-lg shadow-lg"
+				ref={canvasRef} // TODO: Improve view widths
+				className="w-screen h-[100dvw] md:w-[80dvh] md:h-[80dvh] border border-neutral rounded-lg shadow-lg select-none touch-none overscroll-none overflow-hidden"
 			/>
 			<div className="flex gap-4">
 				<button onClick={handleNewLevel} className="btn btn-primary m-auto">
