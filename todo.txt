@@ -1,11 +1,6 @@
-- When dragging be able to continue from last path dont just create a new path
--- aditionally dragging is broken
+- Make dragging be able to drag close to another item
 - More vibrant hues
 - Better board generation
--- num colors not working correctly
-- Going of canvas and back on causes problems
-- vh broken for mobile
-- create a visualizer for generation
 
 - identify extra features
 -- time trial?

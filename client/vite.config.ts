@@ -1,5 +1,12 @@
-import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
-export default defineConfig({
-	plugins: [tailwindcss()],
+import { defineConfig } from "vite";
+
+export default defineConfig(({ mode }) => {
+	const isDev = mode === "development";
+	return {
+		plugins: [tailwindcss()],
+		server: {
+			host: isDev ? true : false,
+		},
+	};
 });

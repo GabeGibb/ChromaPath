@@ -34,6 +34,7 @@ export class BoardGenerator {
 	private renderer: ChromaPathRenderer | null = null;
 	private maxNumColors = 50;
 	private colorsArray: string[] = [];
+	private enableAnimation: boolean = false;
 
 	constructor(renderer: ChromaPathRenderer | null = null) {
 		this.renderer = renderer;
@@ -80,7 +81,7 @@ export class BoardGenerator {
 		while (true) {
 			if (this.placeColorEndpoints()) {
 				// * animation logic
-				if (this.boardSize < 10) {
+				if (this.enableAnimation) {
 					const gameState: GameState = {
 						board: this.board,
 						paths: {},
