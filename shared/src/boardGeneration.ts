@@ -17,11 +17,11 @@ export class BoardGenerator {
 		this.maxNumColors = this.boardSize * 1.25; // Arbitrary
 
 		for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
-			console.log("Attempt");
 			this.board = this.initializeEmptyBoard();
 			if (await this.generateValidBoard()) {
 				// If board valid remove paths
 				this.removeNonEndpoints();
+				console.log("attempts", attempt);
 				return this.board;
 			}
 		}

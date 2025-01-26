@@ -3,16 +3,15 @@ import { Board, GameState, Point } from "./Types";
 
 export class ChromaPathGame {
 	private state: GameState;
-	private boardSize: number;
+	private boardSize: number = 0;
 	private pastMouseX: number = -1;
 	private pastMouseY: number = -1;
 
-	constructor(newBoard: Board, size: number) {
-		this.boardSize = size;
-		this.state = this.initializeState(newBoard);
+	constructor() {
+		this.state = this.initializeState();
 	}
 
-	private initializeState(newBoard: Board): GameState {
+	private initializeState(newBoard: Board = []): GameState {
 		return {
 			board: newBoard,
 			paths: {},

@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import emojis from "./emojis";
+import boards from "./boards";
 
 const router = express.Router();
 
@@ -10,6 +10,6 @@ router.get("/", (req: Request, res: Response) => {
 	});
 });
 
-router.use("/emojis", emojis);
+router.use("/boards", boards);
 
 export default router;

@@ -19,22 +19,13 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 
 	useEffect(() => {
 		if (!canvasRef.current) return;
-		async function initializeBoard() {
+		async function initializeObjects() {
 			rendererRef.current = new ChromaPathRenderer(canvasRef.current!);
 			boardGeneratorRef.current = new BoardGenerator();
-			setBoardGenerating(true);
-			const board = await boardGeneratorRef.current.generateBoard(boardSize);
-			setBoardGenerating(false);
-			if (!board) return;
-
-			gameRef.current = new ChromaPathGame(board, boardSize);
-			const renderer = rendererRef.current;
-			const game = gameRef.current;
-
-			const state = game.getState();
-			if (state) renderer.render(state, boardSize);
+			gameRef.current = new ChromaPathGame();
+			handleNewLevel();
 		}
-		initializeBoard();
+		initializeObjects();
 
 		return () => {
 			rendererRef.current?.destroy();
