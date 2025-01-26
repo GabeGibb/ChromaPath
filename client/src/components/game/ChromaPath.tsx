@@ -138,6 +138,16 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		document.addEventListener("touchend", handlePointerUp);
 		addEventListener("resize", handleWindowResize);
 
+		document.addEventListener("touchstart", function (e: TouchEvent) {
+			// is not near edge of view, exit
+
+			if (e.pageX > 10 && e.pageX < window.innerWidth - 10) return;
+
+			// prevent swipe to navigate gesture
+
+			e.preventDefault();
+		});
+
 		return () => {
 			document.removeEventListener("pointerdown", handlePointerDown);
 			document.removeEventListener("pointermove", handlePointerMove);
