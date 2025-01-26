@@ -171,7 +171,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 			<div className="text-2xl font-bold text-neutral-content">ChromaPath</div>
 			<div
 				ref={canvasRef} // TODO: Improve view widths
-				className="w-screen h-[100dvw] md:w-[80dvh] md:h-[80dvh] border border-neutral rounded-lg shadow-lg select-none touch-none overscroll-none overflow-hidden"
+				className="w-screen h-[100dvw] md:w-[80dvh] md:h-[80dvh] border border-neutral rounded-lg shadow-lg  overscroll-none overflow-hidden"
 			/>
 			<div className="flex gap-4">
 				<button onClick={handleNewLevel} className="btn btn-primary m-auto">
