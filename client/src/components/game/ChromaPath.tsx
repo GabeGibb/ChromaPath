@@ -138,7 +138,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		document.addEventListener("touchend", handlePointerUp);
 		addEventListener("resize", handleWindowResize);
 
-		document.addEventListener("touchstart", function (e: TouchEvent) {
+		document.addEventListener("touchstart", function (e: any) {
 			// is not near edge of view, exit
 
 			if (e.pageX > 10 && e.pageX < window.innerWidth - 10) return;
