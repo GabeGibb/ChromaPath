@@ -156,7 +156,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		setBoardGenerating(false);
 		if (!board) return;
 
-		gameRef.current?.reset(board, boardSize);
+		gameRef.current?.reset(board);
 		const state = gameRef.current?.getState();
 		if (state) rendererRef.current?.render(state, boardSize);
 	};

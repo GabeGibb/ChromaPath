@@ -1,12 +1,39 @@
 import { ChromaPathRenderer } from "./Renderer";
-import { Board, GameState, Point } from "./Types";
+import { Board, Point } from "./Types";
+
+export function getValidNeighbors(board: Board, point: Point, visited: Set<string>, includeEndpoint: boolean = false): Point[] {
+	const directions = [
+		{ dx: 0, dy: -1 },
+		{ dx: 1, dy: 0 },
+		{ dx: 0, dy: 1 },
+		{ dx: -1, dy: 0 },
+	];
+	const boardSize = board.length;
+	return directions
+		.map(({ dx, dy }) => ({
+			x: point.x + dx,
+			y: point.y + dy,
+		}))
+		.filter(
+			({ x, y }) =>
+				x >= 0 &&
+				x < boardSize &&
+				y >= 0 &&
+				y < boardSize &&
+				(!board[y][x] || (includeEndpoint && board[y][x]?.isEndpoint)) &&
+				!visited.has(`${x},${y}`)
+		);
+}
 
 export class BoardGenerator {
 	private boardSize: number = 5;
-	private readonly maxAttempts = 1000;
+	private board: Board = [];
+	private readonly maxAttempts = Infinity;
 	private curColorIndex = 0;
 	private minDistanceBetweenEndpoints = 3;
 	private renderer: ChromaPathRenderer | null = null;
+	private maxNumColors = 50;
+	private colorsArray: string[] = [];
 
 	constructor(renderer: ChromaPathRenderer | null = null) {
 		this.renderer = renderer;
@@ -14,13 +41,15 @@ export class BoardGenerator {
 
 	async generateBoard(boardSize: number): Promise<Board> {
 		this.boardSize = boardSize;
+		this.maxNumColors = this.boardSize * 1.25; // Arbitrary
 
 		for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
-			const board = this.initializeEmptyBoard();
-			if (await this.generateValidBoard(board)) {
+			console.log("Attempt");
+			this.board = this.initializeEmptyBoard();
+			if (await this.generateValidBoard()) {
 				// If board valid remove paths
-				this.removeNonEndpoints(board);
-				return board;
+				this.removeNonEndpoints();
+				return this.board;
 			}
 		}
 		throw new Error("Failed to generate valid board after maximum attempts");
@@ -32,50 +61,54 @@ export class BoardGenerator {
 			.map(() => Array(this.boardSize).fill(null));
 	}
 
-	private removeNonEndpoints(board: Board) {
+	private removeNonEndpoints() {
+		/* Removes all non-endpoint cells from the board */
 		for (let y = 0; y < this.boardSize; y++) {
 			for (let x = 0; x < this.boardSize; x++) {
-				const cell = board[y][x];
+				const cell = this.board[y][x];
 				if (!cell?.isEndpoint) {
-					board[y][x] = null;
+					this.board[y][x] = null;
 				}
 			}
 		}
 	}
 
-	private async generateValidBoard(board: Board): Promise<boolean> {
-		// Try to place each color's endpoints
+	private async generateValidBoard(): Promise<boolean> {
 		this.curColorIndex = 0;
-		const colorsMap = this.convertIndicesToColors(50);
+		this.colorsArray = this.getDistancedColorArray();
+
 		while (true) {
-			const color = colorsMap[this.curColorIndex.toString()];
-			// console.log(color, Object.keys(colorsMap).length, this.curColorIndex);
-			if (this.placeColorEndpoints(board, color)) {
-				this.curColorIndex++;
-				const GameState: GameState = {
-					board: board,
-					paths: {},
-					currentColor: null,
-					startPoint: null,
-					completed: false,
-					mouseX: 0,
-					mouseY: 0,
-				};
-				this.renderer?.render(GameState, this.boardSize);
+			if (this.placeColorEndpoints()) {
+				// * animation logic
+				// const gameState: GameState = {
+				// 	board: board,
+				// 	paths: {},
+				// 	currentColor: null,
+				// 	startPoint: null,
+				// 	completed: false,
+				// 	mouseX: 0,
+				// 	mouseY: 0,
+				// };
+
+				// await new Promise<void>((resolve) =>
+				// 	requestAnimationFrame(() => {
+				// 		this.renderer?.render(gameState, this.boardSize);
+				// 		resolve();
+				// 	})
+				// );
+				// }
+				if (this.validateBoard()) {
+					return true;
+				}
 			} else {
-				console.log("Failed to place color endpoints");
-				// await new Promise((resolve) => setTimeout(resolve, 10000));
 				return false;
 			}
-			if (this.validateBoard(board)) {
-				return true;
-			}
-			// await new Promise((resolve) => setTimeout(resolve, 500));
 		}
 	}
 
-	private placeColorEndpoints(board: Board, color: string): boolean {
-		const emptyCells = this.findEmptyCells(board);
+	private placeColorEndpoints(): boolean {
+		const color = this.colorsArray[this.curColorIndex];
+		const emptyCells = this.findEmptyCells();
 		for (let i = 0; i < emptyCells.length; i++) {
 			// Get next random empty cell
 			const randIndex = Math.floor(Math.random() * emptyCells.length);
@@ -84,44 +117,49 @@ export class BoardGenerator {
 
 			if (!start) return false;
 
-			board[start.y][start.x] = { color, isEndpoint: true };
-			const path = this.findValidPath(board, start);
+			this.board[start.y][start.x] = { color, isEndpoint: true };
+			const path = this.findValidPath(this.board, start);
 
 			if (!path) {
-				board[start.y][start.x] = null;
+				this.board[start.y][start.x] = null;
 				continue;
 			}
 
 			const end = path[path.length - 1];
-			board[end.y][end.x] = { color, isEndpoint: true };
+			this.board[end.y][end.x] = { color, isEndpoint: true };
 
 			// Place the path
 			for (const point of path.slice(1, -1)) {
-				board[point.y][point.x] = { color, isEndpoint: false };
+				this.board[point.y][point.x] = { color, isEndpoint: false };
 			}
+
 			// Check if board state is still valid after placing the path
-			if (!this.validateBoardStateOk(board, path)) {
+			if (!this.validateBoardStateOk(this.board, path)) {
 				// If not valid remove the path
-				board[start.y][start.x] = null;
-				board[end.y][end.x] = null;
+				this.board[start.y][start.x] = null;
+				this.board[end.y][end.x] = null;
 
 				for (const point of path.slice(1, -1)) {
-					board[point.y][point.x] = null;
+					this.board[point.y][point.x] = null;
 				}
 				continue;
 			}
-
+			this.curColorIndex++;
+			// if (!this.placeColorEndpoints()) {
+			// 	this.curColorIndex--;
+			// 	return false;
+			// }
 			return true;
 		}
 
 		return false; // Return false if no valid placement was found
 	}
 
-	private findEmptyCells(board: Board): Point[] {
+	private findEmptyCells(): Point[] {
 		const emptyCells: Point[] = [];
 		for (let y = 0; y < this.boardSize; y++) {
 			for (let x = 0; x < this.boardSize; x++) {
-				if (!board[y][x]) {
+				if (!this.board[y][x]) {
 					emptyCells.push({ x, y });
 				}
 			}
@@ -151,16 +189,16 @@ export class BoardGenerator {
 			if (visited.has(key)) continue;
 			visited.add(key);
 
-			const neighbors = this.getValidNeighbors(board, point, visited, false);
+			const neighbors = this.getValidNeighbors(point, visited, false);
 
 			if (path.length >= minPathLength && !board[point.y][point.x] && neighbors.length === 0) {
 				return path;
 			}
 
 			// ! THIS LINE ADDS RANDOMNESS TO THE PATH BUT IS EXPENSIVE
-			// const shuffledNeighbors = this.shuffleArray(neighbors);
+			const shuffledNeighbors = this.shuffleArray(neighbors);
 
-			for (const neighbor of neighbors) {
+			for (const neighbor of shuffledNeighbors) {
 				queue.push({
 					point: neighbor,
 					path: [...path, neighbor],
@@ -200,7 +238,7 @@ export class BoardGenerator {
 						visited.add(currentKey);
 						region.push(current);
 
-						const neighbors = this.getValidNeighbors(board, current, visited);
+						const neighbors = this.getValidNeighbors(current, visited);
 						for (const neighbor of neighbors) {
 							if (!visited.has(`${neighbor.x},${neighbor.y}`)) {
 								queue.push(neighbor);
@@ -215,36 +253,16 @@ export class BoardGenerator {
 		return !regions.some((region) => region.length <= this.minDistanceBetweenEndpoints);
 	}
 
-	public getValidNeighbors(board: Board, point: Point, visited: Set<string>, includeEndpoint: boolean = false): Point[] {
-		const directions = [
-			{ dx: 0, dy: -1 },
-			{ dx: 1, dy: 0 },
-			{ dx: 0, dy: 1 },
-			{ dx: -1, dy: 0 },
-		];
-
-		return directions
-			.map(({ dx, dy }) => ({
-				x: point.x + dx,
-				y: point.y + dy,
-			}))
-			.filter(
-				({ x, y }) =>
-					x >= 0 &&
-					x < this.boardSize &&
-					y >= 0 &&
-					y < this.boardSize &&
-					(!board[y][x] || (includeEndpoint && board[y][x]?.isEndpoint)) &&
-					!visited.has(`${x},${y}`)
-			);
+	public getValidNeighbors(point: Point, visited: Set<string>, includeEndpoint: boolean = false): Point[] {
+		return getValidNeighbors(this.board, point, visited, includeEndpoint);
 	}
 
-	private validateBoard(board: Board): boolean {
+	private validateBoard(): boolean {
 		const colorCount = new Map<string, number>();
 
 		for (let y = 0; y < this.boardSize; y++) {
 			for (let x = 0; x < this.boardSize; x++) {
-				const cell = board[y][x];
+				const cell = this.board[y][x];
 				// If any cell is null return false
 				if (!cell) {
 					return false;
@@ -255,17 +273,15 @@ export class BoardGenerator {
 			}
 		}
 
-		// if (colorCount.size < this.boardSize / 2) {
-		// 	return false;
-		// }
+		if (colorCount.size > this.maxNumColors) {
+			return false;
+		}
 
 		// Check that all placed colors have exactly two endpoints
 		return [...colorCount.values()].every((count) => count === 2);
 	}
 
-	private convertIndicesToColors(numColors: number) {
-		const indexToColorMap: { [key: string]: string } = {};
-
+	private getDistancedColorArray(): string[] {
 		function maximizePairwiseDistance(numColors: number): string[] {
 			const colors: number[][] = [];
 
@@ -312,11 +328,8 @@ export class BoardGenerator {
 		}
 
 		// Generate and assign colors
-		const colors = maximizePairwiseDistance(numColors);
+		const colors = maximizePairwiseDistance(62); // TODO: 62 is hardcoded because 4 x 4 x 4 = 64, but we skip black and white
 
-		for (let i = 0; i < colors.length; i++) {
-			indexToColorMap[i.toString()] = colors[i];
-		}
-		return indexToColorMap;
+		return colors;
 	}
 }

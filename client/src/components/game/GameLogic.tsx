@@ -1,4 +1,4 @@
-import { BoardGenerator } from "./BoardGenerator";
+import { getValidNeighbors } from "./BoardGenerator";
 import { Board, GameState, Point } from "./Types";
 
 export class ChromaPathGame {
@@ -66,31 +66,25 @@ export class ChromaPathGame {
 		const queue = [{ point: { x, y }, dist: 0 }];
 
 		while (queue.length > 0) {
-			const { point } = queue.shift()!;
+			const { point, dist } = queue.shift()!;
 			const key = `${point.x},${point.y}`;
 
 			if (visited.has(key)) continue;
 			visited.add(key);
 
-			// If this point is empty, return it
+			// If this point is empty and 1 point away, return it
 			if (!this.state.board[point.y]?.[point.x]) {
 				return point;
 			}
 
 			// Check all adjacent points (up, right, down, left)
-			const neighbors = [
-				{ x: point.x, y: point.y - 1 }, // up
-				{ x: point.x + 1, y: point.y }, // right
-				{ x: point.x, y: point.y + 1 }, // down
-				{ x: point.x - 1, y: point.y }, // left
-			];
-
+			const neighbors = getValidNeighbors(this.state.board, point, visited, true);
 			for (const neighbor of neighbors) {
 				// Check if within board bounds
 				if (neighbor.x >= 0 && neighbor.x < this.boardSize && neighbor.y >= 0 && neighbor.y < this.boardSize) {
 					const neighborKey = `${neighbor.x},${neighbor.y}`;
 					if (!visited.has(neighborKey)) {
-						queue.push({ point: neighbor, dist: 0 });
+						queue.push({ point: neighbor, dist: dist + 1 });
 					}
 				}
 			}
@@ -101,18 +95,23 @@ export class ChromaPathGame {
 
 	public handleDrag(x: number, y: number): void {
 		if (!this.state.currentColor || !this.state.startPoint) return;
+
 		const currentPath = this.state.paths[this.state.currentColor];
 		const lastPoint = currentPath[currentPath.length - 1];
 
 		// TODO: Implement nice feature
-		// if (!this.isValidMove(x, y, this.state.currentColor)) {
-		// 	const lastPoint = this.state.paths[this.state.currentColor][currentPath.length - 1];
-		// 	const closestPoint = this.findClosestEmptyPoint(lastPoint.x, lastPoint.y);
-		// 	if (closestPoint) {
-		// 		x = closestPoint.x;
-		// 		y = closestPoint.y;
-		// 	}
-		// }
+		// ! THIS DONT WORK
+		if (!this.isValidMove(x, y, this.state.currentColor)) {
+			return;
+			// const lastPoint = this.state.paths[this.state.currentColor][currentPath.length - 1];
+			// const closestPoint = this.findClosestEmptyPoint(lastPoint.x, lastPoint.y);
+			// if (closestPoint) {
+			// 	x = closestPoint.x;
+			// 	y = closestPoint.y;
+			// } else {
+			// 	return;
+			// }
+		}
 
 		// Handle backtracking
 		const backtrackIndex = currentPath.findIndex((p) => p.x === x && p.y === y);
@@ -134,7 +133,19 @@ export class ChromaPathGame {
 		}
 
 		// TODO: WHY DOESNT THIS WORK???
-		this.findPathToPoint(currentPath[0], { x, y });
+		const curPathCopy = [...currentPath];
+		for (let i = currentPath.length - 1; i >= 0; i--) {
+			const visited = new Set<string>();
+			for (const point of currentPath.slice(0, i)) {
+				visited.add(`${point.x},${point.y}`);
+			}
+			if (this.findPathToPoint(currentPath[i], { x, y }, visited)) {
+				const path = curPathCopy.slice(0, i).concat(this.state.paths[this.state.currentColor]);
+				this.state.paths[this.state.currentColor] = path;
+
+				return;
+			}
+		}
 	}
 
 	private isAtEndpoint(point: Point, startPoint: Point): boolean {
@@ -146,44 +157,42 @@ export class ChromaPathGame {
 		);
 	}
 
-	private findPathToPoint(start: Point, target: Point): void {
-		const visited = new Set<string>();
+	private findPathToPoint(start: Point, target: Point, visited = new Set<string>()): boolean {
+		// const visited = new Set<string>();
 		const queue = [{ point: start, path: [start] }];
 
 		while (queue.length > 0) {
 			const { point, path } = queue.shift()!;
+			// Check if point is at endpoint
 
-			// Path length and collision checks
-			if (this.checkPathCollision(path)) {
-				continue;
-			}
-
-			// TODO: Fix this condition
-			// If we are at an endpoint that is not the target, skip it
 			if (path.length > 1 && this.isAtEndpoint(point, start) && target.x !== point.x && target.y !== point.y) {
 				continue;
 			}
 
-			if (path.length > this.boardSize * this.boardSize || this.checkPathCollision(path)) continue; // Prevent infinite loops
-			if (point.x === target.x && point.y === target.y) {
+			if (this.checkPathCollision(path)) continue; // Prevent infinite loops
+			if ((point.x === target.x && point.y === target.y) || this.isAtEndpoint(point, start)) {
 				// Found path
 				if (this.state.currentColor) {
 					this.state.paths[this.state.currentColor] = path;
 				}
-				return;
+				return true;
 			}
 
 			visited.add(`${point.x},${point.y}`);
 
-			const neighbors = new BoardGenerator()
-				.getValidNeighbors(this.state.board, point, visited, true)
-				.filter((n) => !path.some((p) => p.x === n.x && p.y === n.y));
-			// .sort(() => Math.random() - 0.5);
+			// Get valid neighbors that are not in path, visited, or queue
+			const neighbors = getValidNeighbors(this.state.board, point, visited, true).filter(
+				(n) =>
+					!path.some((p) => p.x === n.x && p.y === n.y) &&
+					!visited.has(`${n.x},${n.y}`) &&
+					!queue.some((q) => q.point.x === n.x && q.point.y === n.y)
+			);
 
 			for (const neighbor of neighbors) {
 				queue.push({ point: neighbor, path: [...path, neighbor] });
 			}
 		}
+		return false;
 	}
 
 	private checkPathCollision(currentPath: Point[]): boolean {
@@ -251,8 +260,8 @@ export class ChromaPathGame {
 		return this.state;
 	}
 
-	public reset(newBoard: Board, size?: number): void {
-		if (size) this.boardSize = size;
+	public reset(newBoard: Board): void {
+		this.boardSize = newBoard.length;
 		this.state = this.initializeState(newBoard);
 	}
 }
