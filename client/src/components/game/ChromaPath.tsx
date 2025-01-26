@@ -201,7 +201,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 					<span>Show Numbers</span>
 					<input
 						type="checkbox"
-						defaultChecked={true}
+						defaultChecked={false}
 						onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 							if (!gameRef.current || !rendererRef.current) return;
 							rendererRef.current.showNumbers = e.target.checked;

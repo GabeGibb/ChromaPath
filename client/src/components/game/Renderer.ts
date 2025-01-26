@@ -5,7 +5,7 @@ export class ChromaPathRenderer {
 	private ctx: CanvasRenderingContext2D;
 	private cellSize: number;
 	public initialized: boolean = false;
-	public showNumbers: boolean = true;
+	public showNumbers: boolean = false;
 
 	constructor(container: HTMLDivElement) {
 		this.canvas = document.createElement("canvas");

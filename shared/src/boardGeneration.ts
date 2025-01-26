@@ -1,28 +1,5 @@
+import { getValidNeighbors, shuffleArray } from "./boardUtils";
 import { Board, Point } from "./types";
-
-export function getValidNeighbors(board: Board, point: Point, visited: Set<string>, includeEndpoint: boolean = false): Point[] {
-	const directions = [
-		{ dx: 0, dy: -1 },
-		{ dx: 1, dy: 0 },
-		{ dx: 0, dy: 1 },
-		{ dx: -1, dy: 0 },
-	];
-	const boardSize = board.length;
-	return directions
-		.map(({ dx, dy }) => ({
-			x: point.x + dx,
-			y: point.y + dy,
-		}))
-		.filter(
-			({ x, y }) =>
-				x >= 0 &&
-				x < boardSize &&
-				y >= 0 &&
-				y < boardSize &&
-				(!board[y][x] || (includeEndpoint && board[y][x]?.isEndpoint)) &&
-				!visited.has(`${x},${y}`)
-		);
-}
 
 export class BoardGenerator {
 	private boardSize: number = 5;
@@ -144,15 +121,6 @@ export class BoardGenerator {
 		return emptyCells;
 	}
 
-	private shuffleArray(array: any[]) {
-		const shuffled = [...array];
-		for (let i = shuffled.length - 1; i > 0; i--) {
-			const j = Math.floor(Math.random() * (i + 1));
-			[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-		}
-		return shuffled;
-	}
-
 	private findValidPath(board: Board, start: Point): Point[] | null {
 		const visited = new Set<string>();
 		const queue: { point: Point; path: Point[] }[] = [{ point: start, path: [start] }];
@@ -165,16 +133,16 @@ export class BoardGenerator {
 			if (visited.has(key)) continue;
 			visited.add(key);
 
-			const neighbors = this.getValidNeighbors(point, visited, false);
+			const neighbors = getValidNeighbors(this.board, point, visited, false);
 
 			if (path.length >= minPathLength && !board[point.y][point.x] && neighbors.length === 0) {
 				return path;
 			}
 
 			// ! THIS LINE ADDS RANDOMNESS TO THE PATH BUT IS EXPENSIVE
-			// const shuffledNeighbors = this.shuffleArray(neighbors);
+			const shuffledNeighbors = shuffleArray(neighbors);
 
-			for (const neighbor of neighbors) {
+			for (const neighbor of shuffledNeighbors) {
 				queue.push({
 					point: neighbor,
 					path: [...path, neighbor],
@@ -213,7 +181,7 @@ export class BoardGenerator {
 						visited.add(currentKey);
 						region.push(current);
 
-						const neighbors = this.getValidNeighbors(current, visited, true);
+						const neighbors = getValidNeighbors(this.board, current, visited, true);
 						for (const neighbor of neighbors) {
 							if (!visited.has(`${neighbor.x},${neighbor.y}`)) {
 								queue.push(neighbor);
@@ -233,10 +201,6 @@ export class BoardGenerator {
 		}
 
 		return true;
-	}
-
-	public getValidNeighbors(point: Point, visited: Set<string>, includeEndpoint: boolean = false): Point[] {
-		return getValidNeighbors(this.board, point, visited, includeEndpoint);
 	}
 
 	private validateBoard(): boolean {
