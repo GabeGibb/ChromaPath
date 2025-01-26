@@ -61,37 +61,37 @@ export class ChromaPathGame {
 		}
 	}
 
-	private findClosestEmptyPoint(x: number, y: number): Point | null {
-		const visited = new Set<string>();
-		const queue = [{ point: { x, y }, dist: 0 }];
+	// private findClosestEmptyPoint(x: number, y: number): Point | null {
+	// 	const visited = new Set<string>();
+	// 	const queue = [{ point: { x, y }, dist: 0 }];
 
-		while (queue.length > 0) {
-			const { point, dist } = queue.shift()!;
-			const key = `${point.x},${point.y}`;
+	// 	while (queue.length > 0) {
+	// 		const { point, dist } = queue.shift()!;
+	// 		const key = `${point.x},${point.y}`;
 
-			if (visited.has(key)) continue;
-			visited.add(key);
+	// 		if (visited.has(key)) continue;
+	// 		visited.add(key);
 
-			// If this point is empty and 1 point away, return it
-			if (!this.state.board[point.y]?.[point.x]) {
-				return point;
-			}
+	// 		// If this point is empty and 1 point away, return it
+	// 		if (!this.state.board[point.y]?.[point.x]) {
+	// 			return point;
+	// 		}
 
-			// Check all adjacent points (up, right, down, left)
-			const neighbors = getValidNeighbors(this.state.board, point, visited, true);
-			for (const neighbor of neighbors) {
-				// Check if within board bounds
-				if (neighbor.x >= 0 && neighbor.x < this.boardSize && neighbor.y >= 0 && neighbor.y < this.boardSize) {
-					const neighborKey = `${neighbor.x},${neighbor.y}`;
-					if (!visited.has(neighborKey)) {
-						queue.push({ point: neighbor, dist: dist + 1 });
-					}
-				}
-			}
-		}
+	// 		// Check all adjacent points (up, right, down, left)
+	// 		const neighbors = getValidNeighbors(this.state.board, point, visited, true);
+	// 		for (const neighbor of neighbors) {
+	// 			// Check if within board bounds
+	// 			if (neighbor.x >= 0 && neighbor.x < this.boardSize && neighbor.y >= 0 && neighbor.y < this.boardSize) {
+	// 				const neighborKey = `${neighbor.x},${neighbor.y}`;
+	// 				if (!visited.has(neighborKey)) {
+	// 					queue.push({ point: neighbor, dist: dist + 1 });
+	// 				}
+	// 			}
+	// 		}
+	// 	}
 
-		return null; // No empty point found
-	}
+	// 	return null; // No empty point found
+	// }
 
 	public handleDrag(x: number, y: number): void {
 		if (!this.state.currentColor || !this.state.startPoint) return;

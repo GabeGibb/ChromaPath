@@ -1,5 +1,5 @@
 import { ChromaPathRenderer } from "./Renderer";
-import { Board, Point } from "./Types";
+import { Board, GameState, Point } from "./Types";
 
 export function getValidNeighbors(board: Board, point: Point, visited: Set<string>, includeEndpoint: boolean = false): Point[] {
 	const directions = [
@@ -80,23 +80,25 @@ export class BoardGenerator {
 		while (true) {
 			if (this.placeColorEndpoints()) {
 				// * animation logic
-				// const gameState: GameState = {
-				// 	board: board,
-				// 	paths: {},
-				// 	currentColor: null,
-				// 	startPoint: null,
-				// 	completed: false,
-				// 	mouseX: 0,
-				// 	mouseY: 0,
-				// };
+				if (this.boardSize < 10) {
+					const gameState: GameState = {
+						board: this.board,
+						paths: {},
+						currentColor: null,
+						startPoint: null,
+						completed: false,
+						mouseX: 0,
+						mouseY: 0,
+					};
 
-				// await new Promise<void>((resolve) =>
-				// 	requestAnimationFrame(() => {
-				// 		this.renderer?.render(gameState, this.boardSize);
-				// 		resolve();
-				// 	})
-				// );
-				// }
+					await new Promise<void>((resolve) =>
+						requestAnimationFrame(() => {
+							this.renderer?.render(gameState, this.boardSize);
+							resolve();
+						})
+					);
+				}
+
 				if (this.validateBoard()) {
 					return true;
 				}
