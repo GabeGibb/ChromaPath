@@ -6,6 +6,7 @@ export class ChromaPathRenderer {
 	private cellSize: number;
 	public initialized: boolean = false;
 	public showNumbers: boolean = false;
+	private debug: boolean = true;
 
 	constructor(container: HTMLDivElement) {
 		this.canvas = document.createElement("canvas");
@@ -63,7 +64,7 @@ export class ChromaPathRenderer {
 		// Draw board
 		board.forEach((row, y) => {
 			row.forEach((cell, x) => {
-				if (cell?.isEndpoint) {
+				if (cell?.isEndpoint || (this.debug && cell?.color)) {
 					this.ctx.beginPath();
 					this.ctx.fillStyle = cell.color;
 					this.ctx.arc(

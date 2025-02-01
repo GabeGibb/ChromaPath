@@ -37,23 +37,43 @@ export class Path {
 	}
 
 	test(): boolean {
-		const positions = Array.from(this.xys());
-		const uniquePositions = new Set(positions.map((p) => `${p[0]},${p[1]}`));
-		return positions.length === uniquePositions.size;
+		const positions = new Set<string>();
+		for (const [x, y] of this.xys()) {
+			const posKey = `${x},${y}`;
+			if (positions.has(posKey)) {
+				return false;
+			}
+			positions.add(posKey);
+		}
+		return true;
 	}
 
 	testLoop(): boolean {
-		const positions = Array.from(this.xys());
-		const uniquePositions = new Set(positions.map((p) => `${p[0]},${p[1]}`));
-		const firstPos = positions[0];
-		const lastPos = positions[positions.length - 1];
+		const positions = new Set<string>();
+		const points = Array.from(this.xys());
+
+		for (const [x, y] of points) {
+			const posKey = `${x},${y}`;
+			positions.add(posKey);
+		}
+
+		const firstPos = points[0];
+		const lastPos = points[points.length - 1];
 		const isLoop = firstPos[0] === lastPos[0] && firstPos[1] === lastPos[1];
 
-		return positions.length === uniquePositions.size || (positions.length === uniquePositions.size + 1 && isLoop);
+		return points.length === positions.size || (points.length === positions.size + 1 && isLoop);
 	}
 
 	winding(): number {
-		return this.steps.filter((s) => s === Step.R).length - this.steps.filter((s) => s === Step.L).length;
+		let rightCount = 0;
+		let leftCount = 0;
+
+		for (const step of this.steps) {
+			if (step === Step.R) rightCount++;
+			else if (step === Step.L) leftCount++;
+		}
+
+		return rightCount - leftCount;
 	}
 }
 
@@ -208,10 +228,7 @@ export class Mitm {
 	}
 
 	randLoop(clock: number = 0): Path | null {
-		let attempts = 0;
-		const maxAttempts = 1000;
-
-		while (attempts < maxAttempts) {
+		while (true) {
 			const idx = Math.floor(Math.random() * this.list.length);
 			const [path, x, y, dx, dy] = this.list[idx];
 			const path2s = this.lookup(dx, dy, -x, -y, 0, 1);
@@ -221,7 +238,6 @@ export class Mitm {
 				const joined = new Path([...path, ...path2]);
 
 				if (clock && joined.winding() !== clock * 4) {
-					attempts++;
 					continue;
 				}
 
@@ -229,8 +245,6 @@ export class Mitm {
 					return joined;
 				}
 			}
-			attempts++;
 		}
-		return null;
 	}
 }

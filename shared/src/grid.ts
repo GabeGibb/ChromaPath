@@ -3,7 +3,7 @@ import { Path } from "./mitm";
 // Type definitions for grid coordinates and values
 type Coordinate = [number, number];
 type GridValue = string;
-type GridContent = Map<string, GridValue>;
+export type GridContent = Map<string, GridValue>;
 
 function sign(x: number): number {
 	if (x === 0) return x;
@@ -18,11 +18,11 @@ export class UnionFind {
 		this.uf = initial || new Map();
 	}
 
-	serialize(a: Coordinate): string {
+	private serialize(a: Coordinate): string {
 		return `${a[0]},${a[1]}`;
 	}
 
-	deserialize(s: string): Coordinate {
+	private deserialize(s: string): Coordinate {
 		const [x, y] = s.split(",").map(Number);
 		return [x, y];
 	}
@@ -30,7 +30,9 @@ export class UnionFind {
 	union(a: Coordinate, b: Coordinate): void {
 		const aParent = this.find(a);
 		const bParent = this.find(b);
-		this.uf.set(this.serialize(aParent), this.serialize(bParent));
+		if (this.serialize(aParent) !== this.serialize(bParent)) {
+			this.uf.set(this.serialize(aParent), this.serialize(bParent));
+		}
 	}
 
 	find(a: Coordinate): Coordinate {
@@ -104,13 +106,24 @@ export class Grid {
 	}
 
 	testPath(path: Path, x0: number, y0: number, dx0: number = 0, dy0: number = 1): boolean {
+		// Convert to Python-like behavior with tuples
+		const positions = new Set<string>();
 		for (const [x, y] of path.xys(dx0, dy0)) {
 			const testX = x0 - x + y;
 			const testY = y0 + x + y;
-			// All conditions must be true for each point
-			if (!(0 <= testX && testX < this.w && 0 <= testY && testY < this.h && !this.has([testX, testY]))) {
+			const posKey = `${testX},${testY}`;
+
+			// Check bounds and position availability
+			if (!(0 <= testX && testX < this.w && 0 <= testY && testY < this.h)) {
 				return false;
 			}
+
+			// Check if position is already taken or was visited in this path
+			if (this.has([testX, testY]) || positions.has(posKey)) {
+				return false;
+			}
+
+			positions.add(posKey);
 		}
 		return true;
 	}
@@ -121,27 +134,29 @@ export class Grid {
 		if (loop) {
 			const [firstX, firstY] = ps[0];
 			const [lastX, lastY] = ps[ps.length - 1];
-			// Match Python's assert style
 			if (firstX !== lastX || firstY !== lastY) {
-				throw new Error(`${path}, ${ps}`); // Match Python's assert message
+				throw new Error(`${path}, ${ps}`);
 			}
 			ps.push(ps[1]);
 		}
 
-		const charMap: Record<string, string> = {
-			"1,1,1": "<",
-			"-1,-1,-1": "<",
-			"1,1,-1": ">",
-			"-1,-1,1": ">",
-			"-1,1,1": "v",
-			"1,-1,-1": "v",
-			"-1,1,-1": "^",
-			"1,-1,1": "^",
-			"0,2,0": "\\",
-			"0,-2,0": "\\",
-			"2,0,0": "/",
-			"-2,0,0": "/",
-		};
+		// Change to use a tuple-like key instead of string
+		type CharKey = [number, number, number];
+		const charMap = new Map<string, string>([
+			// Store keys in a way we can match exactly
+			[[1, 1, 1].toString(), "<"],
+			[[-1, -1, -1].toString(), "<"],
+			[[1, 1, -1].toString(), ">"],
+			[[-1, -1, 1].toString(), ">"],
+			[[-1, 1, 1].toString(), "v"],
+			[[1, -1, -1].toString(), "v"],
+			[[-1, 1, -1].toString(), "^"],
+			[[1, -1, 1].toString(), "^"],
+			[[0, 2, 0].toString(), "\\"],
+			[[0, -2, 0].toString(), "\\"],
+			[[2, 0, 0].toString(), "/"],
+			[[-2, 0, 0].toString(), "/"],
+		]);
 
 		for (let i = 1; i < ps.length - 1; i++) {
 			const [xp, yp] = ps[i - 1];
@@ -152,17 +167,15 @@ export class Grid {
 			const yDiff = yn - yp;
 			const cross = sign((x - xp) * (yn - y) - (xn - x) * (y - yp));
 
-			// Access grid using array-style indexing to match Python
-			const key = `${xDiff},${yDiff},${cross}`;
-			const char = charMap[key];
+			// Create key in same format as our map
+			const key = [xDiff, yDiff, cross].toString();
+			const char = charMap.get(key);
 
-			// TODO: SUSPECT
 			if (char) {
 				this.set([x0 - x + y, y0 + x + y], char);
 			}
 		}
 	}
-
 	makeTubes(): [Grid, UnionFind] {
 		const uf = new UnionFind();
 		const tubeGrid = new Grid(this.w, this.h);
@@ -178,8 +191,12 @@ export class Grid {
 			" |": [[0, 1]],
 			"v|": [[0, 1]],
 			">|": [[1, 0]],
+			"^|": [[0, 1]], // Added missing case
+			"<|": [[1, 0]], // Added missing case
 			"v-": [[0, 1]],
 			">-": [[1, 0]],
+			"^-": [[0, 1]], // Added missing case
+			"<-": [[1, 0]], // Added missing case
 		};
 
 		const charMap: Record<string, string> = {
@@ -190,8 +207,6 @@ export class Grid {
 			" -": "-",
 			" |": "|",
 		};
-
-		// TODO: SUSPECT
 
 		for (let x = 0; x < this.w; x++) {
 			let d = "-";
@@ -207,7 +222,7 @@ export class Grid {
 				// Set tube grid character
 				tubeGrid.set([x, y], charMap[key] || "x");
 
-				// Update direction
+				// Update direction on path characters
 				if ("\\/v^".includes(this.get([x, y]))) {
 					d = d === "-" ? "|" : "-";
 				}
@@ -216,7 +231,6 @@ export class Grid {
 
 		return [tubeGrid, uf];
 	}
-
 	// TODO: SUSPECT
 	clearPath(path: Path, x: number, y: number): void {
 		const pathGrid = new Grid(this.w, this.h);

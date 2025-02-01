@@ -104,8 +104,12 @@ function make(w: number, h: number, mitm: Mitm, minNumbers: number, maxNumbers: 
 
 	// Initialize MITM table
 	const grid: Grid = new Grid(2 * width + 1, 2 * height + 1);
-
+	let tempCount = 0;
 	while (true) {
+		if (tempCount > 1000) {
+			throw new Error("Too many tries");
+		}
+		tempCount++;
 		grid.clear();
 
 		// Add left side path
@@ -133,12 +137,10 @@ function make(w: number, h: number, mitm: Mitm, minNumbers: number, maxNumbers: 
 
 		// Add loops in the middle
 		const [tg] = grid.makeTubes();
-
 		for (let tries = 0; tries < LOOP_TRIES; tries++) {
 			const x = 2 * Math.floor(Math.random() * width);
 			const y = 2 * Math.floor(Math.random() * height);
 
-			// TODO: SUSPECT
 			if (!"-|".includes(tg.get([x, y])) || !tg.get([x, y])) {
 				continue;
 			}
@@ -147,8 +149,6 @@ function make(w: number, h: number, mitm: Mitm, minNumbers: number, maxNumbers: 
 			if (path && grid.testPath(path, x, y)) {
 				grid.clearPath(path, x, y);
 				grid.drawPath(path, x, y, 0, 1, true);
-
-				const [tg] = grid.makeTubes();
 
 				const sg = grid.shrink();
 				const stg: Grid = sg.makeTubes()[0];

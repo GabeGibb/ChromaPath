@@ -1,4 +1,4 @@
-import { BoardGenerator, generateNumberLink, PuzzleConfig } from "@chromapath/shared";
+import { BoardGenerator } from "@chromapath/shared";
 import React, { useEffect, useRef, useState } from "react";
 import { ChromaPathGame } from "./GameLogic";
 import { ChromaPathRenderer } from "./Renderer";
@@ -206,33 +206,33 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	const handleNewLevel = async () => {
 		if (gameActionsNotReady && !boardGenerating) return;
 		setBoardGenerating(true);
-		console.log("test");
-		const options: PuzzleConfig = { width: boardSize, height: boardSize };
-		// const board = generateNumberlinkPuzzle(options).grid;
-		const board = generateNumberLink(options);
-		console.log(board);
-		// const transformedBoard = board[0].map((row) => row.split(""));
-		// console.log(board);
+		const gen = new BoardGenerator(rendererRef.current);
+		const board = await gen.generateBoard(boardSize);
+
+		// const transformedBoard = Array.from({ length: boardSize }, () => Array(boardSize).fill(null));
+
 		// const colors = getDistancedColorArray();
-		// for (let y = 0; y < transformedBoard.length; y++) {
-		// 	for (let x = 0; x < transformedBoard[y].length; x++) {
-		// 		if (transformedBoard[y][x] === ".") {
+		// for (let y = 0; y < boardSize; y++) {
+		// 	for (let x = 0; x < boardSize; x++) {
+		// 		if (board[0][y][x] === 0) {
 		// 			transformedBoard[y][x] = null;
 		// 		} else {
-		// 			transformedBoard[y][x] = { color: colors[transformedBoard[y][x]], isEndpoint: true };
+		// 			transformedBoard[y][x] = { color: colors[board[0][y][x]], isEndpoint: true };
 		// 		}
 		// 	}
 		// }
+		// console.log(colors);
 
 		// console.log(transformedBoard);
+		console.log(board);
 
 		// // const board = await boardGeneratorRef.current?.generateBoard(boardSize);
-		// setBoardGenerating(false);
-		// // if (!board) return;
+		setBoardGenerating(false);
+		if (!board) return;
 
-		// gameRef.current?.reset(transformedBoard);
-		// const state = gameRef.current?.getState();
-		// if (state) rendererRef.current?.render(state, boardSize);
+		gameRef.current?.reset(board);
+		const state = gameRef.current?.getState();
+		if (state) rendererRef.current?.render(state, boardSize);
 	};
 
 	useEffect(() => {
