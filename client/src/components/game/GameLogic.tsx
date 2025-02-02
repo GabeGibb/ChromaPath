@@ -256,6 +256,12 @@ export class ChromaPathGame {
 		return this.checkCompletion();
 	}
 
+	public refreshPaths(): void {
+		for (let i = 0; i < this.state.paths.length; i++) {
+			this.state.paths[i] = [];
+		}
+	}
+
 	public handleMouseMove(x: number, y: number): void {
 		this.state.mouseX = x;
 		this.state.mouseY = y;

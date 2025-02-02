@@ -174,7 +174,7 @@ function generatePuzzle(options: PuzzleOptions): Board {
 	}
 
 	const actualMinNumbers = minNumbers ?? width - 1;
-	const actualMaxNumbers = maxNumbers ?? width + 1;
+	const actualMaxNumbers = maxNumbers ?? width + 3;
 
 	const mitm = new Mitm(2, 1);
 	// Using a larger path length in mitm might increase puzzle complexity, but
@@ -182,27 +182,39 @@ function generatePuzzle(options: PuzzleOptions): Board {
 	mitm.prepare(Math.min(20, Math.max(height, 6)));
 
 	const grid = make(width, height, mitm, actualMinNumbers, actualMaxNumbers);
-	const [tg, _] = grid.makeTubes();
 
+	// Convert the grid to a board
+	const [tg, uf] = grid.makeTubes();
 	const board: Board = Array.from({ length: height }, () => Array(width).fill(null));
-	const endpoints = [];
+	const endpointGroups = new Map<string, Array<[number, number]>>();
 	for (let y = 0; y < tg.h; y++) {
 		for (let x = 0; x < tg.w; x++) {
 			const cell = tg.getItem([x, y]);
 			if (cell === "x") {
-				endpoints.push([x, y]);
+				const group = uf.find(`${x},${y}`);
+				if (!endpointGroups.has(group)) {
+					endpointGroups.set(group, []);
+				}
+				endpointGroups.get(group)!.push([x, y]);
 			}
 		}
 	}
 
-	// Then assign pathIndices in pairs
-	for (let i = 0; i < endpoints.length; i += 2) {
-		const pathIndex = Math.floor(i / 2); // 0 for first pair, 1 for second pair, etc.
-		const [x1, y1] = endpoints[i];
-		const [x2, y2] = endpoints[i + 1];
+	// Now assign path indices based on the groups
+	let pathIndex = 0;
+	for (const [_, endpoints] of endpointGroups) {
+		// Each group should have exactly 2 endpoints
+		if (endpoints.length !== 2) {
+			throw new Error("Invalid puzzle: path group does not have exactly 2 endpoints");
+		}
+
+		const [x1, y1] = endpoints[0];
+		const [x2, y2] = endpoints[1];
 
 		board[y1][x1] = { pathIndex, isEndpoint: true };
 		board[y2][x2] = { pathIndex, isEndpoint: true };
+
+		pathIndex++;
 	}
 	return board;
 }

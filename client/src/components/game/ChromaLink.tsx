@@ -1,4 +1,5 @@
 import { BoardGenerator, generatePuzzle } from "@chromapath/shared";
+import { RefreshCcw } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { LocalStorageService } from "../../services/localStorage/localStorage";
 import { ChromaPathGame } from "./GameLogic";
@@ -232,6 +233,9 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 						className="checkbox checkbox-neutral"
 					/>
 				</label>
+				<button onClick={() => gameRef.current?.refreshPaths()} className="btn btn-primary m-auto">
+					<RefreshCcw size={24} />
+				</button>
 			</div>
 		</div>
 	);
