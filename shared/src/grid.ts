@@ -1,62 +1,52 @@
-import { Path } from "./mitm";
-
-// Type definitions for grid coordinates and values
-type Coordinate = [number, number];
-type GridValue = string;
-export type GridContent = Map<string, GridValue>;
-
+// Helper function to determine sign of a number
 function sign(x: number): number {
 	if (x === 0) return x;
 	return x < 0 ? -1 : 1;
 }
 
-// TODO: This can be improvved
-export class UnionFind {
+type GridPosition = [number, number];
+type GridValue = string;
+type GridMap = Map<string, GridValue>;
+
+class UnionFind {
 	private uf: Map<string, string>;
 
 	constructor(initial?: Map<string, string>) {
 		this.uf = initial || new Map();
 	}
 
-	private serialize(a: Coordinate): string {
-		return `${a[0]},${a[1]}`;
-	}
-
-	private deserialize(s: string): Coordinate {
-		const [x, y] = s.split(",").map(Number);
-		return [x, y];
-	}
-
-	union(a: Coordinate, b: Coordinate): void {
+	union(a: GridPosition, b: GridPosition): void {
 		const aParent = this.find(a);
 		const bParent = this.find(b);
-		if (this.serialize(aParent) !== this.serialize(bParent)) {
-			this.uf.set(this.serialize(aParent), this.serialize(bParent));
-		}
+		this.uf.set(this.posToKey(aParent), this.posToKey(bParent));
 	}
 
-	find(a: Coordinate): Coordinate {
-		const serializedA = this.serialize(a);
-		if (!this.uf.has(serializedA)) {
+	find(a: GridPosition): GridPosition {
+		const key = this.posToKey(a);
+		if (!this.uf.has(key) || this.uf.get(key) === key) {
 			return a;
 		}
-
-		const parent = this.deserialize(this.uf.get(serializedA)!);
-		if (this.serialize(parent) === serializedA) {
-			return parent;
-		}
-
 		// Path compression
-		const finalParent = this.find(parent);
-		this.uf.set(serializedA, this.serialize(finalParent));
-		return finalParent;
+		const parent = this.keyToPos(this.uf.get(key)!);
+		const ultimate = this.find(parent);
+		this.uf.set(key, this.posToKey(ultimate));
+		return ultimate;
+	}
+
+	private posToKey(pos: GridPosition): string {
+		return `${pos[0]},${pos[1]}`;
+	}
+
+	private keyToPos(key: string): GridPosition {
+		const [x, y] = key.split(",").map(Number);
+		return [x, y];
 	}
 }
 
-export class Grid {
-	public w: number;
-	public h: number;
-	public grid: GridContent;
+class Grid {
+	public readonly w: number;
+	public readonly h: number;
+	private grid: GridMap;
 
 	constructor(w: number, h: number) {
 		this.w = w;
@@ -64,35 +54,32 @@ export class Grid {
 		this.grid = new Map();
 	}
 
-	set(key: Coordinate, val: GridValue): void {
-		this.grid.set(`${key[0]},${key[1]}`, val);
+	set(pos: GridPosition, val: GridValue): void {
+		this.grid.set(`${pos[0]},${pos[1]}`, val);
 	}
 
-	get(key: Coordinate): GridValue {
-		return this.grid.get(`${key[0]},${key[1]}`) || " ";
+	get(pos: GridPosition): GridValue {
+		return this.grid.get(`${pos[0]},${pos[1]}`) || " ";
 	}
 
-	entries(): [Coordinate, GridValue][] {
-		return Array.from(this.grid.entries()).map(([key, value]) => {
-			const [x, y] = key.split(",").map(Number);
-			return [[x, y], value];
-		});
+	has(pos: GridPosition): boolean {
+		return this.grid.has(`${pos[0]},${pos[1]}`);
 	}
 
-	has(key: Coordinate): boolean {
-		return this.grid.has(`${key[0]},${key[1]}`);
-	}
-
-	delete(key: Coordinate): void {
-		this.grid.delete(`${key[0]},${key[1]}`);
+	delete(pos: GridPosition): void {
+		this.grid.delete(`${pos[0]},${pos[1]}`);
 	}
 
 	clear(): void {
 		this.grid.clear();
 	}
 
-	values(): GridValue[] {
-		return Array.from(this.grid.values());
+	values(): IterableIterator<GridValue> {
+		return this.grid.values();
+	}
+
+	entries(): IterableIterator<[string, GridValue]> {
+		return this.grid.entries();
 	}
 
 	shrink(): Grid {
@@ -105,125 +92,115 @@ export class Grid {
 		return smallGrid;
 	}
 
-	testPath(path: Path, x0: number, y0: number, dx0: number = 0, dy0: number = 1): boolean {
-		// Convert to Python-like behavior with tuples
-		const positions = new Set<string>();
+	testPath(
+		path: { xys: (dx0: number, dy0: number) => Generator<GridPosition> },
+		x0: number,
+		y0: number,
+		dx0: number = 0,
+		dy0: number = 1
+	): boolean {
 		for (const [x, y] of path.xys(dx0, dy0)) {
-			const testX = x0 - x + y;
-			const testY = y0 + x + y;
-			const posKey = `${testX},${testY}`;
-
-			// Check bounds and position availability
-			if (!(0 <= testX && testX < this.w && 0 <= testY && testY < this.h)) {
+			const newX = x0 - x + y;
+			const newY = y0 + x + y;
+			if (newX < 0 || newX >= this.w || newY < 0 || newY >= this.h) {
 				return false;
 			}
-
-			// Check if position is already taken or was visited in this path
-			if (this.has([testX, testY]) || positions.has(posKey)) {
+			if (this.has([newX, newY])) {
 				return false;
 			}
-
-			positions.add(posKey);
 		}
 		return true;
 	}
 
-	drawPath(path: Path, x0: number, y0: number, dx0: number = 0, dy0: number = 1, loop: boolean = false): void {
-		const ps: Coordinate[] = Array.from(path.xys(dx0, dy0));
+	drawPath(
+		path: { xys: (dx0: number, dy0: number) => Generator<GridPosition> },
+		x0: number,
+		y0: number,
+		dx0: number = 0,
+		dy0: number = 1,
+		loop: boolean = false
+	): void {
+		const positions = Array.from(path.xys(dx0, dy0));
 
 		if (loop) {
-			const [firstX, firstY] = ps[0];
-			const [lastX, lastY] = ps[ps.length - 1];
-			if (firstX !== lastX || firstY !== lastY) {
-				throw new Error(`${path}, ${ps}`);
-			}
-			ps.push(ps[1]);
+			positions.push(positions[1]);
 		}
 
-		// Change to use a tuple-like key instead of string
-		type CharKey = [number, number, number];
-		const charMap = new Map<string, string>([
-			// Store keys in a way we can match exactly
-			[[1, 1, 1].toString(), "<"],
-			[[-1, -1, -1].toString(), "<"],
-			[[1, 1, -1].toString(), ">"],
-			[[-1, -1, 1].toString(), ">"],
-			[[-1, 1, 1].toString(), "v"],
-			[[1, -1, -1].toString(), "v"],
-			[[-1, 1, -1].toString(), "^"],
-			[[1, -1, 1].toString(), "^"],
-			[[0, 2, 0].toString(), "\\"],
-			[[0, -2, 0].toString(), "\\"],
-			[[2, 0, 0].toString(), "/"],
-			[[-2, 0, 0].toString(), "/"],
-		]);
+		for (let i = 1; i < positions.length - 1; i++) {
+			const [xp, yp] = positions[i - 1];
+			const [x, y] = positions[i];
+			const [xn, yn] = positions[i + 1];
+			const newX = x0 - x + y;
+			const newY = y0 + x + y;
 
-		for (let i = 1; i < ps.length - 1; i++) {
-			const [xp, yp] = ps[i - 1];
-			const [x, y] = ps[i];
-			const [xn, yn] = ps[i + 1];
-
+			// Get the character based on the path direction and rotation
 			const xDiff = xn - xp;
 			const yDiff = yn - yp;
-			const cross = sign((x - xp) * (yn - y) - (xn - x) * (y - yp));
+			const rotation = sign((x - xp) * (yn - y) - (xn - x) * (y - yp));
 
-			// Create key in same format as our map
-			const key = [xDiff, yDiff, cross].toString();
-			const char = charMap.get(key);
+			// Define the character mapping
+			const charMap: Record<string, GridValue> = {
+				"1,1,1": "<",
+				"-1,-1,-1": "<",
+				"1,1,-1": ">",
+				"-1,-1,1": ">",
+				"-1,1,1": "v",
+				"1,-1,-1": "v",
+				"-1,1,-1": "^",
+				"1,-1,1": "^",
+				"0,2,0": "\\",
+				"0,-2,0": "\\",
+				"2,0,0": "/",
+				"-2,0,0": "/",
+			};
 
-			if (char) {
-				this.set([x0 - x + y, y0 + x + y], char);
-			}
+			const key = `${xDiff},${yDiff},${rotation}`;
+			this.set([newX, newY], charMap[key]);
 		}
 	}
+
 	makeTubes(): [Grid, UnionFind] {
 		const uf = new UnionFind();
 		const tubeGrid = new Grid(this.w, this.h);
 
-		const unionDirections: Record<string, Coordinate[]> = {
-			"/-": [[0, 1]],
-			"\\-": [
-				[1, 0],
-				[0, 1],
-			],
-			"/|": [[1, 0]],
-			" -": [[1, 0]],
-			" |": [[0, 1]],
-			"v|": [[0, 1]],
-			">|": [[1, 0]],
-			"^|": [[0, 1]], // Added missing case
-			"<|": [[1, 0]], // Added missing case
-			"v-": [[0, 1]],
-			">-": [[1, 0]],
-			"^-": [[0, 1]], // Added missing case
-			"<-": [[1, 0]], // Added missing case
-		};
-
-		const charMap: Record<string, string> = {
-			"/-": "┐",
-			"\\-": "┌",
-			"/|": "└",
-			"\\|": "┘",
-			" -": "-",
-			" |": "|",
-		};
-
 		for (let x = 0; x < this.w; x++) {
-			let d = "-";
+			let d: GridValue = "-";
 			for (let y = 0; y < this.h; y++) {
-				const key = this.get([x, y]) + d;
+				const current = this.get([x, y]);
+				const connections: Record<string, Array<[number, number]>> = {
+					"/-": [[0, 1]],
+					"\\-": [
+						[1, 0],
+						[0, 1],
+					],
+					"/|": [[1, 0]],
+					" -": [[1, 0]],
+					" |": [[0, 1]],
+					"v|": [[0, 1]],
+					">|": [[1, 0]],
+					"v-": [[0, 1]],
+					">-": [[1, 0]],
+				};
 
-				// Handle unions
-				const directions = unionDirections[key] || [];
-				for (const [dx, dy] of directions) {
-					uf.union([x, y], [x + dx, y + dy]);
+				const key = `${current}${d}`;
+				if (connections[key]) {
+					for (const [dx, dy] of connections[key]) {
+						uf.union([x, y], [x + dx, y + dy]);
+					}
 				}
 
-				// Set tube grid character
-				tubeGrid.set([x, y], charMap[key] || "x");
+				const tubeChar: Record<string, GridValue> = {
+					"/-": "┐",
+					"\\-": "┌",
+					"/|": "└",
+					"\\|": "┘",
+					" -": "-",
+					" |": "|",
+				};
 
-				// Update direction on path characters
-				if ("\\/v^".includes(this.get([x, y]))) {
+				tubeGrid.set([x, y], tubeChar[key] || "x");
+
+				if ("\\v^/".includes(current)) {
 					d = d === "-" ? "|" : "-";
 				}
 			}
@@ -231,17 +208,19 @@ export class Grid {
 
 		return [tubeGrid, uf];
 	}
-	// TODO: SUSPECT
-	clearPath(path: Path, x: number, y: number): void {
+
+	clearPath(path: { xys: (dx0: number, dy0: number) => Generator<GridPosition> }, x: number, y: number): void {
 		const pathGrid = new Grid(this.w, this.h);
 		pathGrid.drawPath(path, x, y, 0, 1, true);
 
-		const tubeGrid = pathGrid.makeTubes();
-
-		for (const [coord, val] of tubeGrid[0].entries()) {
-			if (val === "|") {
-				this.delete(coord);
+		const [tubeGrid] = pathGrid.makeTubes();
+		for (const [key, value] of tubeGrid.entries()) {
+			if (value === "|") {
+				const [px, py] = key.split(",").map(Number);
+				this.delete([px, py]);
 			}
 		}
 	}
 }
+
+export { Grid, sign, UnionFind };

@@ -1,15 +1,18 @@
-// Types and enums
+// Types of steps in a path
 enum Step {
-	T = 0,
-	L = 1,
-	R = 2,
+	T, // Straight
+	L, // Left turn
+	R, // Right turn
 }
 
+// Type for position and direction
 type Position = [number, number];
 type Direction = [number, number];
+type PathEnd = [number, number, number, number];
 
-export class Path {
-	private steps: Step[];
+class Path {
+	public steps: Step[];
+
 	constructor(steps: Step[]) {
 		this.steps = steps;
 	}
@@ -36,71 +39,50 @@ export class Path {
 		}
 	}
 
-	test(): boolean {
-		const positions = new Set<string>();
-		for (const [x, y] of this.xys()) {
-			const posKey = `${x},${y}`;
-			if (positions.has(posKey)) {
-				return false;
-			}
-			positions.add(posKey);
-		}
-		return true;
-	}
-
 	testLoop(): boolean {
-		const positions = new Set<string>();
-		const points = Array.from(this.xys());
+		const positions: Position[] = Array.from(this.xys());
+		const seen = new Set(positions.map((p) => `${p[0]},${p[1]}`));
 
-		for (const [x, y] of points) {
-			const posKey = `${x},${y}`;
-			positions.add(posKey);
-		}
-
-		const firstPos = points[0];
-		const lastPos = points[points.length - 1];
-		const isLoop = firstPos[0] === lastPos[0] && firstPos[1] === lastPos[1];
-
-		return points.length === positions.size || (points.length === positions.size + 1 && isLoop);
+		return (
+			positions.length === seen.size ||
+			(positions.length === seen.size + 1 &&
+				positions[0][0] === positions[positions.length - 1][0] &&
+				positions[0][1] === positions[positions.length - 1][1])
+		);
 	}
 
 	winding(): number {
-		let rightCount = 0;
-		let leftCount = 0;
-
-		for (const step of this.steps) {
-			if (step === Step.R) rightCount++;
-			else if (step === Step.L) leftCount++;
-		}
-
-		return rightCount - leftCount;
+		return this.steps.filter((s) => s === Step.R).length - this.steps.filter((s) => s === Step.L).length;
 	}
 }
 
-function unrotate(x: number, y: number, dx: number, dy: number): Position {
+function unrotate(x: number, y: number, dx: number, dy: number): [number, number, number, number] {
 	while (dx !== 0 || dy !== 1) {
 		[x, y] = [-y, x];
 		[dx, dy] = [-dy, dx];
 	}
-	return [x, y];
+	return [x, y, dx, dy];
 }
 
-export class Mitm {
-	private inv: Map<string, Step[][]> = new Map();
-	private list: [Step[], number, number, number, number][] = [];
+class Mitm {
+	private lrPrice: number;
+	private tPrice: number;
+	private inv: Map<string, Path[]>;
+	private list: [Path, ...number[]][];
 
-	constructor(private lrPrice: number, private tPrice: number) {}
-
-	private keyFor(x: number, y: number, dx: number, dy: number): string {
-		return `${x},${y},${dx},${dy}`;
+	constructor(lrPrice: number, tPrice: number) {
+		this.lrPrice = lrPrice;
+		this.tPrice = tPrice;
+		this.inv = new Map();
+		this.list = [];
 	}
 
 	prepare(budget: number): void {
 		const dx0 = 0,
 			dy0 = 1;
-		for (const [path, [x, y], [dx, dy]] of this.goodPaths(0, 0, dx0, dy0, budget)) {
-			this.list.push([path, x, y, dx, dy]);
-			const key = this.keyFor(x, y, dx, dy);
+		for (const [path, end] of this.goodPaths(0, 0, dx0, dy0, budget)) {
+			this.list.push([path, ...end]);
+			const key = `${end[0]},${end[1]},${end[2]},${end[3]}`;
 			if (!this.inv.has(key)) {
 				this.inv.set(key, []);
 			}
@@ -108,16 +90,98 @@ export class Mitm {
 		}
 	}
 
-	*goodPaths(
+	randPath2(xn: number, yn: number, dxn: number, dyn: number): Path {
+		const seen = new Set<string>();
+		let path: Step[] = [];
+
+		while (true) {
+			seen.clear();
+			path = [];
+			let x = 0,
+				y = 0,
+				dx = 0,
+				dy = 1;
+			seen.add(`${x},${y}`);
+
+			for (let i = 0; i < 2 * (Math.abs(xn) + Math.abs(yn)); i++) {
+				// Sample with weights proportional to what they are in goodPaths
+				const weights = [1 / this.lrPrice, 1 / this.lrPrice, 2 / this.tPrice];
+				const total = weights.reduce((a, b) => a + b, 0);
+				let r = Math.random() * total;
+				let step: Step;
+
+				if (r < weights[0]) {
+					step = Step.L;
+				} else if (r < weights[0] + weights[1]) {
+					step = Step.R;
+				} else {
+					step = Step.T;
+				}
+
+				path.push(step);
+				x += dx;
+				y += dy;
+
+				const posKey = `${x},${y}`;
+				if (seen.has(posKey)) break;
+				seen.add(posKey);
+
+				if (step === Step.L) {
+					[dx, dy] = [-dy, dx];
+				} else if (step === Step.R) {
+					[dx, dy] = [dy, -dx];
+				} else if (step === Step.T) {
+					x += dx;
+					y += dy;
+					const newPosKey = `${x},${y}`;
+					if (seen.has(newPosKey)) break;
+					seen.add(newPosKey);
+				}
+
+				if (x === xn && y === yn) {
+					return new Path(path);
+				}
+
+				const ends = this.lookup(dx, dy, xn - x, yn - y, dxn, dyn);
+				if (ends.length > 0) {
+					const randomEnd = ends[Math.floor(Math.random() * ends.length)];
+					return new Path([...path, ...randomEnd.steps]);
+				}
+			}
+		}
+	}
+
+	randLoop(clock: number = 0): Path {
+		while (true) {
+			const idx = Math.floor(Math.random() * this.list.length);
+			const [path, x, y, dx, dy] = this.list[idx];
+			const paths2 = this.lookup(dx, dy, -x, -y, 0, 1);
+
+			if (paths2.length > 0) {
+				const path2 = paths2[Math.floor(Math.random() * paths2.length)];
+				const joined = new Path([...path.steps, ...path2.steps]);
+
+				if (clock && joined.winding() !== clock * 4) {
+					continue;
+				}
+
+				if (joined.testLoop()) {
+					return joined;
+				}
+			}
+		}
+	}
+
+	private *goodPaths(
 		x: number,
 		y: number,
 		dx: number,
 		dy: number,
 		budget: number,
 		seen: Set<string> = new Set()
-	): Generator<[Step[], Position, Direction]> {
+	): Generator<[Path, PathEnd]> {
 		if (budget >= 0) {
-			yield [[], [x, y], [dx, dy]];
+			yield [new Path([]), [x, y, dx, dy]];
 		}
 		if (budget <= 0) {
 			return;
@@ -131,11 +195,14 @@ export class Mitm {
 		const pos1Key = `${x1},${y1}`;
 
 		if (!seen.has(pos1Key)) {
-			for (const [path, pos, dir] of this.goodPaths(x1, y1, -dy, dx, budget - this.lrPrice, seen)) {
-				yield [[Step.L, ...path], pos, dir];
+			// Try left turn
+			for (const [path, end] of this.goodPaths(x1, y1, -dy, dx, budget - this.lrPrice, seen)) {
+				yield [new Path([Step.L, ...path.steps]), end];
 			}
-			for (const [path, pos, dir] of this.goodPaths(x1, y1, dy, -dx, budget - this.lrPrice, seen)) {
-				yield [[Step.R, ...path], pos, dir];
+
+			// Try right turn
+			for (const [path, end] of this.goodPaths(x1, y1, dy, -dx, budget - this.lrPrice, seen)) {
+				yield [new Path([Step.R, ...path.steps]), end];
 			}
 
 			seen.add(pos1Key);
@@ -144,8 +211,9 @@ export class Mitm {
 			const pos2Key = `${x2},${y2}`;
 
 			if (!seen.has(pos2Key)) {
-				for (const [path, pos, dir] of this.goodPaths(x2, y2, dx, dy, budget - this.tPrice, seen)) {
-					yield [[Step.T, ...path], pos, dir];
+				// Try straight
+				for (const [path, end] of this.goodPaths(x2, y2, dx, dy, budget - this.tPrice, seen)) {
+					yield [new Path([Step.T, ...path.steps]), end];
 				}
 			}
 			seen.delete(pos1Key);
@@ -153,98 +221,11 @@ export class Mitm {
 		seen.delete(posKey);
 	}
 
-	private lookup(dx: number, dy: number, xn: number, yn: number, dxn: number, dyn: number): Step[][] {
-		const [xt, yt] = unrotate(xn, yn, dx, dy);
-		const [dxt, dyt] = unrotate(dxn, dyn, dx, dy);
-		return this.inv.get(this.keyFor(xt, yt, dxt, dyt)) || [];
-	}
-
-	randPath(xn: number, yn: number, dxn: number, dyn: number): Path | null {
-		const seen = new Set<string>();
-
-		while (true) {
-			seen.clear();
-			let path: Step[] = [];
-			let x = 0,
-				y = 0;
-			let dx = 0,
-				dy = 1;
-
-			seen.add(`${x},${y}`);
-
-			// Try random walk for twice the manhattan distance
-			const maxSteps = 2 * (Math.abs(xn) + Math.abs(yn));
-
-			for (let step = 0; step < maxSteps; step++) {
-				// Sample with weights proportional to prices
-				const r = Math.random() * (2 / this.tPrice + 2 / this.lrPrice);
-				let nextStep: Step;
-
-				if (r < 1 / this.lrPrice) {
-					nextStep = Step.L;
-				} else if (r < 2 / this.lrPrice) {
-					nextStep = Step.R;
-				} else {
-					nextStep = Step.T;
-				}
-
-				path.push(nextStep);
-				x += dx;
-				y += dy;
-
-				const posKey = `${x},${y}`;
-				if (seen.has(posKey)) {
-					break;
-				}
-				seen.add(posKey);
-
-				if (nextStep === Step.L) {
-					[dx, dy] = [-dy, dx];
-				} else if (nextStep === Step.R) {
-					[dx, dy] = [dy, -dx];
-				} else if (nextStep === Step.T) {
-					x += dx;
-					y += dy;
-					const newPosKey = `${x},${y}`;
-					if (seen.has(newPosKey)) {
-						break;
-					}
-					seen.add(newPosKey);
-				}
-
-				// Check if we've reached the target
-				if (x === xn && y === yn) {
-					return new Path(path);
-				}
-
-				// Try to complete path using lookup table
-				const ends = this.lookup(dx, dy, xn - x, yn - y, dxn, dyn);
-				if (ends.length > 0) {
-					const endPath = ends[Math.floor(Math.random() * ends.length)];
-					return new Path([...path, ...endPath]);
-				}
-			}
-		}
-	}
-
-	randLoop(clock: number = 0): Path | null {
-		while (true) {
-			const idx = Math.floor(Math.random() * this.list.length);
-			const [path, x, y, dx, dy] = this.list[idx];
-			const path2s = this.lookup(dx, dy, -x, -y, 0, 1);
-
-			if (path2s.length > 0) {
-				const path2 = path2s[Math.floor(Math.random() * path2s.length)];
-				const joined = new Path([...path, ...path2]);
-
-				if (clock && joined.winding() !== clock * 4) {
-					continue;
-				}
-
-				if (joined.testLoop()) {
-					return joined;
-				}
-			}
-		}
+	private lookup(dx: number, dy: number, xn: number, yn: number, dxn: number, dyn: number): Path[] {
+		const [xt, yt, dxt, dyt] = unrotate(xn, yn, dx, dy);
+		const key = `${xt},${yt},${dxt},${dyt}`;
+		return this.inv.get(key) || [];
 	}
 }
+
+export { Mitm, Path, Step };
