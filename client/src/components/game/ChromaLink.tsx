@@ -1,5 +1,6 @@
 import { BoardGenerator } from "@chromapath/shared";
 import React, { useEffect, useRef, useState } from "react";
+import { LocalStorageService } from "../../services/localStorage/localStorage";
 import { ChromaPathGame } from "./GameLogic";
 import { ChromaPathRenderer } from "./Renderer";
 
@@ -14,6 +15,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	const boardGeneratorRef = useRef<BoardGenerator | null>(null);
 	const [boardSize, setBoardSize] = useState(initialSize);
 	const [boardGenerating, setBoardGenerating] = useState<boolean>(true);
+	const [showNumbers, setShowNumbers] = useState<boolean>(LocalStorageService.getSettings()?.show_numbers || false);
 
 	const gameActionsNotReady = !gameRef.current || !rendererRef.current || !rendererRef.current.initialized || boardGenerating;
 
@@ -171,7 +173,6 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		// console.log(colors);
 
 		// console.log(transformedBoard);
-		console.log(board);
 
 		// // const board = await boardGeneratorRef.current?.generateBoard(boardSize);
 		setBoardGenerating(false);
@@ -186,9 +187,14 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		handleNewLevel();
 	}, [boardSize]);
 
+	useEffect(() => {
+		if (!rendererRef.current) return;
+		rendererRef.current.showNumbers = showNumbers;
+	}, [showNumbers]);
+
 	return (
 		<div className="h-full w-full flex flex-col justify-evenly items-center gap-4 touch-none select-none">
-			<div className="text-2xl font-bold text-neutral-content">ChromaPath</div>
+			<div className="text-2xl font-bold text-neutral-content">ChromaLink</div>
 			<div
 				ref={canvasRef} // TODO: Improve view widths
 				className="w-[99dvw] h-[99dvw] md:w-[80dvh] md:h-[80dvh] border border-neutral rounded-lg shadow-lg  overscroll-none overflow-hidden"
@@ -212,12 +218,12 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 					<span>Show Numbers</span>
 					<input
 						type="checkbox"
-						defaultChecked={false}
+						defaultChecked={LocalStorageService.getSettings()?.show_numbers}
 						onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 							if (!gameRef.current || !rendererRef.current) return;
 							rendererRef.current.showNumbers = e.target.checked;
-							const state = gameRef.current.getState();
-							if (state) rendererRef.current.render(state, boardSize);
+
+							LocalStorageService.setSettings({ show_numbers: e.target.checked });
 						}}
 						className="checkbox checkbox-neutral"
 					/>

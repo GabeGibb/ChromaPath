@@ -1,4 +1,4 @@
-import ChromaPath from "./components/game/ChromaPath";
+import ChromaPath from "./components/game/ChromaLink";
 
 function App() {
 	return (
