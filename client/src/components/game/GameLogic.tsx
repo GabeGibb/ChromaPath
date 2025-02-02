@@ -1,5 +1,4 @@
-import { getValidNeighbors } from "@chromapath/shared";
-import { Board, GameState, Point } from "./Types";
+import { Board, GameState, getValidNeighbors, Point } from "@chromapath/shared";
 
 export class ChromaPathGame {
 	private state: GameState;
@@ -12,10 +11,13 @@ export class ChromaPathGame {
 	}
 
 	private initializeState(newBoard: Board = []): GameState {
+		const paths = new Array(newBoard.reduce((count, row) => count + row.filter((cell) => cell?.isEndpoint).length, 0)).fill(
+			[]
+		);
 		return {
 			board: newBoard,
-			paths: {},
-			currentColor: null,
+			paths,
+			currentPathIndex: null,
 			startPoint: null,
 			completed: false,
 			mouseX: 0,
@@ -23,18 +25,19 @@ export class ChromaPathGame {
 		};
 	}
 
-	private isValidMove(x: number, y: number, color: string): boolean {
+	private isValidMove(x: number, y: number, pathIndex: number): boolean {
 		const cell = this.state.board[y][x];
 
 		// Check if position is already part of another path
-		for (const [pathColor, path] of Object.entries(this.state.paths)) {
-			if (pathColor !== color && path.some((p) => p.x === x && p.y === y)) {
+		for (let i = 0; i < this.state.paths.length; i++) {
+			const path = this.state.paths[i];
+			if (i !== pathIndex && path.some((p) => p.x === x && p.y === y)) {
 				return false;
 			}
 		}
 
 		// Check if the cell is part of the same color or is empty
-		if (cell && cell.color !== color) {
+		if (cell && cell.pathIndex !== pathIndex) {
 			return false;
 		}
 
@@ -45,18 +48,22 @@ export class ChromaPathGame {
 		const cell = this.state.board[y][x];
 		// Handle endpoint clicks
 		if (cell?.isEndpoint) {
-			this.state.currentColor = cell.color;
+			this.state.currentPathIndex = cell.pathIndex;
 			this.state.startPoint = { x, y };
-			this.state.paths[cell.color] = [{ x, y }];
+			this.state.paths[cell.pathIndex] = [{ x, y }];
 		}
-
 		// Check if clicked on any existing path
-		for (const [color, path] of Object.entries(this.state.paths)) {
-			const pathIndex = path.findIndex((p) => p.x === x && p.y === y);
-			if (pathIndex !== -1) {
-				this.state.currentColor = color;
+		for (let i = 0; i < this.state.paths.length; i++) {
+			const path = this.state.paths[i];
+
+			// Find the index of the clicked point in this path
+			const clickedIndex = path.findIndex((p) => p.x === x && p.y === y);
+
+			if (clickedIndex !== -1) {
+				this.state.currentPathIndex = i;
 				this.state.startPoint = path[0];
-				this.state.paths[color] = path.slice(0, pathIndex + 1);
+				// Slice up to the clicked point's position + 1, not the path index
+				this.state.paths[i] = path.slice(0, clickedIndex + 1);
 				return;
 			}
 		}
@@ -101,14 +108,14 @@ export class ChromaPathGame {
 		this.pastMouseX = this.state.mouseX;
 		this.pastMouseY = this.state.mouseY;
 
-		if (!this.state.currentColor || !this.state.startPoint) return;
+		if (this.state.currentPathIndex === null || !this.state.startPoint) return;
 
-		const currentPath = this.state.paths[this.state.currentColor];
+		const currentPath = this.state.paths[this.state.currentPathIndex];
 		const lastPoint = currentPath[currentPath.length - 1];
 
 		// TODO: Implement nice feature
 		// ! THIS DONT WORK
-		if (!this.isValidMove(x, y, this.state.currentColor)) {
+		if (!this.isValidMove(x, y, this.state.currentPathIndex)) {
 			return;
 			// const lastPoint = this.state.paths[this.state.currentColor][currentPath.length - 1];
 			// const closestPoint = this.findClosestEmptyPoint(lastPoint.x, lastPoint.y);
@@ -123,7 +130,7 @@ export class ChromaPathGame {
 		// Handle backtracking
 		const backtrackIndex = currentPath.findIndex((p) => p.x === x && p.y === y);
 		if (backtrackIndex !== -1) {
-			this.state.paths[this.state.currentColor] = currentPath.slice(0, backtrackIndex + 1);
+			this.state.paths[this.state.currentPathIndex] = currentPath.slice(0, backtrackIndex + 1);
 			return;
 		}
 
@@ -135,7 +142,7 @@ export class ChromaPathGame {
 
 		// Handle adjacent moves
 		if (Math.abs(x - lastPoint.x) + Math.abs(y - lastPoint.y) === 1 && !adjacentBeyond) {
-			this.state.paths[this.state.currentColor] = [...currentPath, { x, y }];
+			this.state.paths[this.state.currentPathIndex] = [...currentPath, { x, y }];
 			return;
 		}
 
@@ -147,8 +154,8 @@ export class ChromaPathGame {
 				visited.add(`${point.x},${point.y}`);
 			}
 			if (this.findPathToPoint(currentPath[i], { x, y }, visited)) {
-				const path = curPathCopy.slice(0, i).concat(this.state.paths[this.state.currentColor]);
-				this.state.paths[this.state.currentColor] = path;
+				const path = curPathCopy.slice(0, i).concat(this.state.paths[this.state.currentPathIndex]);
+				this.state.paths[this.state.currentPathIndex] = path;
 
 				return;
 			}
@@ -159,7 +166,7 @@ export class ChromaPathGame {
 		const cell = this.state.board[point.y]?.[point.x];
 		return !!(
 			cell?.isEndpoint &&
-			cell.color === this.state.currentColor &&
+			cell.pathIndex === this.state.currentPathIndex &&
 			(point.x !== startPoint.x || point.y !== startPoint.y)
 		);
 	}
@@ -179,8 +186,8 @@ export class ChromaPathGame {
 			if (this.checkPathCollision(path)) continue; // Prevent infinite loops
 			if ((point.x === target.x && point.y === target.y) || this.isAtEndpoint(point, start)) {
 				// Found path
-				if (this.state.currentColor) {
-					this.state.paths[this.state.currentColor] = path;
+				if (this.state.currentPathIndex !== null) {
+					this.state.paths[this.state.currentPathIndex] = path;
 				}
 				return true;
 			}
@@ -207,9 +214,9 @@ export class ChromaPathGame {
 		if (!currentPath.length) return false;
 
 		// Check collision with other paths
-		for (const [color, path] of Object.entries(this.state.paths)) {
+		for (const [pathIndex, path] of this.state.paths.entries()) {
 			// Skip checking against current color's path
-			if (color === this.state.currentColor) continue;
+			if (pathIndex === this.state.currentPathIndex) continue;
 
 			// Check if any point in current path intersects with other paths
 			const hasCollision = currentPath.some((currentPoint) =>
@@ -220,13 +227,13 @@ export class ChromaPathGame {
 		}
 
 		// For currentPath make sure it does not intersect with any endpoint not of same color
-		const currentColor = this.state.currentColor;
+		const currentPathIndex = this.state.currentPathIndex;
 		const currentPathEnd = currentPath[currentPath.length - 1];
 		const currentPathStart = currentPath[0];
 		for (let y = 0; y < this.boardSize; y++) {
 			for (let x = 0; x < this.boardSize; x++) {
 				const cell = this.state.board[y][x];
-				if (cell?.isEndpoint && cell.color !== currentColor) {
+				if (cell?.isEndpoint && cell.pathIndex !== currentPathIndex) {
 					if (currentPath.some((p) => p.x === x && p.y === y)) {
 						return true;
 					}
@@ -244,7 +251,7 @@ export class ChromaPathGame {
 	}
 
 	public endDrag(): boolean {
-		this.state.currentColor = null;
+		this.state.currentPathIndex = null;
 		this.state.startPoint = null;
 		return this.checkCompletion();
 	}

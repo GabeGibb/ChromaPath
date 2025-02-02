@@ -8,8 +8,7 @@ export class BoardGenerator {
 	private readonly maxAttempts = 10000;
 	private curColorIndex = 0;
 	private minDistanceBetweenEndpoints = 3;
-	private maxNumColors = 50;
-	private colorsArray: string[] = [];
+	private maxNumPaths = 50;
 	private renderer: ChromaPathRenderer | null = null;
 
 	constructor(renderer: ChromaPathRenderer | null) {
@@ -18,7 +17,7 @@ export class BoardGenerator {
 
 	async generateBoard(boardSize: number): Promise<Board> {
 		this.boardSize = boardSize;
-		this.maxNumColors = this.boardSize * 1.25; // Arbitrary
+		this.maxNumPaths = this.boardSize * 1.5; // Arbitrary
 
 		for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
 			this.board = this.initializeEmptyBoard();
@@ -42,8 +41,8 @@ export class BoardGenerator {
 		if (!this.renderer) return;
 		const gameState: GameState = {
 			board: this.board,
-			paths: {},
-			currentColor: null,
+			paths: [],
+			currentPathIndex: null,
 			startPoint: null,
 			completed: false,
 			mouseX: 0,
@@ -66,14 +65,13 @@ export class BoardGenerator {
 
 	private async generateValidBoard(): Promise<boolean> {
 		this.curColorIndex = 0;
-		this.colorsArray = this.getDistancedColorArray();
 
 		while (true) {
 			if (await this.placeColorEndpoints()) {
 				this.curColorIndex++;
-				// if (this.curColorIndex >= this.maxNumColors) {
-				// 	return false;
-				// }
+				if (this.curColorIndex >= this.maxNumPaths) {
+					return false;
+				}
 				if (this.validateBoard()) {
 					return true;
 				}
@@ -118,10 +116,7 @@ export class BoardGenerator {
 	}
 
 	private async attemptPathPlacement(start: Point): Promise<boolean> {
-		// Get next random empty cell
-		const color = this.colorsArray[this.curColorIndex];
-
-		this.board[start.y][start.x] = { color, isEndpoint: true };
+		this.board[start.y][start.x] = { pathIndex: this.curColorIndex, isEndpoint: true };
 		const path = this.findValidPath(this.board, start);
 
 		if (!path) {
@@ -130,11 +125,11 @@ export class BoardGenerator {
 		}
 
 		const end = path[path.length - 1];
-		this.board[end.y][end.x] = { color, isEndpoint: true };
+		this.board[end.y][end.x] = { pathIndex: this.curColorIndex, isEndpoint: true };
 
 		// Place the path
 		for (const point of path.slice(1, -1)) {
-			this.board[point.y][point.x] = { color, isEndpoint: false };
+			this.board[point.y][point.x] = { pathIndex: this.curColorIndex, isEndpoint: false };
 		}
 		this.drawBoard();
 		// await new Promise((resolve) => setTimeout(resolve, 500));
@@ -286,57 +281,5 @@ export class BoardGenerator {
 
 		// Check that all placed colors have exactly two endpoints
 		return true;
-	}
-
-	private getDistancedColorArray(): string[] {
-		function maximizePairwiseDistance(numColors: number): string[] {
-			const colors: number[][] = [];
-
-			// Generate permutations of high and low RGB values
-			const levels = [0, 255, 85, 170]; // High, low, and medium values
-			for (const r of levels) {
-				for (const g of levels) {
-					for (const b of levels) {
-						if (r === 0 && g === 0 && b === 0) continue; // Skip black
-						if (r === 255 && g === 255 && b === 255) continue; // Skip white
-						colors.push([r, g, b]);
-					}
-				}
-			}
-
-			// Select `numColors` points, maximizing pairwise distance
-			const selectedColors: number[][] = [];
-			selectedColors.push(colors[0]); // Start with the first color
-
-			while (selectedColors.length < numColors && colors.length > 0) {
-				let maxDistance = 0;
-				let nextColor: number[] | null = null;
-
-				for (const color of colors) {
-					const minDistanceToSet = Math.min(...selectedColors.map((c) => distance3D(c, color)));
-
-					if (minDistanceToSet > maxDistance) {
-						maxDistance = minDistanceToSet;
-						nextColor = color;
-					}
-				}
-
-				if (nextColor) {
-					selectedColors.push(nextColor);
-					colors.splice(colors.indexOf(nextColor), 1); // Remove selected color
-				}
-			}
-
-			return selectedColors.map(([r, g, b]) => `rgb(${r}, ${g}, ${b})`);
-		}
-
-		function distance3D(a: number[], b: number[]): number {
-			return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
-		}
-
-		// Generate and assign colors
-		const colors = maximizePairwiseDistance(62); // TODO: 62 is hardcoded because 4 x 4 x 4 = 64, but we skip black and white
-
-		return colors;
 	}
 }

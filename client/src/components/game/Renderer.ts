@@ -1,4 +1,4 @@
-import { Board, GameState } from "./Types";
+import { Board, Cell, GameState, getDistancedColorArray } from "@chromapath/shared";
 
 export class ChromaPathRenderer {
 	private canvas: HTMLCanvasElement;
@@ -7,6 +7,7 @@ export class ChromaPathRenderer {
 	public initialized: boolean = false;
 	public showNumbers: boolean = false;
 	private debug: boolean = true;
+	private colorsArray: string[] = [];
 
 	constructor(container: HTMLDivElement) {
 		this.canvas = document.createElement("canvas");
@@ -17,6 +18,7 @@ export class ChromaPathRenderer {
 
 		container.appendChild(this.canvas);
 		this.initialized = true;
+		this.colorsArray = getDistancedColorArray();
 	}
 
 	public render(state: GameState, boardSize: number): void {
@@ -48,25 +50,13 @@ export class ChromaPathRenderer {
 		}
 	}
 	private drawBoard(board: Board): void {
-		const colorToIndex = new Map<string, number>();
-		let currentIndex = 1;
-
-		// First pass - assign indices to colors
-		// TODO: Could do if show numbers here
-		board.forEach((row) => {
-			row.forEach((cell) => {
-				if (cell?.isEndpoint && !colorToIndex.has(cell.color)) {
-					colorToIndex.set(cell.color, currentIndex++);
-				}
-			});
-		});
-
 		// Draw board
-		board.forEach((row, y) => {
-			row.forEach((cell, x) => {
-				if (cell?.isEndpoint || (this.debug && cell?.color)) {
+		board.forEach((row: Cell[], y: number) => {
+			row.forEach((cell: Cell, x: number) => {
+				if (cell?.isEndpoint || (this.debug && cell?.pathIndex)) {
+					const curColor = this.colorsArray[cell.pathIndex];
 					this.ctx.beginPath();
-					this.ctx.fillStyle = cell.color;
+					this.ctx.fillStyle = curColor;
 					this.ctx.arc(
 						x * this.cellSize + this.cellSize / 2,
 						y * this.cellSize + this.cellSize / 2,
@@ -77,12 +67,12 @@ export class ChromaPathRenderer {
 					this.ctx.fill();
 
 					if (this.showNumbers) {
-						this.ctx.fillStyle = this.getHighContrastColor(cell.color);
+						this.ctx.fillStyle = this.getHighContrastColor(curColor);
 						this.ctx.font = `${this.cellSize / 3}px Sour Gummy`;
 						this.ctx.textAlign = "center";
 						this.ctx.textBaseline = "middle";
 						this.ctx.fillText(
-							colorToIndex.get(cell.color)!.toString(),
+							(cell.pathIndex + 1).toString(),
 							x * this.cellSize + this.cellSize / 2,
 							y * this.cellSize + this.cellSize / 2
 						);
@@ -102,7 +92,9 @@ export class ChromaPathRenderer {
 
 	private drawPaths(state: GameState): void {
 		const paths = state.paths;
-		Object.entries(paths).forEach(([color, path]) => {
+		for (let i = 0; i < paths.length; i++) {
+			const path = paths[i];
+			const color = this.colorsArray[i];
 			if (path.length > 1) {
 				this.ctx.beginPath();
 				this.ctx.strokeStyle = color;
@@ -119,13 +111,13 @@ export class ChromaPathRenderer {
 				}
 				this.ctx.stroke();
 			}
-		});
+		}
 	}
 
 	private drawHover(state: GameState): void {
 		const mouseX = state.mouseX;
 		const mouseY = state.mouseY;
-		const color = state.currentColor || "rgb(255, 255, 255)";
+		const color = state.currentPathIndex ? this.colorsArray[state.currentPathIndex] : "rgb(255, 255, 255)";
 		this.drawGradientCell(mouseX, mouseY, color, 0.02);
 	}
 

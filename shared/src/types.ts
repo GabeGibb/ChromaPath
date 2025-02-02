@@ -4,20 +4,18 @@ export type Point = {
 };
 
 export type Cell = {
-	color: string;
+	pathIndex: number;
 	isEndpoint: boolean;
 } | null;
 
 export type Board = Cell[][];
 
-export type Paths = {
-	[color: string]: Point[];
-};
+export type Paths = Point[][];
 
 export type GameState = {
 	board: Board;
 	paths: Paths;
-	currentColor: string | null;
+	currentPathIndex: number | null;
 	startPoint: Point | null;
 	completed: boolean;
 	mouseX: number;
