@@ -1,21 +1,15 @@
-// Types of steps in a path
-enum Step {
-	T, // Straight
-	L, // Left turn
-	R, // Right turn
+// Define direction constants
+enum Direction {
+	T,
+	L,
+	R,
 }
 
-// Type for position and direction
+// Type for positions and directions
 type Position = [number, number];
-type Direction = [number, number];
-type PathEnd = [number, number, number, number];
 
 class Path {
-	public steps: Step[];
-
-	constructor(steps: Step[]) {
-		this.steps = steps;
-	}
+	constructor(private steps: Direction[]) {}
 
 	*xys(dx: number = 0, dy: number = 1): Generator<Position> {
 		let x = 0,
@@ -27,11 +21,11 @@ class Path {
 			y += dy;
 			yield [x, y];
 
-			if (step === Step.L) {
+			if (step === Direction.L) {
 				[dx, dy] = [-dy, dx];
-			} else if (step === Step.R) {
+			} else if (step === Direction.R) {
 				[dx, dy] = [dy, -dx];
-			} else if (step === Step.T) {
+			} else if (step === Direction.T) {
 				x += dx;
 				y += dy;
 				yield [x, y];
@@ -40,49 +34,46 @@ class Path {
 	}
 
 	testLoop(): boolean {
-		const positions: Position[] = Array.from(this.xys());
+		const positions = Array.from(this.xys());
 		const seen = new Set(positions.map((p) => `${p[0]},${p[1]}`));
 
-		return (
-			positions.length === seen.size ||
-			(positions.length === seen.size + 1 &&
-				positions[0][0] === positions[positions.length - 1][0] &&
-				positions[0][1] === positions[positions.length - 1][1])
-		);
+		if (positions.length === seen.size) {
+			return true;
+		}
+
+		const firstPos = positions[0];
+		const lastPos = positions[positions.length - 1];
+		return positions.length === seen.size + 1 && firstPos[0] === lastPos[0] && firstPos[1] === lastPos[1];
 	}
 
 	winding(): number {
-		return this.steps.filter((s) => s === Step.R).length - this.steps.filter((s) => s === Step.L).length;
+		return this.steps.filter((s) => s === Direction.R).length - this.steps.filter((s) => s === Direction.L).length;
 	}
 }
 
-function unrotate(x: number, y: number, dx: number, dy: number): [number, number, number, number] {
+function unrotate(x: number, y: number, dx: number, dy: number): [number, number] {
 	while (dx !== 0 || dy !== 1) {
 		[x, y] = [-y, x];
 		[dx, dy] = [-dy, dx];
 	}
-	return [x, y, dx, dy];
+	return [x, y];
 }
 
 class Mitm {
-	private lrPrice: number;
-	private tPrice: number;
-	private inv: Map<string, Path[]>;
-	private list: [Path, ...number[]][];
+	private inv: Map<string, Direction[][]> = new Map();
+	private list: Array<[Direction[], number, number, number, number]> = [];
 
-	constructor(lrPrice: number, tPrice: number) {
-		this.lrPrice = lrPrice;
-		this.tPrice = tPrice;
-		this.inv = new Map();
-		this.list = [];
+	constructor(private lrPrice: number, private tPrice: number) {}
+
+	private getKey(x: number, y: number, dx: number, dy: number): string {
+		return `${x},${y},${dx},${dy}`;
 	}
 
 	prepare(budget: number): void {
-		const dx0 = 0,
-			dy0 = 1;
-		for (const [path, end] of this.goodPaths(0, 0, dx0, dy0, budget)) {
-			this.list.push([path, ...end]);
-			const key = `${end[0]},${end[1]},${end[2]},${end[3]}`;
+		const [dx0, dy0] = [0, 1];
+		for (const [path, [x, y, dx, dy]] of this.goodPaths(0, 0, dx0, dy0, budget)) {
+			this.list.push([path, x, y, dx, dy]);
+			const key = this.getKey(x, y, dx, dy);
 			if (!this.inv.has(key)) {
 				this.inv.set(key, []);
 			}
@@ -90,32 +81,26 @@ class Mitm {
 		}
 	}
 
-	randPath2(xn: number, yn: number, dxn: number, dyn: number): Path {
+	randPath(xn: number, yn: number, dxn: number, dyn: number): Path {
 		const seen = new Set<string>();
-		let path: Step[] = [];
+		const path: Direction[] = [];
 
 		while (true) {
 			seen.clear();
-			path = [];
-			let x = 0,
-				y = 0,
-				dx = 0,
-				dy = 1;
+			path.length = 0;
+			let [x, y, dx, dy] = [0, 0, 0, 1];
 			seen.add(`${x},${y}`);
 
 			for (let i = 0; i < 2 * (Math.abs(xn) + Math.abs(yn)); i++) {
-				// Sample with weights proportional to what they are in goodPaths
-				const weights = [1 / this.lrPrice, 1 / this.lrPrice, 2 / this.tPrice];
-				const total = weights.reduce((a, b) => a + b, 0);
-				let r = Math.random() * total;
-				let step: Step;
-
-				if (r < weights[0]) {
-					step = Step.L;
-				} else if (r < weights[0] + weights[1]) {
-					step = Step.R;
+				// Sample with weights
+				const rand = Math.random() * (2 / this.tPrice + 2 / this.lrPrice);
+				let step: Direction;
+				if (rand < 1 / this.lrPrice) {
+					step = Direction.L;
+				} else if (rand < 2 / this.lrPrice) {
+					step = Direction.R;
 				} else {
-					step = Step.T;
+					step = Direction.T;
 				}
 
 				path.push(step);
@@ -126,11 +111,11 @@ class Mitm {
 				if (seen.has(posKey)) break;
 				seen.add(posKey);
 
-				if (step === Step.L) {
+				if (step === Direction.L) {
 					[dx, dy] = [-dy, dx];
-				} else if (step === Step.R) {
+				} else if (step === Direction.R) {
 					[dx, dy] = [dy, -dx];
-				} else if (step === Step.T) {
+				} else if (step === Direction.T) {
 					x += dx;
 					y += dy;
 					const newPosKey = `${x},${y}`;
@@ -143,9 +128,9 @@ class Mitm {
 				}
 
 				const ends = this.lookup(dx, dy, xn - x, yn - y, dxn, dyn);
-				if (ends.length > 0) {
+				if (ends && ends.length > 0) {
 					const randomEnd = ends[Math.floor(Math.random() * ends.length)];
-					return new Path([...path, ...randomEnd.steps]);
+					return new Path([...path, ...randomEnd]);
 				}
 			}
 		}
@@ -153,13 +138,12 @@ class Mitm {
 
 	randLoop(clock: number = 0): Path {
 		while (true) {
-			const idx = Math.floor(Math.random() * this.list.length);
-			const [path, x, y, dx, dy] = this.list[idx];
-			const paths2 = this.lookup(dx, dy, -x, -y, 0, 1);
+			const [path, x, y, dx, dy] = this.list[Math.floor(Math.random() * this.list.length)];
+			const path2s = this.lookup(dx, dy, -x, -y, 0, 1);
 
-			if (paths2.length > 0) {
-				const path2 = paths2[Math.floor(Math.random() * paths2.length)];
-				const joined = new Path([...path.steps, ...path2.steps]);
+			if (path2s && path2s.length > 0) {
+				const path2 = path2s[Math.floor(Math.random() * path2s.length)];
+				const joined = new Path([...path, ...path2]);
 
 				if (clock && joined.winding() !== clock * 4) {
 					continue;
@@ -179,9 +163,9 @@ class Mitm {
 		dy: number,
 		budget: number,
 		seen: Set<string> = new Set()
-	): Generator<[Path, PathEnd]> {
+	): Generator<[Direction[], [number, number, number, number]]> {
 		if (budget >= 0) {
-			yield [new Path([]), [x, y, dx, dy]];
+			yield [[], [x, y, dx, dy]];
 		}
 		if (budget <= 0) {
 			return;
@@ -190,30 +174,30 @@ class Mitm {
 		const posKey = `${x},${y}`;
 		seen.add(posKey);
 
-		const x1 = x + dx,
-			y1 = y + dy;
+		const x1 = x + dx;
+		const y1 = y + dy;
 		const pos1Key = `${x1},${y1}`;
 
 		if (!seen.has(pos1Key)) {
-			// Try left turn
+			// Try L turn
 			for (const [path, end] of this.goodPaths(x1, y1, -dy, dx, budget - this.lrPrice, seen)) {
-				yield [new Path([Step.L, ...path.steps]), end];
+				yield [[Direction.L, ...path], end];
 			}
 
-			// Try right turn
+			// Try R turn
 			for (const [path, end] of this.goodPaths(x1, y1, dy, -dx, budget - this.lrPrice, seen)) {
-				yield [new Path([Step.R, ...path.steps]), end];
+				yield [[Direction.R, ...path], end];
 			}
 
 			seen.add(pos1Key);
-			const x2 = x1 + dx,
-				y2 = y1 + dy;
+			const x2 = x1 + dx;
+			const y2 = y1 + dy;
 			const pos2Key = `${x2},${y2}`;
 
 			if (!seen.has(pos2Key)) {
-				// Try straight
+				// Try T move
 				for (const [path, end] of this.goodPaths(x2, y2, dx, dy, budget - this.tPrice, seen)) {
-					yield [new Path([Step.T, ...path.steps]), end];
+					yield [[Direction.T, ...path], end];
 				}
 			}
 			seen.delete(pos1Key);
@@ -221,11 +205,12 @@ class Mitm {
 		seen.delete(posKey);
 	}
 
-	private lookup(dx: number, dy: number, xn: number, yn: number, dxn: number, dyn: number): Path[] {
-		const [xt, yt, dxt, dyt] = unrotate(xn, yn, dx, dy);
-		const key = `${xt},${yt},${dxt},${dyt}`;
-		return this.inv.get(key) || [];
+	private lookup(dx: number, dy: number, xn: number, yn: number, dxn: number, dyn: number): Direction[][] | undefined {
+		const [xt, yt] = unrotate(xn, yn, dx, dy);
+		const [dxt, dyt] = unrotate(dxn, dyn, dx, dy);
+		return this.inv.get(this.getKey(xt, yt, dxt, dyt));
 	}
 }
 
-export { Mitm, Path, Step };
+// Export for use
+export { Direction, Mitm, Path };

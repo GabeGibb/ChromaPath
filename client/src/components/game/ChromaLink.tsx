@@ -155,12 +155,12 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	const handleNewLevel = async () => {
 		if (gameActionsNotReady && !boardGenerating) return;
 
-		const test = generatePuzzle({ width: boardSize, height: boardSize });
-		console.log(test);
-
 		setBoardGenerating(true);
-		const gen = new BoardGenerator(rendererRef.current);
-		const board = await gen.generateBoard(boardSize);
+		const board = generatePuzzle({ width: boardSize, height: boardSize });
+		console.log(board);
+		// console.log(board);
+		// const gen = new BoardGenerator(rendererRef.current);
+		// const board = await gen.generateBoard(boardSize);
 
 		// const transformedBoard = Array.from({ length: boardSize }, () => Array(boardSize).fill(null));
 

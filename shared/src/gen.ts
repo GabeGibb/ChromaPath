@@ -1,31 +1,31 @@
 import { Grid, UnionFind } from "./grid";
 import { Mitm } from "./mitm";
+import { Board } from "./types";
 
 // Constants
 const LOOP_TRIES = 1000;
 
-interface GeneratorOptions {
+interface PuzzleOptions {
 	width: number;
 	height: number;
 	minNumbers?: number;
 	maxNumbers?: number;
-	verbose?: boolean;
 }
 
 function hasLoops(grid: Grid, uf: UnionFind): boolean {
-	const groups = new Set<string>();
+	// Check whether the puzzle has loops not attached to an endpoint
+	const groups = new Set();
 	for (let y = 0; y < grid.h; y++) {
 		for (let x = 0; x < grid.w; x++) {
-			const found = uf.find([x, y]);
-			groups.add(`${found[0]},${found[1]}`);
+			groups.add(uf.find(`${x},${y}`));
 		}
 	}
 
 	let ends = 0;
 	for (let y = 0; y < grid.h; y++) {
 		for (let x = 0; x < grid.w; x++) {
-			const value = grid.get([x, y]);
-			if ("v^<>".includes(value)) {
+			const cell = grid.getItem([x, y]);
+			if ("v^<>".includes(cell)) {
 				ends++;
 			}
 		}
@@ -34,24 +34,23 @@ function hasLoops(grid: Grid, uf: UnionFind): boolean {
 	return ends !== 2 * groups.size;
 }
 
-function hasPair(tubeGrid: Grid, uf: UnionFind): boolean {
-	for (let y = 0; y < tubeGrid.h; y++) {
-		for (let x = 0; x < tubeGrid.w; x++) {
+function hasPair(tg: Grid, uf: UnionFind): boolean {
+	// Check for a pair of endpoints next to each other
+	for (let y = 0; y < tg.h; y++) {
+		for (let x = 0; x < tg.w; x++) {
 			for (const [dx, dy] of [
 				[1, 0],
 				[0, 1],
 			]) {
 				const x1 = x + dx;
 				const y1 = y + dy;
-				if (x1 < tubeGrid.w && y1 < tubeGrid.h) {
-					const value = tubeGrid.get([x, y]);
-					const nextValue = tubeGrid.get([x1, y1]);
-					if (value === "x" && nextValue === "x") {
-						const pos1Found = uf.find([x, y]);
-						const pos2Found = uf.find([x1, y1]);
-						if (pos1Found[0] === pos2Found[0] && pos1Found[1] === pos2Found[1]) {
-							return true;
-						}
+				if (x1 < tg.w && y1 < tg.h) {
+					if (
+						tg.getItem([x, y]) === "x" &&
+						tg.getItem([x1, y1]) === "x" &&
+						uf.find(`${x},${y}`) === uf.find(`${x1},${y1}`)
+					) {
+						return true;
 					}
 				}
 			}
@@ -60,31 +59,27 @@ function hasPair(tubeGrid: Grid, uf: UnionFind): boolean {
 	return false;
 }
 
-function hasTriple(tubeGrid: Grid, uf: UnionFind): boolean {
-	const directions: [number, number][] = [
-		[1, 0],
-		[0, 1],
-		[-1, 0],
-		[0, -1],
-	];
-
-	for (let y = 0; y < tubeGrid.h; y++) {
-		for (let x = 0; x < tubeGrid.w; x++) {
-			const current = uf.find([x, y]);
-			let neighbors = 0;
-
-			for (const [dx, dy] of directions) {
+function hasTriple(tg: Grid, uf: UnionFind): boolean {
+	// Check whether a path has a point with three same-colored neighbours
+	for (let y = 0; y < tg.h; y++) {
+		for (let x = 0; x < tg.w; x++) {
+			const r = uf.find(`${x},${y}`);
+			let nbs = 0;
+			for (const [dx, dy] of [
+				[1, 0],
+				[0, 1],
+				[-1, 0],
+				[0, -1],
+			]) {
 				const x1 = x + dx;
 				const y1 = y + dy;
-				if (x1 >= 0 && x1 < tubeGrid.w && y1 >= 0 && y1 < tubeGrid.h) {
-					const neighbor = uf.find([x1, y1]);
-					if (current[0] === neighbor[0] && current[1] === neighbor[1]) {
-						neighbors++;
+				if (0 <= x1 && x1 < tg.w && 0 <= y1 && y1 < tg.h) {
+					if (uf.find(`${x1},${y1}`) === r) {
+						nbs++;
 					}
 				}
 			}
-
-			if (neighbors >= 3) {
+			if (nbs >= 3) {
 				return true;
 			}
 		}
@@ -92,115 +87,124 @@ function hasTriple(tubeGrid: Grid, uf: UnionFind): boolean {
 	return false;
 }
 
-function make(options: GeneratorOptions): Grid {
-	const { width: w, height: h, minNumbers = 0, maxNumbers = 1000 } = options;
-
+function make(w: number, h: number, mitm: Mitm, minNumbers: number = 0, maxNumbers: number = 1000): Grid {
 	function testReady(grid: Grid): boolean {
-		const smallGrid = grid.shrink();
-		const [smallTubeGrid, uf] = smallGrid.makeTubes();
+		const sg = grid.shrink();
+		const [stg, uf] = sg.makeTubes();
+		const numbers = Array.from(stg.grid.values()).filter((x) => x === "x").length / 2;
 
-		// Count number of endpoints ('x' values) divided by 2 for pairs
-		let numbers = 0;
-		for (const value of smallTubeGrid.values()) {
-			if (value === "x") numbers++;
-		}
-		numbers = Math.floor(numbers / 2);
-
-		return (
-			numbers >= minNumbers &&
-			numbers <= maxNumbers &&
-			!hasLoops(smallGrid, uf) &&
-			!hasPair(smallTubeGrid, uf) &&
-			!hasTriple(smallTubeGrid, uf)
-		);
+		return minNumbers <= numbers && numbers <= maxNumbers && !hasLoops(sg, uf) && !hasPair(stg, uf) && !hasTriple(stg, uf);
 	}
 
-	// Initialize MITM helper
-	const mitm = new Mitm(2, 1); // lr_price = 2, t_price = 1
-	mitm.prepare(Math.min(20, Math.max(h, 6)));
+	// Internally we work on a double size grid to handle crossings
+	const grid = new Grid(2 * w + 1, 2 * h + 1);
 
 	while (true) {
-		// Create a double-size grid to handle crossings
-		const grid = new Grid(2 * w + 1, 2 * h + 1);
-		grid.clear();
+		// Previous tries may have drawn stuff on the grid
+		grid.grid.clear();
 
 		// Add left side path
-		const path = mitm.randPath2(h, h, 0, -1);
+		const path = mitm.randPath(h, h, 0, -1);
 		if (!grid.testPath(path, 0, 0)) {
 			continue;
 		}
 		grid.drawPath(path, 0, 0);
-		grid.set([0, 0], "\\");
-		grid.set([0, 2 * h], "/");
+		// Draw_path doesn't know what to put in the first and last squares
+		grid.setItem([0, 0], "\\");
+		grid.setItem([0, 2 * h], "/");
 
 		// Add right side path
-		const path2 = mitm.randPath2(h, h, 0, -1);
+		const path2 = mitm.randPath(h, h, 0, -1);
 		if (!grid.testPath(path2, 2 * w, 2 * h, 0, -1)) {
 			continue;
 		}
 		grid.drawPath(path2, 2 * w, 2 * h, 0, -1);
-		grid.set([2 * w, 0], "/");
-		grid.set([2 * w, 2 * h], "\\");
+		grid.setItem([2 * w, 0], "/");
+		grid.setItem([2 * w, 2 * h], "\\");
 
-		// Check if puzzle is already ready
+		// The puzzle might already be ready to return
 		if (testReady(grid)) {
 			return grid.shrink();
 		}
 
 		// Add loops in the middle
-		let [tubeGrid] = grid.makeTubes();
+		let [tg] = grid.makeTubes();
 
-		// Try adding loops
-		for (let tries = 0; tries < LOOP_TRIES; tries++) {
+		// Maximum number of tries before retrying main loop
+		for (let i = 0; i < LOOP_TRIES; i++) {
 			const x = 2 * Math.floor(Math.random() * w);
 			const y = 2 * Math.floor(Math.random() * h);
 
-			const cellValue = tubeGrid.get([x, y]);
-			if (cellValue !== "-" && cellValue !== "|") {
+			// If the square doesn't have an orientation, it's a corner
+			// or endpoint, so there's no point trying to add a loop there
+			if (!["-", "|"].includes(tg.getItem([x, y]))) {
 				continue;
 			}
 
-			const loop = mitm.randLoop(cellValue === "-" ? 1 : -1);
-			if (grid.testPath(loop, x, y)) {
-				grid.clearPath(loop, x, y);
-				grid.drawPath(loop, x, y, 0, 1, true);
-				[tubeGrid] = grid.makeTubes();
+			const path = mitm.randLoop(tg.getItem([x, y]) === "-" ? 1 : -1);
+			if (grid.testPath(path, x, y)) {
+				// Clear the insides to avoid orientation issues
+				grid.clearPath(path, x, y);
 
-				const smallGrid = grid.shrink();
-				const [smallTubeGrid] = smallGrid.makeTubes();
+				// Add path and recompute orientations
+				grid.drawPath(path, x, y, 0, 1, true);
+				[tg] = grid.makeTubes();
 
-				let numbers = 0;
-				for (const value of smallTubeGrid.values()) {
-					if (value === "x") numbers++;
-				}
-				numbers = Math.floor(numbers / 2);
+				// Run tests to see if the puzzle is nice
+				const sg = grid.shrink();
+				const [stg] = sg.makeTubes();
+				const numbers = Array.from(stg.grid.values()).filter((x) => x === "x").length / 2;
 
 				if (numbers > maxNumbers) {
 					break;
 				}
-
 				if (testReady(grid)) {
-					return smallGrid;
+					return sg;
 				}
 			}
 		}
 	}
 }
 
-export function generatePuzzle(options: GeneratorOptions): Grid {
-	if (options.width < 4 || options.height < 4) {
+function generatePuzzle(options: PuzzleOptions): Board {
+	const { width, height, minNumbers, maxNumbers } = options;
+
+	if (width < 4 || height < 4) {
 		throw new Error("Please choose width and height at least 4.");
 	}
 
-	const n = Math.floor(Math.sqrt(options.width * options.height));
-	const minNumbers = options.minNumbers ?? Math.floor((n * 2) / 3);
-	const maxNumbers = options.maxNumbers ?? Math.floor((n * 3) / 2);
+	const actualMinNumbers = minNumbers ?? width - 1;
+	const actualMaxNumbers = maxNumbers ?? width + 1;
 
-	return make({
-		...options,
-		minNumbers,
-		maxNumbers,
-	});
+	const mitm = new Mitm(2, 1);
+	// Using a larger path length in mitm might increase puzzle complexity, but
+	// 8 or 10 appears to be the sweet spot if we want small sizes like 4x4 to work
+	mitm.prepare(Math.min(20, Math.max(height, 6)));
+
+	const grid = make(width, height, mitm, actualMinNumbers, actualMaxNumbers);
+	const [tg, _] = grid.makeTubes();
+
+	const board: Board = Array.from({ length: height }, () => Array(width).fill(null));
+	const endpoints = [];
+	for (let y = 0; y < tg.h; y++) {
+		for (let x = 0; x < tg.w; x++) {
+			const cell = tg.getItem([x, y]);
+			if (cell === "x") {
+				endpoints.push([x, y]);
+			}
+		}
+	}
+
+	// Then assign pathIndices in pairs
+	for (let i = 0; i < endpoints.length; i += 2) {
+		const pathIndex = Math.floor(i / 2); // 0 for first pair, 1 for second pair, etc.
+		const [x1, y1] = endpoints[i];
+		const [x2, y2] = endpoints[i + 1];
+
+		board[y1][x1] = { pathIndex, isEndpoint: true };
+		board[y2][x2] = { pathIndex, isEndpoint: true };
+	}
+	return board;
 }
 
-export { type GeneratorOptions };
+export { generatePuzzle, type PuzzleOptions };
