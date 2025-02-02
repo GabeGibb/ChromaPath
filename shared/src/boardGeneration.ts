@@ -92,16 +92,13 @@ export class BoardGenerator {
 		const blockedPaths = this.findBlockedPaths();
 		if (blockedPaths.length > 0) {
 			for (const blockedPath of blockedPaths) {
-				for (let i = 0; i < this.boardSize; i++) {
-					if (await this.attemptPathPlacement(blockedPath)) {
-						// console.log("unblocked path");
-						return true;
-					}
+				// for (let i = 0; i < this.boardSize; i++) {
+				if (await this.attemptPathPlacement(blockedPath)) {
+					return true;
 				}
+				// }
 			}
 		}
-
-		// console.log("HERE!!");
 
 		// Arbitrarily loop through
 		for (let j = 0; j < this.boardSize; j++) {
@@ -222,6 +219,12 @@ export class BoardGenerator {
 			}
 		}
 
+		// Check if there are too many empty cells
+		// const threshold = this.boardSize * this.boardSize - this.curColorIndex * this.boardSize;
+		// if (emptyCells.length > threshold) {
+		// 	return false;
+		// }
+
 		// Region detection and validation
 		const regions: Point[][] = [];
 		const visited = new Set<string>();
@@ -254,9 +257,7 @@ export class BoardGenerator {
 
 		// Check for problematic 2-cell regions
 		for (const region of regions) {
-			// console.log(regions);
 			if (region.length < this.minDistanceBetweenEndpoints) {
-				// console.log(region.length, this.minDistanceBetweenEndpoints);
 				return false;
 			}
 		}
