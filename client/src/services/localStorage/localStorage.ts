@@ -13,13 +13,13 @@ interface Settings {
 }
 
 // Define other storage data types
-interface UserPreferences {
-	// language: "en" | "es" | "fr";
-	// notifications: {
-	// 	email: boolean;
-	// 	push: boolean;
-	// };
-}
+// interface UserPreferences {
+// 	// language: "en" | "es" | "fr";
+// 	// notifications: {
+// 	// 	email: boolean;
+// 	// 	push: boolean;
+// 	// };
+// }
 
 // Main storage data type mapping
 export interface LocalStorageData {

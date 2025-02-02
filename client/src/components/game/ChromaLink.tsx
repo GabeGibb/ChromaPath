@@ -16,7 +16,6 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	const boardGeneratorRef = useRef<BoardGenerator | null>(null);
 	const [boardSize, setBoardSize] = useState(initialSize);
 	const [boardGenerating, setBoardGenerating] = useState<boolean>(true);
-	const [showNumbers, setShowNumbers] = useState<boolean>(LocalStorageService.getSettings()?.show_numbers || false);
 
 	const gameActionsNotReady = !gameRef.current || !rendererRef.current || !rendererRef.current.initialized || boardGenerating;
 
@@ -194,8 +193,11 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 
 	useEffect(() => {
 		if (!rendererRef.current) return;
+		const settings = LocalStorageService.getSettings();
+		const showNumbers = settings ? settings.show_numbers : false;
 		rendererRef.current.showNumbers = showNumbers;
-	}, [showNumbers]);
+		rendererRef.current.render(gameRef.current?.getState()!, boardSize);
+	}, []);
 
 	return (
 		<div className="h-full w-full flex flex-col justify-evenly items-center gap-4 touch-none select-none">
@@ -227,6 +229,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 						onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 							if (!gameRef.current || !rendererRef.current) return;
 							rendererRef.current.showNumbers = e.target.checked;
+							rendererRef.current.render(gameRef.current?.getState()!, boardSize);
 
 							LocalStorageService.setSettings({ show_numbers: e.target.checked });
 						}}
