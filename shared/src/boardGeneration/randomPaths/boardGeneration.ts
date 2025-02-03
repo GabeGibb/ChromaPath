@@ -1,6 +1,6 @@
 import { ChromaPathRenderer } from "../../../../client/src/components/game/Renderer";
 import { getValidNeighbors, shuffleArray } from "../../boardUtils";
-import { Board, GameState, Point } from "../../types";
+import { Board, Point } from "../../types";
 
 export class BoardGenerator {
 	private boardSize: number = 5;
@@ -38,19 +38,19 @@ export class BoardGenerator {
 			.map(() => Array(this.boardSize).fill(null));
 	}
 
-	private drawBoard(): void {
-		if (!this.renderer) return;
-		const gameState: GameState = {
-			board: this.board,
-			paths: [],
-			currentPathIndex: null,
-			startPoint: null,
-			completed: false,
-			mouseX: 0,
-			mouseY: 0,
-		};
-		this.renderer.render(gameState, this.boardSize);
-	}
+	// private drawBoard(): void {
+	// 	if (!this.renderer) return;
+	// 	const gameState: GameState = {
+	// 		board: this.board,
+	// 		paths: [],
+	// 		currentPathIndex: null,
+	// 		startPoint: null,
+	// 		completed: false,
+	// 		mouseX: 0,
+	// 		mouseY: 0,
+	// 	};
+	// 	this.renderer.render(gameState, this.boardSize);
+	// }
 
 	private removeNonEndpoints() {
 		/* Removes all non-endpoint cells from the board */
