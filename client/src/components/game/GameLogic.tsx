@@ -3,8 +3,8 @@ import { Board, GameState, getValidNeighbors, Point } from "@chromapath/shared";
 export class ChromaPathGame {
 	private state: GameState;
 	private boardSize: number = 0;
-	private pastMouseX: number = -1;
-	private pastMouseY: number = -1;
+	// private pastMouseX: number = -1;
+	// private pastMouseY: number = -1;
 
 	constructor() {
 		this.state = this.initializeState();
