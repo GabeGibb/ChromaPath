@@ -1,6 +1,6 @@
+import { Board } from "../../types";
 import { Grid, UnionFind } from "./grid";
 import { Mitm } from "./mitm";
-import { Board } from "./types";
 
 // Constants
 const LOOP_TRIES = 1000;

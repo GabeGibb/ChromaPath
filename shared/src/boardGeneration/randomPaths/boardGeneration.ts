@@ -1,15 +1,16 @@
-import { ChromaPathRenderer } from "../../client/src/components/game/Renderer";
-import { getValidNeighbors, shuffleArray } from "./boardUtils";
-import { Board, GameState, Point } from "./types";
+import { ChromaPathRenderer } from "../../../../client/src/components/game/Renderer";
+import { getValidNeighbors, shuffleArray } from "../../boardUtils";
+import { Board, GameState, Point } from "../../types";
 
 export class BoardGenerator {
 	private boardSize: number = 5;
 	private board: Board = [];
-	private readonly maxAttempts = 10000;
+	private readonly maxAttempts = 1000;
 	private curColorIndex = 0;
 	private minDistanceBetweenEndpoints = 3;
 	private maxNumPaths = 50;
 	private renderer: ChromaPathRenderer | null = null;
+	private pathStack: Point[][] = [];
 
 	constructor(renderer: ChromaPathRenderer | null) {
 		this.renderer = renderer;
@@ -67,7 +68,7 @@ export class BoardGenerator {
 		this.curColorIndex = 0;
 
 		while (true) {
-			if (await this.placeColorEndpoints()) {
+			if ((await this.placeColorEndpoints()) && this.curColorIndex < this.maxNumPaths) {
 				this.curColorIndex++;
 				if (this.curColorIndex >= this.maxNumPaths) {
 					return false;
@@ -75,15 +76,23 @@ export class BoardGenerator {
 				if (this.validateBoard()) {
 					return true;
 				}
-				this.drawBoard();
+				// this.drawBoard();
 
-				// await new Promise((resolve) => setTimeout(resolve, 500));
+				// await new Promise((resolve) => setTimeout(resolve, 100));
 			} else {
-				this.drawBoard();
+				const lastPath = this.pathStack.pop();
+				if (!lastPath) {
+					return false;
+				}
+				// Remove last path
+				for (const point of lastPath) {
+					this.board[point.y][point.x] = null;
+				}
 
+				// this.drawBoard();
 				// await new Promise((resolve) => setTimeout(resolve, 500));
 
-				return false;
+				// return false;
 			}
 		}
 	}
@@ -92,11 +101,9 @@ export class BoardGenerator {
 		const blockedPaths = this.findBlockedPaths();
 		if (blockedPaths.length > 0) {
 			for (const blockedPath of blockedPaths) {
-				// for (let i = 0; i < this.boardSize; i++) {
 				if (await this.attemptPathPlacement(blockedPath)) {
 					return true;
 				}
-				// }
 			}
 		}
 
@@ -142,6 +149,7 @@ export class BoardGenerator {
 			}
 			return false;
 		}
+		this.pathStack.push(path);
 
 		return true;
 	}
