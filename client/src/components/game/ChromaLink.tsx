@@ -156,29 +156,12 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		if (gameActionsNotReady && !boardGenerating) return;
 
 		setBoardGenerating(true);
+
+		// const boardGenerator = new BoardGenerator(null);
+		// const board = await boardGenerator.generateBoard(boardSize);
 		const board = generatePuzzle({ width: boardSize, height: boardSize });
 		console.log(board);
-		// console.log(board);
-		// const gen = new BoardGenerator(rendererRef.current);
-		// const board = await gen.generateBoard(boardSize);
 
-		// const transformedBoard = Array.from({ length: boardSize }, () => Array(boardSize).fill(null));
-
-		// const colors = getDistancedColorArray();
-		// for (let y = 0; y < boardSize; y++) {
-		// 	for (let x = 0; x < boardSize; x++) {
-		// 		if (board[0][y][x] === 0) {
-		// 			transformedBoard[y][x] = null;
-		// 		} else {
-		// 			transformedBoard[y][x] = { color: colors[board[0][y][x]], isEndpoint: true };
-		// 		}
-		// 	}
-		// }
-		// console.log(colors);
-
-		// console.log(transformedBoard);
-
-		// // const board = await boardGeneratorRef.current?.generateBoard(boardSize);
 		setBoardGenerating(false);
 		if (!board) return;
 
@@ -204,7 +187,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 			<div className="text-2xl font-bold text-neutral-content">ChromaLink</div>
 			<div
 				ref={canvasRef} // TODO: Improve view widths
-				className="w-[99dvw] h-[99dvw] md:w-[80dvh] md:h-[80dvh] border border-neutral rounded-lg shadow-lg  overscroll-none overflow-hidden"
+				className="w-[99dvw] h-[99dvw] md:w-[80dvh] md:h-[80dvh] border border-neutral rounded-lg shadow-lg overscroll-none overflow-hidden"
 			/>
 			<div className="flex gap-4">
 				<button onClick={handleNewLevel} className="btn btn-primary m-auto">

@@ -173,13 +173,13 @@ function generatePuzzle(options: PuzzleOptions): Board {
 		throw new Error("Please choose width and height at least 4.");
 	}
 
-	const actualMinNumbers = minNumbers ?? width - 1;
-	const actualMaxNumbers = maxNumbers ?? width + 3;
+	const actualMinNumbers = minNumbers ?? width - 2;
+	const actualMaxNumbers = maxNumbers ?? 1000;
 
 	const mitm = new Mitm(2, 1);
 	// Using a larger path length in mitm might increase puzzle complexity, but
 	// 8 or 10 appears to be the sweet spot if we want small sizes like 4x4 to work
-	mitm.prepare(Math.min(20, Math.max(height, 6)));
+	mitm.prepare(width);
 
 	const grid = make(width, height, mitm, actualMinNumbers, actualMaxNumbers);
 

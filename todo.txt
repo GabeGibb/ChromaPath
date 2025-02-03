@@ -3,7 +3,7 @@
 
 
 
-- identify extra features
+- https://uiball.com/ldrs/ make a cool loading animation
 - Make dragging be able to drag close to another item
 - More vibrant hues (customizable)
 -- time trial?

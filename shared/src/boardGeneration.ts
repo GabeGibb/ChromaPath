@@ -17,7 +17,7 @@ export class BoardGenerator {
 
 	async generateBoard(boardSize: number): Promise<Board> {
 		this.boardSize = boardSize;
-		this.maxNumPaths = this.boardSize * 1.5; // Arbitrary
+		this.maxNumPaths = this.boardSize * 1.2; // Arbitrary
 
 		for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
 			this.board = this.initializeEmptyBoard();
