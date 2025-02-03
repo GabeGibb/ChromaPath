@@ -95,7 +95,6 @@ function make(w: number, h: number, mitm: Mitm, minNumbers: number = 0, maxNumbe
 
 		return minNumbers <= numbers && numbers <= maxNumbers && !hasLoops(sg, uf) && !hasPair(stg, uf) && !hasTriple(stg, uf);
 	}
-
 	// Internally we work on a double size grid to handle crossings
 	const grid = new Grid(2 * w + 1, 2 * h + 1);
 
@@ -173,13 +172,13 @@ function generatePuzzle(options: PuzzleOptions): Board {
 		throw new Error("Please choose width and height at least 4.");
 	}
 
-	const actualMinNumbers = minNumbers ?? width - 2;
+	const actualMinNumbers = minNumbers ?? width;
 	const actualMaxNumbers = maxNumbers ?? 1000;
 
 	const mitm = new Mitm(2, 1);
 	// Using a larger path length in mitm might increase puzzle complexity, but
 	// 8 or 10 appears to be the sweet spot if we want small sizes like 4x4 to work
-	mitm.prepare(width);
+	mitm.prepare(Math.min(20, Math.max(height, 6)));
 
 	const grid = make(width, height, mitm, actualMinNumbers, actualMaxNumbers);
 

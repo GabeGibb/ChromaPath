@@ -103,10 +103,11 @@ export class ChromaPathGame {
 
 	public handleDrag(x: number, y: number): void {
 		// Prevent unnecessary updates
-		// TODO: Unsure if this is actually faster
-		if (this.pastMouseX === this.state.mouseX && this.pastMouseY === this.state.mouseY) return;
-		this.pastMouseX = this.state.mouseX;
-		this.pastMouseY = this.state.mouseY;
+
+		// TODO: FIX THIS FOR MOBILE
+		// if (this.pastMouseX === this.state.mouseX && this.pastMouseY === this.state.mouseY) return;
+		// this.pastMouseX = this.state.mouseX;
+		// this.pastMouseY = this.state.mouseY;
 
 		if (this.state.currentPathIndex === null || !this.state.startPoint) return;
 
@@ -146,7 +147,7 @@ export class ChromaPathGame {
 			return;
 		}
 
-		// TODO: WHY DOESNT THIS WORK???
+		// TODO: Check if this actually works
 		const curPathCopy = [...currentPath];
 		for (let i = currentPath.length - 1; i >= 0; i--) {
 			const visited = new Set<string>();

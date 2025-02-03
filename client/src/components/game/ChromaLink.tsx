@@ -1,4 +1,4 @@
-import { BoardGenerator } from "@chromapath/shared";
+import { BoardGenerator, generatePuzzle } from "@chromapath/shared";
 import { RefreshCcw } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { LocalStorageService } from "../../services/localStorage/localStorage";
@@ -157,9 +157,9 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 
 		setBoardGenerating(true);
 
-		const boardGenerator = new BoardGenerator(null);
-		const board = await boardGenerator.generateBoard(boardSize);
-		// const board = generatePuzzle({ width: boardSize, height: boardSize });
+		// const boardGenerator = new BoardGenerator(null);
+		// const board = await boardGenerator.generateBoard(boardSize);
+		const board = generatePuzzle({ width: boardSize, height: boardSize });
 		console.log(board);
 
 		setBoardGenerating(false);
