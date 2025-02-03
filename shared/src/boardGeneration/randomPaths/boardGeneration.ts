@@ -76,9 +76,6 @@ export class BoardGenerator {
 				if (this.validateBoard()) {
 					return true;
 				}
-				// this.drawBoard();
-
-				// await new Promise((resolve) => setTimeout(resolve, 100));
 			} else {
 				const lastPath = this.pathStack.pop();
 				if (!lastPath) {
@@ -88,9 +85,6 @@ export class BoardGenerator {
 				for (const point of lastPath) {
 					this.board[point.y][point.x] = null;
 				}
-
-				// this.drawBoard();
-				// await new Promise((resolve) => setTimeout(resolve, 500));
 
 				// return false;
 			}
@@ -135,8 +129,6 @@ export class BoardGenerator {
 		for (const point of path.slice(1, -1)) {
 			this.board[point.y][point.x] = { pathIndex: this.curColorIndex, isEndpoint: false };
 		}
-		this.drawBoard();
-		// await new Promise((resolve) => setTimeout(resolve, 500));
 
 		// Check if board state is still valid after placing the path
 		if (!this.hasPotentialForValidSolution()) {
@@ -185,6 +177,7 @@ export class BoardGenerator {
 		return emptyCells;
 	}
 
+	// TODO: FIND WINDIER PATHS
 	private findValidPath(board: Board, start: Point): Point[] | null {
 		const visited = new Set<string>();
 		const queue: { point: Point; path: Point[] }[] = [{ point: start, path: [start] }];
