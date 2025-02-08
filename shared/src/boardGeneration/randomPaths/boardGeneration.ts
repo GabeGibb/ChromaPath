@@ -53,6 +53,8 @@ export class BoardGenerator {
 	}
 	private async debugBoard(timeout = 100): Promise<void> {
 		if (!this.renderer) {
+			console.log("debu");
+
 			this.drawBoard();
 			await new Promise((resolve) => setTimeout(resolve, timeout));
 		}
