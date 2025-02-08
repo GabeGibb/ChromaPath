@@ -14,11 +14,9 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	const gameRef = useRef<ChromaPathGame | null>(null);
 	const rendererRef = useRef<ChromaPathRenderer | null>(null);
 	const [boardSize, setBoardSize] = useState(initialSize);
-	const [numPaths, setNumPaths] = useState<number>(1);
-	const boardGenerating = useRef<boolean>(false);
+	const [boardGenerating, setBoardGenerating] = useState<boolean>(true);
 
-	const gameActionsNotReady =
-		!gameRef.current || !rendererRef.current || !rendererRef.current.initialized || boardGenerating.current === true;
+	const gameActionsNotReady = !gameRef.current || !rendererRef.current || !rendererRef.current.initialized || boardGenerating;
 
 	useEffect(() => {
 		if (!canvasRef.current) return;
@@ -152,22 +150,20 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	}, [boardSize, gameActionsNotReady]);
 
 	const handleNewLevel = async () => {
-		console.log(boardGenerating.current);
-		if (gameActionsNotReady && boardGenerating.current) return;
+		if (gameActionsNotReady && !boardGenerating) return;
 
-		boardGenerating.current = true;
+		setBoardGenerating(true);
 
-		const boardGenerator = new BoardGenerator(rendererRef.current);
+		const boardGenerator = new BoardGenerator(rendererRef.current!);
 		const board = await boardGenerator.generateBoard(boardSize);
 		// const board = generatePuzzle({ width: boardSize, height: boardSize });
 		console.log(board);
 
-		boardGenerating.current = false;
+		setBoardGenerating(false);
 		if (!board) return;
 
 		gameRef.current?.reset(board);
 		const state = gameRef.current?.getState();
-		setNumPaths(state?.paths.length || 1);
 		if (state) rendererRef.current?.render(state, boardSize);
 	};
 
@@ -186,7 +182,6 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	return (
 		<div className="h-full w-full flex flex-col justify-evenly items-center gap-4 touch-none select-none">
 			<div className="text-2xl font-bold text-neutral-content">ChromaLink</div>
-			<span>Paths: {numPaths}</span>
 			<div
 				ref={canvasRef} // TODO: Improve view widths
 				className="w-[99dvw] h-[99dvw] md:w-[80dvh] md:h-[80dvh] border border-neutral rounded-lg shadow-lg overscroll-none overflow-hidden"

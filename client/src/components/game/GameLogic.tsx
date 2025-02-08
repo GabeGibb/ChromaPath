@@ -55,7 +55,6 @@ export class ChromaPathGame {
 	}
 
 	public handleCellClick(x: number, y: number): void {
-		console.log("YOW");
 		const cell = this.state.board[y][x];
 		// Handle endpoint clicks
 		if (cell?.isEndpoint) {

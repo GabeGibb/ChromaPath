@@ -24,7 +24,7 @@ export class BoardGenerator {
 			this.board = this.initializeEmptyBoard();
 			if (await this.generateValidBoard()) {
 				// If board valid remove paths
-				this.removeNonEndpoints();
+				// this.removeNonEndpoints();
 				console.log("attempts", attempt);
 				return this.board;
 			}
@@ -52,12 +52,8 @@ export class BoardGenerator {
 		this.renderer.render(gameState, this.boardSize);
 	}
 	private async debugBoard(timeout = 100): Promise<void> {
-		if (!this.renderer) {
-			console.log("debu");
-
-			this.drawBoard();
-			await new Promise((resolve) => setTimeout(resolve, timeout));
-		}
+		this.drawBoard();
+		await new Promise((resolve) => setTimeout(resolve, timeout));
 	}
 
 	private removeNonEndpoints() {
@@ -76,12 +72,13 @@ export class BoardGenerator {
 		this.curColorIndex = 0;
 
 		while (true) {
+			if (this.curColorIndex >= this.maxNumPaths - 1) {
+				return false;
+			}
 			if ((await this.placeColorEndpoints()) && this.curColorIndex < this.maxNumPaths) {
 				await this.debugBoard(100);
 				this.curColorIndex++;
-				if (this.curColorIndex >= this.maxNumPaths) {
-					return false;
-				}
+
 				if (this.validateBoard()) {
 					await this.debugBoard(100);
 					return true;
