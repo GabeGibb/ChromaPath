@@ -53,7 +53,7 @@ export class ChromaPathRenderer {
 		// Draw board
 		board.forEach((row: Cell[], y: number) => {
 			row.forEach((cell: Cell, x: number) => {
-				if (cell?.isEndpoint || (this.debug && cell?.pathIndex)) {
+				if (cell?.isEndpoint || (this.debug && cell?.pathIndex != null)) {
 					const curColor = this.colorsArray[cell.pathIndex];
 					this.ctx.beginPath();
 					this.ctx.fillStyle = curColor;

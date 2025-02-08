@@ -11,9 +11,19 @@ export class ChromaPathGame {
 	}
 
 	private initializeState(newBoard: Board = []): GameState {
-		const paths = new Array(newBoard.reduce((count, row) => count + row.filter((cell) => cell?.isEndpoint).length, 0)).fill(
-			[]
-		);
+		const endpointGroups = newBoard.reduce((groups, row) => {
+			row.forEach((cell) => {
+				if (cell?.isEndpoint) {
+					if (!groups[cell.pathIndex]) {
+						groups[cell.pathIndex] = [];
+					}
+					groups[cell.pathIndex].push(cell);
+				}
+			});
+			return groups;
+		}, {} as Record<number, (typeof newBoard)[0]>);
+
+		const paths = Object.keys(endpointGroups).map(() => []);
 		return {
 			board: newBoard,
 			paths,
@@ -45,6 +55,7 @@ export class ChromaPathGame {
 	}
 
 	public handleCellClick(x: number, y: number): void {
+		console.log("YOW");
 		const cell = this.state.board[y][x];
 		// Handle endpoint clicks
 		if (cell?.isEndpoint) {

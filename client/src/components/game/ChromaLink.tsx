@@ -13,19 +13,18 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	const canvasRef = useRef<HTMLDivElement>(null);
 	const gameRef = useRef<ChromaPathGame | null>(null);
 	const rendererRef = useRef<ChromaPathRenderer | null>(null);
-	const boardGeneratorRef = useRef<BoardGenerator | null>(null);
 	const [boardSize, setBoardSize] = useState(initialSize);
-	const [boardGenerating, setBoardGenerating] = useState<boolean>(true);
+	const [numPaths, setNumPaths] = useState<number>(1);
+	const boardGenerating = useRef<boolean>(false);
 
-	const gameActionsNotReady = !gameRef.current || !rendererRef.current || !rendererRef.current.initialized || boardGenerating;
+	const gameActionsNotReady =
+		!gameRef.current || !rendererRef.current || !rendererRef.current.initialized || boardGenerating.current === true;
 
 	useEffect(() => {
 		if (!canvasRef.current) return;
 		async function initializeObjects() {
 			rendererRef.current = new ChromaPathRenderer(canvasRef.current!);
-			boardGeneratorRef.current = new BoardGenerator(null);
 			gameRef.current = new ChromaPathGame();
-			handleNewLevel();
 		}
 		initializeObjects();
 
@@ -153,20 +152,22 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	}, [boardSize, gameActionsNotReady]);
 
 	const handleNewLevel = async () => {
-		if (gameActionsNotReady && !boardGenerating) return;
+		console.log(boardGenerating.current);
+		if (gameActionsNotReady && boardGenerating.current) return;
 
-		setBoardGenerating(true);
+		boardGenerating.current = true;
 
-		const boardGenerator = new BoardGenerator(null);
+		const boardGenerator = new BoardGenerator(rendererRef.current);
 		const board = await boardGenerator.generateBoard(boardSize);
 		// const board = generatePuzzle({ width: boardSize, height: boardSize });
 		console.log(board);
 
-		setBoardGenerating(false);
+		boardGenerating.current = false;
 		if (!board) return;
 
 		gameRef.current?.reset(board);
 		const state = gameRef.current?.getState();
+		setNumPaths(state?.paths.length || 1);
 		if (state) rendererRef.current?.render(state, boardSize);
 	};
 
@@ -185,6 +186,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	return (
 		<div className="h-full w-full flex flex-col justify-evenly items-center gap-4 touch-none select-none">
 			<div className="text-2xl font-bold text-neutral-content">ChromaLink</div>
+			<span>Paths: {numPaths}</span>
 			<div
 				ref={canvasRef} // TODO: Improve view widths
 				className="w-[99dvw] h-[99dvw] md:w-[80dvh] md:h-[80dvh] border border-neutral rounded-lg shadow-lg overscroll-none overflow-hidden"

@@ -51,6 +51,12 @@ export class BoardGenerator {
 		};
 		this.renderer.render(gameState, this.boardSize);
 	}
+	private async debugBoard(timeout = 100): Promise<void> {
+		if (!this.renderer) {
+			this.drawBoard();
+			await new Promise((resolve) => setTimeout(resolve, timeout));
+		}
+	}
 
 	private removeNonEndpoints() {
 		/* Removes all non-endpoint cells from the board */
@@ -69,24 +75,27 @@ export class BoardGenerator {
 
 		while (true) {
 			if ((await this.placeColorEndpoints()) && this.curColorIndex < this.maxNumPaths) {
-				this.drawBoard();
-
+				await this.debugBoard(100);
 				this.curColorIndex++;
 				if (this.curColorIndex >= this.maxNumPaths) {
 					return false;
 				}
 				if (this.validateBoard()) {
+					await this.debugBoard(100);
 					return true;
 				}
 			} else {
-				const lastPath = this.pathStack.pop();
-				if (!lastPath) {
-					return false;
-				}
-				// Remove last path
-				for (const point of lastPath) {
-					this.board[point.y][point.x] = null;
-				}
+				return false;
+				// TODO: RECURSE
+				// const lastPath = this.pathStack.pop();
+				// if (!lastPath) {
+				// 	return false;
+				// }
+
+				// // Remove last path
+				// for (const point of lastPath) {
+				// 	this.board[point.y][point.x] = null;
+				// }
 
 				// return false;
 			}
@@ -131,6 +140,8 @@ export class BoardGenerator {
 		for (const point of path.slice(1, -1)) {
 			this.board[point.y][point.x] = { pathIndex: this.curColorIndex, isEndpoint: false };
 		}
+
+		await this.debugBoard(100);
 
 		// Check if board state is still valid after placing the path
 		if (!this.hasPotentialForValidSolution()) {
@@ -182,10 +193,27 @@ export class BoardGenerator {
 	// TODO: FIND WINDIER PATHS
 	private findValidPath(board: Board, start: Point): Point[] | null {
 		const visited = new Set<string>();
-		const queue: { point: Point; path: Point[] }[] = [{ point: start, path: [start] }];
+		const queue: { point: Point; path: Point[] }[] = [
+			{
+				point: start,
+				path: [start],
+			},
+		];
+
 		const minPathLength = Math.max(this.minDistanceBetweenEndpoints, this.boardSize * 1.2 - this.curColorIndex);
 
+		// Weights favor continuing straight with occasional turns
+		const curWeights = {
+			straight: 100,
+			left: 100,
+			right: 100,
+		};
 		while (queue.length > 0) {
+			const weights = {
+				straight: Math.random() * curWeights.straight, // High weight to favor straight paths
+				left: Math.random() * curWeights.left, // Lower weights for turns
+				right: Math.random() * curWeights.right,
+			};
 			const { point, path } = queue.shift()!;
 			const key = `${point.x},${point.y}`;
 			if (visited.has(key)) continue;
@@ -195,13 +223,32 @@ export class BoardGenerator {
 
 			// Check if this could be a valid ending
 			if (path.length >= minPathLength && !board[point.y][point.x]) {
-				// If we have no neighbors, definitely end here
 				if (neighbors.length === 0) return path;
 			}
 
-			// const shuffledNeighbors = neighbors;
-			const shuffledNeighbors = shuffleArray(neighbors);
-			for (const neighbor of shuffledNeighbors) {
+			// Get the previous point to determine current direction
+			const prevPoint = path.length >= 2 ? path[path.length - 2] : null;
+
+			// Sort neighbors by their directional weights
+			const weightedNeighbors = neighbors.sort((a, b) => {
+				const directionA = this.getDirection(prevPoint, point, a);
+				const directionB = this.getDirection(prevPoint, point, b);
+
+				const weightA = weights[directionA] || 0;
+				const weightB = weights[directionB] || 0;
+
+				return weightB - weightA;
+			});
+
+			// Get direction and make it less likely to prevent straight paths
+			if (weightedNeighbors.length > 0) {
+				const direction = this.getDirection(prevPoint, point, weightedNeighbors[0]);
+				if (direction === "straight") curWeights[direction] = curWeights[direction] / 2;
+				else curWeights.straight = 500;
+				// curWeights[direction] - 20;
+			}
+
+			for (const neighbor of weightedNeighbors) {
 				queue.push({
 					point: neighbor,
 					path: [...path, neighbor],
@@ -210,6 +257,32 @@ export class BoardGenerator {
 		}
 
 		return null;
+	}
+
+	private getDirection(prev: Point | null, current: Point, next: Point): "straight" | "left" | "right" {
+		if (!prev) return "straight";
+
+		// Determine current movement vector
+		const currentDx = current.x - prev.x;
+		const currentDy = current.y - prev.y;
+
+		// Determine next movement vector
+		const nextDx = next.x - current.x;
+		const nextDy = next.y - current.y;
+
+		// If moving in same direction (either x or y), it's straight
+		if (currentDx === nextDx && currentDy === nextDy) {
+			return "straight";
+		}
+
+		// Determine turn direction based on current movement
+		if (currentDx !== 0) {
+			// Moving horizontally
+			return nextDy > 0 ? "right" : "left";
+		} else {
+			// Moving vertically
+			return nextDx > 0 ? "left" : "right";
+		}
 	}
 
 	private hasPotentialForValidSolution(): boolean {
@@ -261,6 +334,7 @@ export class BoardGenerator {
 		// Check for problematic 2-cell regions
 		for (const region of regions) {
 			if (region.length < this.minDistanceBetweenEndpoints) {
+				console.log("HUH");
 				return false;
 			}
 		}
