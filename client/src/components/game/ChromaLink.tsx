@@ -15,6 +15,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	const rendererRef = useRef<ChromaPathRenderer | null>(null);
 	const [boardSize, setBoardSize] = useState(initialSize);
 	const [boardGenerating, setBoardGenerating] = useState<boolean>(true);
+	const [numPaths, setNumPaths] = useState<number>(0);
 
 	const gameActionsNotReady = !gameRef.current || !rendererRef.current || !rendererRef.current.initialized || boardGenerating;
 
@@ -164,6 +165,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 
 		gameRef.current?.reset(board);
 		const state = gameRef.current?.getState();
+		setNumPaths(state?.paths.length ?? 0);
 		if (state) rendererRef.current?.render(state, boardSize);
 	};
 
@@ -182,6 +184,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	return (
 		<div className="h-full w-full flex flex-col justify-evenly items-center gap-4 touch-none select-none">
 			<div className="text-2xl font-bold text-neutral-content">ChromaLink</div>
+			<span>Paths: {numPaths}</span>
 			<div
 				ref={canvasRef} // TODO: Improve view widths
 				className="w-[99dvw] h-[99dvw] md:w-[80dvh] md:h-[80dvh] border border-neutral rounded-lg shadow-lg overscroll-none overflow-hidden"

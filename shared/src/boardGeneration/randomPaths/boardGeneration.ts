@@ -5,7 +5,7 @@ import { Board, GameState, Point } from "../../types";
 export class BoardGenerator {
 	private boardSize: number = 5;
 	private board: Board = [];
-	private readonly maxAttempts = 1000;
+	private readonly maxAttempts = 100;
 	private curColorIndex = 0;
 	private minDistanceBetweenEndpoints = 3;
 	private maxNumPaths = 50;
@@ -13,7 +13,7 @@ export class BoardGenerator {
 	private pathStack: Point[][] = [];
 
 	constructor(renderer: ChromaPathRenderer | null) {
-		this.renderer = renderer;
+		this.renderer = null;
 	}
 
 	async generateBoard(boardSize: number): Promise<Board> {
@@ -24,7 +24,7 @@ export class BoardGenerator {
 			this.board = this.initializeEmptyBoard();
 			if (await this.generateValidBoard()) {
 				// If board valid remove paths
-				// this.removeNonEndpoints();
+				this.removeNonEndpoints();
 				console.log("attempts", attempt);
 				return this.board;
 			}
@@ -38,7 +38,7 @@ export class BoardGenerator {
 			.map(() => Array(this.boardSize).fill(null));
 	}
 
-	private drawBoard(): void {
+	private async debugBoard(timeout = 100): Promise<void> {
 		if (!this.renderer) return;
 		const gameState: GameState = {
 			board: this.board,
@@ -50,9 +50,6 @@ export class BoardGenerator {
 			mouseY: 0,
 		};
 		this.renderer.render(gameState, this.boardSize);
-	}
-	private async debugBoard(timeout = 100): Promise<void> {
-		this.drawBoard();
 		await new Promise((resolve) => setTimeout(resolve, timeout));
 	}
 
@@ -77,6 +74,7 @@ export class BoardGenerator {
 			}
 			if ((await this.placeColorEndpoints()) && this.curColorIndex < this.maxNumPaths) {
 				await this.debugBoard(100);
+				// return true;
 				this.curColorIndex++;
 
 				if (this.validateBoard()) {
@@ -191,6 +189,45 @@ export class BoardGenerator {
 
 	// TODO: FIND WINDIER PATHS
 	private findValidPath(board: Board, start: Point): Point[] | null {
+		const wouldCreateInvalidAdjacency = (path: Point[], newPoint: Point): boolean => {
+			// Check how many path cells would be adjacent to the new point
+			let adjacentCount = 0;
+			const directions = [
+				{ x: -1, y: 0 },
+				{ x: 1, y: 0 },
+				{ x: 0, y: -1 },
+				{ x: 0, y: 1 },
+			];
+
+			for (const dir of directions) {
+				const checkX = newPoint.x + dir.x;
+				const checkY = newPoint.y + dir.y;
+				if (path.some((p) => p.x === checkX && p.y === checkY)) {
+					adjacentCount++;
+				}
+			}
+
+			// New point should not have more than 2 adjacent path cells
+			if (adjacentCount > 1) return true;
+
+			// Also check if adding this point would cause any existing
+			// path cells to have more than 2 adjacent cells
+			for (const pathPoint of path) {
+				let pointAdjacencyCount = 0;
+				for (const dir of directions) {
+					const checkX = pathPoint.x + dir.x;
+					const checkY = pathPoint.y + dir.y;
+					if (checkX === newPoint.x && checkY === newPoint.y) {
+						pointAdjacencyCount++;
+					} else if (path.some((p) => p.x === checkX && p.y === checkY)) {
+						pointAdjacencyCount++;
+					}
+				}
+				if (pointAdjacencyCount > 2) return true;
+			}
+
+			return false;
+		};
 		const visited = new Set<string>();
 		const queue: { point: Point; path: Point[] }[] = [
 			{
@@ -218,10 +255,13 @@ export class BoardGenerator {
 			if (visited.has(key)) continue;
 			visited.add(key);
 
-			const neighbors = getValidNeighbors(this.board, point, visited, false);
+			const neighbors = getValidNeighbors(this.board, point, visited, false).filter(
+				(neighbor) => !wouldCreateInvalidAdjacency(path, neighbor)
+			);
+			console.log(neighbors);
 
 			// Check if this could be a valid ending
-			if (path.length >= minPathLength && !board[point.y][point.x]) {
+			if ((path.length >= minPathLength && !board[point.y][point.x]) || neighbors.length === 0) {
 				if (neighbors.length === 0) return path;
 			}
 
@@ -242,17 +282,22 @@ export class BoardGenerator {
 			// Get direction and make it less likely to prevent straight paths
 			if (weightedNeighbors.length > 0) {
 				const direction = this.getDirection(prevPoint, point, weightedNeighbors[0]);
-				if (direction === "straight") curWeights[direction] = curWeights[direction] / 2;
-				else curWeights.straight = 500;
+				// if (direction === "straight") curWeights[direction] = curWeights[direction] / 2;
+				if (direction === "left") {
+					// curWeights.right /= 2;
+					// curWeights.left /= 2;
+				}
+				if (direction === "right") {
+					// curWeights.right /= 2;
+					// curWeights.left /= 2;
+				}
 				// curWeights[direction] - 20;
 			}
-
-			for (const neighbor of weightedNeighbors) {
-				queue.push({
-					point: neighbor,
-					path: [...path, neighbor],
-				});
-			}
+			const neighbor = weightedNeighbors[0];
+			queue.push({
+				point: neighbor,
+				path: [...path, neighbor],
+			});
 		}
 
 		return null;
