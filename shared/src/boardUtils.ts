@@ -84,3 +84,24 @@ export function getDistancedColorArray(): string[] {
 
 	return colors;
 }
+
+export default function getCombinationsArray(totalNumbers: number, numbersPerCombo: number): number[][] {
+	const combinations: number[][] = [];
+	const combination: number[] = [];
+
+	function generateCombinations(start: number, remaining: number) {
+		if (remaining === 0) {
+			combinations.push([...combination]);
+			return;
+		}
+
+		for (let i = start; i <= totalNumbers - 1; i++) {
+			combination.push(i);
+			generateCombinations(i + 1, remaining - 1);
+			combination.pop();
+		}
+	}
+
+	generateCombinations(0, numbersPerCombo);
+	return combinations;
+}

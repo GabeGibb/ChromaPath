@@ -1,5 +1,5 @@
 import { ChromaPathRenderer } from "../../../../client/src/components/game/Renderer";
-import { getValidNeighbors, shuffleArray } from "../../boardUtils";
+import getCombinationsArray, { getValidNeighbors, shuffleArray } from "../../boardUtils";
 import { Board, GameState, Point } from "../../types";
 
 export class BoardGenerator {
@@ -13,7 +13,7 @@ export class BoardGenerator {
 	private pathStack: Point[][] = [];
 
 	constructor(renderer: ChromaPathRenderer | null) {
-		this.renderer = null;
+		this.renderer = renderer;
 	}
 
 	async generateBoard(boardSize: number): Promise<Board> {
@@ -24,7 +24,7 @@ export class BoardGenerator {
 			this.board = this.initializeEmptyBoard();
 			if (await this.generateValidBoard()) {
 				// If board valid remove paths
-				this.removeNonEndpoints();
+				// this.removeNonEndpoints();
 				console.log("attempts", attempt);
 				return this.board;
 			}
@@ -77,7 +77,7 @@ export class BoardGenerator {
 				// return true;
 				this.curColorIndex++;
 
-				if (this.validateBoard()) {
+				if (await this.validateBoard()) {
 					await this.debugBoard(100);
 					return true;
 				}
@@ -110,20 +110,20 @@ export class BoardGenerator {
 		}
 
 		// Arbitrarily loop through
-		for (let j = 0; j < this.boardSize; j++) {
-			const emptyCells = shuffleArray(this.findEmptyCells());
-			for (let i = 0; i < emptyCells.length; i++) {
-				if (await this.attemptPathPlacement(emptyCells[i])) {
-					return true;
-				}
+		// for (let j = 0; j < this.boardSize; j++) {
+		const emptyCells = shuffleArray(this.findEmptyCells());
+		for (let i = 0; i < emptyCells.length; i++) {
+			if (await this.attemptPathPlacement(emptyCells[i])) {
+				return true;
 			}
 		}
+		// }
 		return false; // Return false if no valid placement was found
 	}
 
 	private async attemptPathPlacement(start: Point): Promise<boolean> {
 		this.board[start.y][start.x] = { pathIndex: this.curColorIndex, isEndpoint: true };
-		const path = this.findValidPath(this.board, start);
+		const path = this.findValidPath(start);
 
 		if (!path) {
 			this.board[start.y][start.x] = null;
@@ -141,7 +141,7 @@ export class BoardGenerator {
 		await this.debugBoard(100);
 
 		// Check if board state is still valid after placing the path
-		if (!this.hasPotentialForValidSolution()) {
+		if (!(await this.hasPotentialForValidSolution())) {
 			// If not valid remove the path
 			this.board[start.y][start.x] = null;
 			this.board[end.y][end.x] = null;
@@ -187,8 +187,7 @@ export class BoardGenerator {
 		return emptyCells;
 	}
 
-	// TODO: FIND WINDIER PATHS
-	private findValidPath(board: Board, start: Point): Point[] | null {
+	private findValidPath(start: Point): Point[] | null {
 		const wouldCreateInvalidAdjacency = (path: Point[], newPoint: Point): boolean => {
 			// Check how many path cells would be adjacent to the new point
 			let adjacentCount = 0;
@@ -236,14 +235,13 @@ export class BoardGenerator {
 			},
 		];
 
-		const minPathLength = Math.max(this.minDistanceBetweenEndpoints, this.boardSize * 1.2 - this.curColorIndex);
-
 		// Weights favor continuing straight with occasional turns
 		const curWeights = {
-			straight: 100,
+			straight: 200,
 			left: 100,
 			right: 100,
 		};
+		const maxPath = this.boardSize * 1.5;
 		while (queue.length > 0) {
 			const weights = {
 				straight: Math.random() * curWeights.straight, // High weight to favor straight paths
@@ -258,11 +256,16 @@ export class BoardGenerator {
 			const neighbors = getValidNeighbors(this.board, point, visited, false).filter(
 				(neighbor) => !wouldCreateInvalidAdjacency(path, neighbor)
 			);
-			console.log(neighbors);
 
 			// Check if this could be a valid ending
-			if ((path.length >= minPathLength && !board[point.y][point.x]) || neighbors.length === 0) {
-				if (neighbors.length === 0) return path;
+			if (path.length >= this.minDistanceBetweenEndpoints && (path.length == maxPath || neighbors.length === 0)) {
+				// if (neighbors.length === 0 && path.length >= this.minDistanceBetweenEndpoints) {
+				return path;
+				// }
+				// continue;
+			}
+			if (neighbors.length === 0) {
+				return null;
 			}
 
 			// Get the previous point to determine current direction
@@ -329,7 +332,8 @@ export class BoardGenerator {
 		}
 	}
 
-	private hasPotentialForValidSolution(): boolean {
+	private async hasPotentialForValidSolution(): Promise<boolean> {
+		// TODO: This could be more sophisticated
 		const emptyCells: Point[] = [];
 		for (let y = 0; y < this.boardSize; y++) {
 			for (let x = 0; x < this.boardSize; x++) {
@@ -378,7 +382,6 @@ export class BoardGenerator {
 		// Check for problematic 2-cell regions
 		for (const region of regions) {
 			if (region.length < this.minDistanceBetweenEndpoints) {
-				console.log("HUH");
 				return false;
 			}
 		}
@@ -386,22 +389,155 @@ export class BoardGenerator {
 		return true;
 	}
 
-	private validateBoard(): boolean {
+	private checkBoardHasEmptyCells(): boolean {
+		for (let y = 0; y < this.boardSize; y++) {
+			for (let x = 0; x < this.boardSize; x++) {
+				if (!this.board[y][x]) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private async validateBoard(): Promise<boolean> {
+		if (this.checkBoardHasEmptyCells()) {
+			return false;
+		}
+		const betterSolution = await this.pathsHaveBetterSolution();
+		if (betterSolution) {
+			return false;
+		}
+
+		// Check that all placed colors have exactly two endpoints
+		return true;
+	}
+
+	private async pathsHaveBetterSolution(): Promise<boolean> {
+		const boardCopy = this.board.map((row) => row.map((cell) => cell));
+
+		// Generate combinations of paths to remove
+		const numPathsToRemove = 2; // Number of complete lines to remove and test
+		const pathCombinations = getCombinationsArray(this.curColorIndex, numPathsToRemove);
+
+		// Test each combination of paths
+		for (const pathsToRemove of pathCombinations) {
+			// Create temporary board without the selected paths
+			await this.debugBoard(500);
+			this.board = this.createBoardWithoutPaths(boardCopy, pathsToRemove);
+			await this.debugBoard(500);
+			// Try to find alternate solutions for removed paths
+			if (this.canSolveWithAlternatePaths(this.board, pathsToRemove)) {
+				return true; // Found an alternate solution, so current solution isn't optimal
+			}
+		}
+		this.board = boardCopy;
+		return false;
+	}
+
+	private createBoardWithoutPaths(originalBoard: Board, pathsToRemove: number[]): Board {
+		const tempBoard: Board = originalBoard.map((row) =>
+			row.map((cell) => (cell && !cell.isEndpoint && pathsToRemove.includes(cell.pathIndex) ? null : cell))
+		);
+		return tempBoard;
+	}
+
+	private canSolveWithAlternatePaths(board: Board, removedPaths: number[]): boolean {
+		// For each removed path, find its endpoints
+		for (const pathIndex of removedPaths) {
+			const endpoints = this.findEndpointsForPath(pathIndex);
+			if (!endpoints) continue;
+
+			const [start, end] = endpoints;
+
+			// Try to find a new valid path between the endpoints
+			if (!this.findAlternatePath(board, start, end)) {
+				return false; // If we can't find a valid path for any pair, this combination isn't solvable
+			}
+		}
+
+		return true; // Found valid alternate paths for all removed paths
+	}
+
+	private findEndpointsForPath(pathIndex: number): [Point, Point] | null {
+		const endpoints: Point[] = [];
+
 		for (let y = 0; y < this.boardSize; y++) {
 			for (let x = 0; x < this.boardSize; x++) {
 				const cell = this.board[y][x];
-				// If any cell is null return false
-				if (!cell) {
+				if (cell?.pathIndex === pathIndex && cell.isEndpoint) {
+					endpoints.push({ x, y });
+				}
+			}
+		}
+
+		return endpoints.length === 2 ? [endpoints[0], endpoints[1]] : null;
+	}
+
+	private findAlternatePath(board: Board, start: Point, end: Point): boolean {
+		const visited = new Set<string>();
+		const queue: { point: Point; path: Point[] }[] = [{ point: start, path: [start] }];
+
+		while (queue.length > 0) {
+			const { point, path } = queue.shift()!;
+			const key = `${point.x},${point.y}`;
+
+			if (visited.has(key)) continue;
+			visited.add(key);
+
+			// If we reached the end point with a valid path
+			if (point.x === end.x && point.y === end.y && path.length >= this.minDistanceBetweenEndpoints) {
+				// Verify the path is valid (no more than 2 adjacent cells per point)
+				if (this.isValidPath(path)) {
+					return true;
+				}
+				continue;
+			}
+
+			const neighbors = getValidNeighbors(board, point, visited, false);
+			for (const neighbor of neighbors) {
+				queue.push({
+					point: neighbor,
+					path: [...path, neighbor],
+				});
+			}
+		}
+
+		return false;
+	}
+
+	private isValidPath(path: Point[]): boolean {
+		// Check each point in the path
+		for (let i = 0; i < path.length; i++) {
+			const point = path[i];
+			const isEndpoint = i === 0 || i === path.length - 1;
+
+			if (!isEndpoint) {
+				// Count adjacent path cells
+				let adjacentCount = 0;
+				const directions = [
+					{ x: -1, y: 0 },
+					{ x: 1, y: 0 },
+					{ x: 0, y: -1 },
+					{ x: 0, y: 1 },
+				];
+
+				for (const dir of directions) {
+					const checkX = point.x + dir.x;
+					const checkY = point.y + dir.y;
+
+					if (path.some((p) => p.x === checkX && p.y === checkY)) {
+						adjacentCount++;
+					}
+				}
+
+				// Non-endpoint cells should have exactly 2 adjacent cells
+				if (adjacentCount !== 2) {
 					return false;
 				}
 			}
 		}
 
-		if (this.curColorIndex + 1 < this.boardSize) {
-			return false;
-		}
-
-		// Check that all placed colors have exactly two endpoints
 		return true;
 	}
 }
