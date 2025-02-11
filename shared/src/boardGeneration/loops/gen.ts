@@ -1,4 +1,5 @@
 import { Board } from "../../types";
+import { pathsHaveBetterSolution } from "../randomPaths/boardValidatorUtils";
 import { Grid, UnionFind } from "./grid";
 import { Mitm } from "./mitm";
 
@@ -175,47 +176,57 @@ function generatePuzzle(options: PuzzleOptions): Board {
 	const actualMinNumbers = minNumbers ?? width;
 	const actualMaxNumbers = maxNumbers ?? 1000;
 
-	const mitm = new Mitm(2, 1);
-	// Using a larger path length in mitm might increase puzzle complexity, but
-	// 8 or 10 appears to be the sweet spot if we want small sizes like 4x4 to work
-	mitm.prepare(Math.min(20, Math.max(height, 6)));
+	for (let i = 0; i < 5; i++) {
+		const mitm = new Mitm(2, 1);
+		// Using a larger path length in mitm might increase puzzle complexity, but
+		// 8 or 10 appears to be the sweet spot if we want small sizes like 4x4 to work
+		mitm.prepare(Math.min(20, Math.max(height, 6)));
 
-	const grid = make(width, height, mitm, actualMinNumbers, actualMaxNumbers);
+		const grid = make(width, height, mitm, actualMinNumbers, actualMaxNumbers);
 
-	// Convert the grid to a board
-	const [tg, uf] = grid.makeTubes();
-	const board: Board = Array.from({ length: height }, () => Array(width).fill(null));
-	const endpointGroups = new Map<string, Array<[number, number]>>();
-	for (let y = 0; y < tg.h; y++) {
-		for (let x = 0; x < tg.w; x++) {
-			const cell = tg.getItem([x, y]);
-			if (cell === "x") {
-				const group = uf.find(`${x},${y}`);
-				if (!endpointGroups.has(group)) {
-					endpointGroups.set(group, []);
+		// Convert the grid to a board
+		const [tg, uf] = grid.makeTubes();
+		const board: Board = Array.from({ length: height }, () => Array(width).fill(null));
+		const pathGroups = new Map<string, Array<[number, number]>>();
+
+		// First pass: collect all cells in each path group, regardless of cell value
+		for (let y = 0; y < tg.h; y++) {
+			for (let x = 0; x < tg.w; x++) {
+				const cell = tg.getItem([x, y]);
+				if (cell) {
+					// Include all non-null cells
+					const group = uf.find(`${x},${y}`);
+					if (!pathGroups.has(group)) {
+						pathGroups.set(group, []);
+					}
+					pathGroups.get(group)!.push([x, y]);
 				}
-				endpointGroups.get(group)!.push([x, y]);
 			}
 		}
-	}
 
-	// Now assign path indices based on the groups
-	let pathIndex = 0;
-	for (const [_, endpoints] of endpointGroups) {
-		// Each group should have exactly 2 endpoints
-		if (endpoints.length !== 2) {
-			throw new Error("Invalid puzzle: path group does not have exactly 2 endpoints");
+		// Now assign path indices and populate the board
+		let pathIndex = 0;
+		for (const [_, cells] of pathGroups) {
+			// Add all cells from this path to the board
+			for (const [x, y] of cells) {
+				const cell = tg.getItem([x, y]);
+				board[y][x] = {
+					pathIndex,
+					isEndpoint: cell === "x", // Only mark as endpoint if cell value is "x"
+				};
+			}
+
+			pathIndex++;
 		}
-
-		const [x1, y1] = endpoints[0];
-		const [x2, y2] = endpoints[1];
-
-		board[y1][x1] = { pathIndex, isEndpoint: true };
-		board[y2][x2] = { pathIndex, isEndpoint: true };
-
-		pathIndex++;
+		console.log("starting validation");
+		if (pathsHaveBetterSolution(board, pathIndex)) {
+			// console.log("WHAT");
+			// return board;
+			continue;
+		}
+		return board;
 	}
-	return board;
+	throw new Error("Failed to generate a puzzle after 1000 tries");
 }
 
 export { generatePuzzle, type PuzzleOptions };

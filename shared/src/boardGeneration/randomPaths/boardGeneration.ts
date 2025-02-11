@@ -28,7 +28,7 @@ export class BoardGenerator {
 	private pathStack: Point[][] = [];
 
 	constructor(renderer: ChromaPathRenderer | null) {
-		this.renderer = null;
+		this.renderer = renderer;
 	}
 
 	async generateBoard(boardSize: number): Promise<Board> {
@@ -81,7 +81,7 @@ export class BoardGenerator {
 				this.curColorIndex++;
 
 				if (await this.validateBoard()) {
-					await this.debugBoard(100);
+					// await this.debugBoard(100);
 					return true;
 				}
 			} else {
@@ -323,12 +323,12 @@ export class BoardGenerator {
 
 	private async pathsHaveBetterSolution(): Promise<boolean> {
 		const boardCopy = this.board.map((row) => row.map((cell) => cell));
-		const numPathsToRemove = 1;
+		const numPathsToRemove = 2;
 		const pathCombinations = getCombinationsArray(this.curColorIndex, numPathsToRemove);
 
 		for (const pathsToRemove of pathCombinations) {
 			this.board = createBoardWithoutPaths(boardCopy, pathsToRemove);
-			await this.debugBoard(500);
+			// await this.debugBoard(500);
 
 			// Get all endpoints for removed paths
 			const endpointPairs: Array<[Point, Point]> = [];
@@ -355,10 +355,12 @@ export class BoardGenerator {
 					continue;
 				}
 
+				// TODO: VISUALIZE
 				for (const path of pathCombo) {
-					for (const point of path) {
-						this.board[point.y][point.x] = { pathIndex: this.curColorIndex, isEndpoint: false };
-					}
+					// for (const point of path) {
+					// 	this.board[point.y][point.x] = { pathIndex: this.curColorIndex, isEndpoint: false };
+					// }
+					// !????
 					this.debugBoard(500);
 					for (const point of path) {
 						this.board[point.y][point.x] = null;
