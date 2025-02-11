@@ -140,7 +140,7 @@ export function findAllPossiblePaths(board: Board, start: Point, end: Point, min
 		const { point, path, visited } = queue.shift()!;
 
 		if (point.x === end.x && point.y === end.y && path.length >= minPathLength) {
-			if (isValidPath(path)) {
+			if (isValidPath(board, path)) {
 				paths.push(path);
 			}
 			continue;
@@ -183,33 +183,40 @@ export function findAllPossiblePaths(board: Board, start: Point, end: Point, min
 	return paths;
 }
 
-export function isValidPath(path: Point[]): boolean {
+export function isValidPath(board: Board, path: Point[]): boolean {
+	// * Makes sure each path has 2 adjacent cells at each point except endpoints
+
 	// Check each point in the path
 	for (let i = 0; i < path.length; i++) {
 		const point = path[i];
-		const isEndpoint = i === 0 || i === path.length - 1;
+		const isEndpoint = board[point.y][point.x]?.isEndpoint;
 
-		if (!isEndpoint) {
-			// Count adjacent path cells
-			let adjacentCount = 0;
-			const directions = [
-				{ x: -1, y: 0 },
-				{ x: 1, y: 0 },
-				{ x: 0, y: -1 },
-				{ x: 0, y: 1 },
-			];
+		// Count adjacent path cells
+		let adjacentCount = 0;
+		const directions = [
+			{ x: -1, y: 0 },
+			{ x: 1, y: 0 },
+			{ x: 0, y: -1 },
+			{ x: 0, y: 1 },
+		];
 
-			for (const dir of directions) {
-				const checkX = point.x + dir.x;
-				const checkY = point.y + dir.y;
+		for (const dir of directions) {
+			const checkX = point.x + dir.x;
+			const checkY = point.y + dir.y;
 
-				if (path.some((p) => p.x === checkX && p.y === checkY)) {
-					adjacentCount++;
-				}
+			if (path.some((p) => p.x === checkX && p.y === checkY)) {
+				adjacentCount++;
 			}
-
-			// Non-endpoint cells should have exactly 2 adjacent cells
-			if (adjacentCount !== 2) {
+		}
+		if (isEndpoint) {
+			if (adjacentCount !== 1) {
+				// Handle endpoint case
+				return false;
+			}
+		} else {
+			if (adjacentCount !== 2 && i !== path.length - 1) {
+				// Check last point in the case of non endpoint
+				// Handle non endpoint case
 				return false;
 			}
 		}
@@ -228,4 +235,54 @@ export function getEmptyCells(board: Board): Point[] {
 		}
 	}
 	return emptyCells;
+}
+
+export function getDirection(prev: Point | null, current: Point, next: Point): "straight" | "left" | "right" {
+	if (!prev) return "straight";
+
+	// Determine current movement vector
+	const currentDx = current.x - prev.x;
+	const currentDy = current.y - prev.y;
+
+	// Determine next movement vector
+	const nextDx = next.x - current.x;
+	const nextDy = next.y - current.y;
+
+	// If moving in same direction (either x or y), it's straight
+	if (currentDx === nextDx && currentDy === nextDy) {
+		return "straight";
+	}
+
+	// Determine turn direction based on current movement
+	if (currentDx !== 0) {
+		// Moving horizontally
+		return nextDy > 0 ? "right" : "left";
+	} else {
+		// Moving vertically
+		return nextDx > 0 ? "left" : "right";
+	}
+}
+
+export function removeNonEndpoints(board: Board): Board {
+	return board.map((row) => row.map((cell) => (cell && cell.isEndpoint ? cell : null)));
+}
+
+export function createBoardWithoutPaths(originalBoard: Board, pathsToRemove: number[]): Board {
+	const tempBoard: Board = originalBoard.map((row) =>
+		row.map((cell) => (cell && !cell.isEndpoint && pathsToRemove.includes(cell.pathIndex) ? null : cell))
+	);
+	return tempBoard;
+}
+
+export function findEndpointsForPath(board: Board, pathIndex: number): [Point, Point] | null {
+	const endpoints: Point[] = [];
+	for (let y = 0; y < board.length; y++) {
+		for (let x = 0; x < board[0].length; x++) {
+			const cell = board[y][x];
+			if (cell?.pathIndex === pathIndex && cell.isEndpoint) {
+				endpoints.push({ x, y });
+			}
+		}
+	}
+	return endpoints.length === 2 ? [endpoints[0], endpoints[1]] : null;
 }

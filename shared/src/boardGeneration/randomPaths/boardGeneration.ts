@@ -1,5 +1,14 @@
 import { ChromaPathRenderer } from "../../../../client/src/components/game/Renderer";
-import getCombinationsArray, { findAllPossiblePaths, getEmptyCells, getValidNeighbors, shuffleArray } from "../../boardUtils";
+import getCombinationsArray, {
+	createBoardWithoutPaths,
+	findAllPossiblePaths,
+	findEndpointsForPath,
+	getDirection,
+	getEmptyCells,
+	getValidNeighbors,
+	isValidPath,
+	shuffleArray,
+} from "../../boardUtils";
 import { Board, GameState, Point } from "../../types";
 import { generatePathCombinations, isValidPathCombination } from "./boardValidator";
 
@@ -19,13 +28,12 @@ export class BoardGenerator {
 
 	async generateBoard(boardSize: number): Promise<Board> {
 		this.boardSize = boardSize;
-		this.maxNumPaths = 3; // Arbitrary
+		this.maxNumPaths = this.boardSize * 1.2; // Arbitrary
 
 		for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
 			this.board = this.initializeEmptyBoard();
 			if (await this.generateValidBoard()) {
 				// If board valid remove paths
-				// this.removeNonEndpoints();
 				console.log("attempts", attempt);
 				return this.board;
 			}
@@ -47,23 +55,11 @@ export class BoardGenerator {
 			currentPathIndex: null,
 			startPoint: null,
 			completed: false,
-			mouseX: 0,
-			mouseY: 0,
+			mouseX: -1,
+			mouseY: -1,
 		};
 		this.renderer.render(gameState, this.boardSize);
 		await new Promise((resolve) => setTimeout(resolve, timeout));
-	}
-
-	private removeNonEndpoints() {
-		/* Removes all non-endpoint cells from the board */
-		for (let y = 0; y < this.boardSize; y++) {
-			for (let x = 0; x < this.boardSize; x++) {
-				const cell = this.board[y][x];
-				if (!cell?.isEndpoint) {
-					this.board[y][x] = null;
-				}
-			}
-		}
 	}
 
 	private async generateValidBoard(): Promise<boolean> {
@@ -124,7 +120,7 @@ export class BoardGenerator {
 
 	private async attemptPathPlacement(start: Point): Promise<boolean> {
 		this.board[start.y][start.x] = { pathIndex: this.curColorIndex, isEndpoint: true };
-		const path = this.findValidPath(start);
+		const path = this.findRandomValidPathFromStart(start);
 
 		if (!path) {
 			this.board[start.y][start.x] = null;
@@ -175,46 +171,7 @@ export class BoardGenerator {
 		return blockedPaths;
 	}
 
-	private findValidPath(start: Point): Point[] | null {
-		const wouldCreateInvalidAdjacency = (path: Point[], newPoint: Point): boolean => {
-			// Check how many path cells would be adjacent to the new point
-			let adjacentCount = 0;
-			const directions = [
-				{ x: -1, y: 0 },
-				{ x: 1, y: 0 },
-				{ x: 0, y: -1 },
-				{ x: 0, y: 1 },
-			];
-
-			for (const dir of directions) {
-				const checkX = newPoint.x + dir.x;
-				const checkY = newPoint.y + dir.y;
-				if (path.some((p) => p.x === checkX && p.y === checkY)) {
-					adjacentCount++;
-				}
-			}
-
-			// New point should not have more than 2 adjacent path cells
-			if (adjacentCount > 1) return true;
-
-			// Also check if adding this point would cause any existing
-			// path cells to have more than 2 adjacent cells
-			for (const pathPoint of path) {
-				let pointAdjacencyCount = 0;
-				for (const dir of directions) {
-					const checkX = pathPoint.x + dir.x;
-					const checkY = pathPoint.y + dir.y;
-					if (checkX === newPoint.x && checkY === newPoint.y) {
-						pointAdjacencyCount++;
-					} else if (path.some((p) => p.x === checkX && p.y === checkY)) {
-						pointAdjacencyCount++;
-					}
-				}
-				if (pointAdjacencyCount > 2) return true;
-			}
-
-			return false;
-		};
+	private findRandomValidPathFromStart(start: Point): Point[] | null {
 		const visited = new Set<string>();
 		const queue: { point: Point; path: Point[] }[] = [
 			{
@@ -241,16 +198,13 @@ export class BoardGenerator {
 			if (visited.has(key)) continue;
 			visited.add(key);
 
-			const neighbors = getValidNeighbors(this.board, point, visited, false).filter(
-				(neighbor) => !wouldCreateInvalidAdjacency(path, neighbor)
+			const neighbors = getValidNeighbors(this.board, point, visited, false).filter((neighbor) =>
+				isValidPath(this.board, [...path, neighbor])
 			);
 
 			// Check if this could be a valid ending
 			if (path.length >= this.minDistanceBetweenEndpoints && (path.length == maxPath || neighbors.length === 0)) {
-				// if (neighbors.length === 0 && path.length >= this.minDistanceBetweenEndpoints) {
 				return path;
-				// }
-				// continue;
 			}
 			if (neighbors.length === 0) {
 				return null;
@@ -261,8 +215,8 @@ export class BoardGenerator {
 
 			// Sort neighbors by their directional weights
 			const weightedNeighbors = neighbors.sort((a, b) => {
-				const directionA = this.getDirection(prevPoint, point, a);
-				const directionB = this.getDirection(prevPoint, point, b);
+				const directionA = getDirection(prevPoint, point, a);
+				const directionB = getDirection(prevPoint, point, b);
 
 				const weightA = weights[directionA] || 0;
 				const weightB = weights[directionB] || 0;
@@ -271,19 +225,19 @@ export class BoardGenerator {
 			});
 
 			// Get direction and make it less likely to prevent straight paths
-			if (weightedNeighbors.length > 0) {
-				const direction = this.getDirection(prevPoint, point, weightedNeighbors[0]);
-				// if (direction === "straight") curWeights[direction] = curWeights[direction] / 2;
-				if (direction === "left") {
-					// curWeights.right /= 2;
-					// curWeights.left /= 2;
-				}
-				if (direction === "right") {
-					// curWeights.right /= 2;
-					// curWeights.left /= 2;
-				}
-				// curWeights[direction] - 20;
-			}
+			// if (weightedNeighbors.length > 0) {
+			// 	const direction = getDirection(prevPoint, point, weightedNeighbors[0]);
+			// 	// if (direction === "straight") curWeights[direction] = curWeights[direction] / 2;
+			// 	if (direction === "left") {
+			// 		// curWeights.right /= 2;
+			// 		// curWeights.left /= 2;
+			// 	}
+			// 	if (direction === "right") {
+			// 		// curWeights.right /= 2;
+			// 		// curWeights.left /= 2;
+			// 	}
+			// 	// curWeights[direction] - 20;
+			// }
 			const neighbor = weightedNeighbors[0];
 			queue.push({
 				point: neighbor,
@@ -292,32 +246,6 @@ export class BoardGenerator {
 		}
 
 		return null;
-	}
-
-	private getDirection(prev: Point | null, current: Point, next: Point): "straight" | "left" | "right" {
-		if (!prev) return "straight";
-
-		// Determine current movement vector
-		const currentDx = current.x - prev.x;
-		const currentDy = current.y - prev.y;
-
-		// Determine next movement vector
-		const nextDx = next.x - current.x;
-		const nextDy = next.y - current.y;
-
-		// If moving in same direction (either x or y), it's straight
-		if (currentDx === nextDx && currentDy === nextDy) {
-			return "straight";
-		}
-
-		// Determine turn direction based on current movement
-		if (currentDx !== 0) {
-			// Moving horizontally
-			return nextDy > 0 ? "right" : "left";
-		} else {
-			// Moving vertically
-			return nextDx > 0 ? "left" : "right";
-		}
 	}
 
 	private async hasPotentialForValidSolution(): Promise<boolean> {
@@ -330,12 +258,6 @@ export class BoardGenerator {
 				}
 			}
 		}
-
-		// Check if there are too many empty cells
-		// const threshold = this.boardSize * this.boardSize - this.curColorIndex * this.boardSize;
-		// if (emptyCells.length > threshold) {
-		// 	return false;
-		// }
 
 		// Region detection and validation
 		const regions: Point[][] = [];
@@ -397,13 +319,13 @@ export class BoardGenerator {
 
 		for (const pathsToRemove of pathCombinations) {
 			await this.debugBoard(500);
-			this.board = this.createBoardWithoutPaths(boardCopy, pathsToRemove);
+			this.board = createBoardWithoutPaths(boardCopy, pathsToRemove);
 			await this.debugBoard(500);
 
 			// Get all endpoints for removed paths
 			const endpointPairs: Array<[Point, Point]> = [];
 			for (const pathIndex of pathsToRemove) {
-				const endpoints = this.findEndpointsForPath(pathIndex);
+				const endpoints = findEndpointsForPath(this.board, pathIndex);
 				if (!endpoints) continue;
 				endpointPairs.push(endpoints);
 			}
@@ -429,25 +351,5 @@ export class BoardGenerator {
 
 		this.board = boardCopy;
 		return false;
-	}
-
-	private createBoardWithoutPaths(originalBoard: Board, pathsToRemove: number[]): Board {
-		const tempBoard: Board = originalBoard.map((row) =>
-			row.map((cell) => (cell && !cell.isEndpoint && pathsToRemove.includes(cell.pathIndex) ? null : cell))
-		);
-		return tempBoard;
-	}
-
-	private findEndpointsForPath(pathIndex: number): [Point, Point] | null {
-		const endpoints: Point[] = [];
-		for (let y = 0; y < this.boardSize; y++) {
-			for (let x = 0; x < this.boardSize; x++) {
-				const cell = this.board[y][x];
-				if (cell?.pathIndex === pathIndex && cell.isEndpoint) {
-					endpoints.push({ x, y });
-				}
-			}
-		}
-		return endpoints.length === 2 ? [endpoints[0], endpoints[1]] : null;
 	}
 }

@@ -24,7 +24,10 @@ export class ChromaPathRenderer {
 	public render(state: GameState, boardSize: number): void {
 		if (!this.initialized) return;
 		this.cellSize = this.canvas.width / boardSize;
-		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		// Draw black background
+		this.ctx.fillStyle = "#000000";
+		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+		// this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 		this.drawGrid(boardSize);
 		this.drawHover(state);
 		this.drawPaths(state);
@@ -37,7 +40,7 @@ export class ChromaPathRenderer {
 	}
 
 	private drawGrid(boardSize: number): void {
-		this.ctx.strokeStyle = "#cccccc";
+		this.ctx.strokeStyle = "#ffffff";
 		this.ctx.lineWidth = 1;
 
 		for (let i = 0; i <= boardSize; i++) {
@@ -118,10 +121,10 @@ export class ChromaPathRenderer {
 		const mouseX = state.mouseX;
 		const mouseY = state.mouseY;
 		const color = state.currentPathIndex ? this.colorsArray[state.currentPathIndex] : "rgb(255, 255, 255)";
-		this.drawGradientCell(mouseX, mouseY, color, 0.02);
+		this.drawGradientCell(mouseX, mouseY, color, 0.03);
 	}
 
-	private drawGradientCell(x: number, y: number, color: string, aValue: number = 0.05): void {
+	private drawGradientCell(x: number, y: number, color: string, aValue: number = 0.06): void {
 		const cellX = x * this.cellSize;
 		const cellY = y * this.cellSize;
 

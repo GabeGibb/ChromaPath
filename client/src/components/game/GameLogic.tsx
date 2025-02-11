@@ -1,4 +1,4 @@
-import { Board, GameState, getValidNeighbors, Point } from "@chromapath/shared";
+import { Board, GameState, getValidNeighbors, Point, removeNonEndpoints } from "@chromapath/shared";
 
 export class ChromaPathGame {
 	private state: GameState;
@@ -271,14 +271,7 @@ export class ChromaPathGame {
 		for (let i = 0; i < this.state.paths.length; i++) {
 			this.state.paths[i] = [];
 		}
-		// ! Iterate through board and remove non-endpoint cells (THIS IS ONLY NEEDED FOR DEBUGGING)
-		for (let y = 0; y < this.boardSize; y++) {
-			for (let x = 0; x < this.boardSize; x++) {
-				if (this.state.board[y][x] && !this.state.board[y][x]?.isEndpoint) {
-					this.state.board[y][x] = null;
-				}
-			}
-		}
+		this.state.board = removeNonEndpoints(this.state.board);
 	}
 
 	public handleMouseMove(x: number, y: number): void {

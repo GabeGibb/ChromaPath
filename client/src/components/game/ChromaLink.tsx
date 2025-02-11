@@ -48,10 +48,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 			const x = Math.floor((event.clientX - rect.left) / cellSize);
 			const y = Math.floor((event.clientY - rect.top) / cellSize);
 
-			const clampedX = Math.max(0, Math.min(x, boardSize - 1));
-			const clampedY = Math.max(0, Math.min(y, boardSize - 1));
-
-			game.handleMouseMove(clampedX, clampedY);
+			game.handleMouseMove(x, y);
 			const state = game.getState();
 			if (state) renderer.render(state, boardSize);
 		};
@@ -122,7 +119,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 		document.addEventListener("pointerdown", handlePointerDown);
 		document.addEventListener("pointermove", handlePointerMove);
 		document.addEventListener("pointerup", handlePointerUp);
-		canvas.addEventListener("mousemove", handleMouseMove);
+		document.addEventListener("mousemove", handleMouseMove);
 		canvas.addEventListener("touchstart", handleTouchStart);
 		canvas.addEventListener("touchmove", handleTouchMove);
 		document.addEventListener("touchend", handlePointerUp);
@@ -187,7 +184,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 			<span>Paths: {numPaths}</span>
 			<div
 				ref={canvasRef} // TODO: Improve view widths
-				className="w-[99dvw] h-[99dvw] md:w-[80dvh] md:h-[80dvh] border border-neutral rounded-lg shadow-lg overscroll-none overflow-hidden"
+				className="w-[99dvw] h-[99dvw] md:w-[80dvh] md:h-[80dvh] border border-neutral shadow-lg overscroll-none overflow-hidden"
 			/>
 			<div className="flex gap-4">
 				<button onClick={handleNewLevel} className="btn btn-primary m-auto">
