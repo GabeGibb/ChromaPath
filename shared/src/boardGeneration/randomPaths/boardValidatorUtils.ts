@@ -1,20 +1,7 @@
 import { getEmptyCells, pathsIntersect } from "../../boardUtils";
 import { Board, Point } from "../../types";
 
-export default function boardIsValid(board: Board): boolean {
-	return true;
-}
-
-export function isValidPathCombination(board: Board, paths: Point[][]): boolean {
-	// Check if paths intersect
-	for (let i = 0; i < paths.length; i++) {
-		for (let j = i + 1; j < paths.length; j++) {
-			if (pathsIntersect(paths)) {
-				return false;
-			}
-		}
-	}
-
+export function doesPathCombinationHaveRemainingEmptyCells(board: Board, paths: Point[][]): boolean {
 	// Calculate total space used by paths
 	const totalSpaceAvailable = getEmptyCells(board).length;
 	const totalPathLength = paths.reduce((sum, path) => sum + path.length, 0);
@@ -24,7 +11,18 @@ export function isValidPathCombination(board: Board, paths: Point[][]): boolean 
 		console.log("FILTERED OUT BAD DOH");
 	}
 	// return false;
-	return totalPathLength === totalSpaceAvailable;
+	return totalPathLength !== totalSpaceAvailable;
+}
+
+export function doesPathCombinationIntersect(paths: Point[][]): boolean {
+	for (let i = 0; i < paths.length; i++) {
+		for (let j = i + 1; j < paths.length; j++) {
+			if (pathsIntersect(paths)) {
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 export function generatePathCombinations(paths: Point[][], numPaths: number): Point[][][] {

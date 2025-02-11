@@ -10,14 +10,19 @@ import getCombinationsArray, {
 	shuffleArray,
 } from "../../boardUtils";
 import { Board, GameState, Point } from "../../types";
-import { generatePathCombinations, isValidPathCombination } from "./boardValidator";
+import {
+	doesPathCombinationHaveRemainingEmptyCells,
+	doesPathCombinationIntersect,
+	generatePathCombinations,
+} from "./boardValidatorUtils";
 
 export class BoardGenerator {
 	private boardSize: number = 5;
 	private board: Board = [];
 	private readonly maxAttempts = 1000;
 	private curColorIndex = 0;
-	private minDistanceBetweenEndpoints = 3;
+	private minPathLength = 3;
+	private maxPathLength = this.boardSize * this.boardSize;
 	private maxNumPaths = 50;
 	private renderer: ChromaPathRenderer | null = null;
 	private pathStack: Point[][] = [];
@@ -28,13 +33,14 @@ export class BoardGenerator {
 
 	async generateBoard(boardSize: number): Promise<Board> {
 		this.boardSize = boardSize;
-		this.maxNumPaths = this.boardSize * 1.2; // Arbitrary
+		this.maxNumPaths = this.boardSize * 1.5; // Arbitrary
 
 		for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
 			this.board = this.initializeEmptyBoard();
 			if (await this.generateValidBoard()) {
 				// If board valid remove paths
 				console.log("attempts", attempt);
+				// return removeNonEndpoints(this.board);
 				return this.board;
 			}
 		}
@@ -47,10 +53,10 @@ export class BoardGenerator {
 			.map(() => Array(this.boardSize).fill(null));
 	}
 
-	private async debugBoard(timeout = 100): Promise<void> {
+	private async debugBoard(timeout: number = 100, board: Board = this.board): Promise<void> {
 		if (!this.renderer) return;
 		const gameState: GameState = {
-			board: this.board,
+			board: board,
 			paths: [],
 			currentPathIndex: null,
 			startPoint: null,
@@ -66,11 +72,11 @@ export class BoardGenerator {
 		this.curColorIndex = 0;
 
 		while (true) {
-			if (this.curColorIndex >= this.maxNumPaths - 1) {
+			if (this.curColorIndex >= this.maxNumPaths) {
 				return false;
 			}
 			if ((await this.placeColorEndpoints()) && this.curColorIndex < this.maxNumPaths) {
-				await this.debugBoard(100);
+				// await this.debugBoard(100);
 				// return true;
 				this.curColorIndex++;
 
@@ -135,7 +141,7 @@ export class BoardGenerator {
 			this.board[point.y][point.x] = { pathIndex: this.curColorIndex, isEndpoint: false };
 		}
 
-		await this.debugBoard(100);
+		// await this.debugBoard(100);
 
 		// Check if board state is still valid after placing the path
 		if (!(await this.hasPotentialForValidSolution())) {
@@ -186,7 +192,7 @@ export class BoardGenerator {
 			left: 100,
 			right: 100,
 		};
-		const maxPath = this.boardSize * 1.5;
+
 		while (queue.length > 0) {
 			const weights = {
 				straight: Math.random() * curWeights.straight, // High weight to favor straight paths
@@ -203,7 +209,7 @@ export class BoardGenerator {
 			);
 
 			// Check if this could be a valid ending
-			if (path.length >= this.minDistanceBetweenEndpoints && (path.length == maxPath || neighbors.length === 0)) {
+			if (path.length >= this.minPathLength && (path.length == this.maxPathLength || neighbors.length === 0)) {
 				return path;
 			}
 			if (neighbors.length === 0) {
@@ -291,7 +297,7 @@ export class BoardGenerator {
 
 		// Check for problematic 2-cell regions
 		for (const region of regions) {
-			if (region.length < this.minDistanceBetweenEndpoints) {
+			if (region.length < this.minPathLength) {
 				return false;
 			}
 		}
@@ -303,7 +309,10 @@ export class BoardGenerator {
 		if (getEmptyCells(this.board).length > 0) {
 			return false;
 		}
+		console.log("starting validatrion");
 		const betterSolution = await this.pathsHaveBetterSolution();
+		console.log("ending validation");
+
 		if (betterSolution) {
 			return false;
 		}
@@ -314,11 +323,10 @@ export class BoardGenerator {
 
 	private async pathsHaveBetterSolution(): Promise<boolean> {
 		const boardCopy = this.board.map((row) => row.map((cell) => cell));
-		const numPathsToRemove = 2;
+		const numPathsToRemove = 1;
 		const pathCombinations = getCombinationsArray(this.curColorIndex, numPathsToRemove);
 
 		for (const pathsToRemove of pathCombinations) {
-			await this.debugBoard(500);
 			this.board = createBoardWithoutPaths(boardCopy, pathsToRemove);
 			await this.debugBoard(500);
 
@@ -343,7 +351,21 @@ export class BoardGenerator {
 
 			// Check each combination
 			for (const pathCombo of pathCombos) {
-				if (isValidPathCombination(this.board, pathCombo)) {
+				if (doesPathCombinationIntersect(pathCombo)) {
+					continue;
+				}
+
+				for (const path of pathCombo) {
+					for (const point of path) {
+						this.board[point.y][point.x] = { pathIndex: this.curColorIndex, isEndpoint: false };
+					}
+					this.debugBoard(500);
+					for (const point of path) {
+						this.board[point.y][point.x] = null;
+					}
+				}
+
+				if (doesPathCombinationHaveRemainingEmptyCells(this.board, pathCombo)) {
 					return true;
 				}
 			}

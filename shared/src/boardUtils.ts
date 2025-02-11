@@ -124,62 +124,35 @@ export function pathsIntersect(paths: Point[][]): boolean {
 
 export function findAllPossiblePaths(board: Board, start: Point, end: Point, minPathLength: number = 3): Point[][] {
 	const paths: Point[][] = [];
-	const queue: {
-		point: Point;
-		path: Point[];
-		visited: Set<string>;
-	}[] = [
-		{
-			point: start,
-			path: [start],
-			visited: new Set([`${start.x},${start.y}`]),
-		},
-	];
 
-	while (queue.length > 0) {
-		const { point, path, visited } = queue.shift()!;
-
-		if (point.x === end.x && point.y === end.y && path.length >= minPathLength) {
-			if (isValidPath(board, path)) {
-				paths.push(path);
+	function findPathsRecursive(currentPoint: Point, currentPath: Point[], visited: Set<string>) {
+		// If we've reached the end point and the path is long enough
+		if (currentPoint.x === end.x && currentPoint.y === end.y && currentPath.length >= minPathLength) {
+			if (isValidPath(board, currentPath)) {
+				paths.push([...currentPath]);
 			}
-			continue;
+			return;
 		}
+		const neighbors = getValidNeighbors(board, currentPoint, visited, true);
 
-		// Get all valid neighbors
-		const validMoves = [
-			{ x: -1, y: 0 },
-			{ x: 1, y: 0 },
-			{ x: 0, y: -1 },
-			{ x: 0, y: 1 },
-		];
-
-		for (const move of validMoves) {
-			const newX = point.x + move.x;
-			const newY = point.y + move.y;
-			const newKey = `${newX},${newY}`;
-
-			// Check if the move is valid and not visited in this path
-			if (
-				newX >= 0 &&
-				newX < board.length &&
-				newY >= 0 &&
-				newY < board[0].length &&
-				!visited.has(newKey) &&
-				(board[newY][newX] === null || (newX === end.x && newY === end.y))
-			) {
-				// Create new visited set for this path
+		// Try each possible move
+		for (const neighbor of neighbors) {
+			if (isValidPath(board, [...currentPath, neighbor])) {
 				const newVisited = new Set(visited);
-				newVisited.add(newKey);
+				newVisited.add(`${neighbor.x},${neighbor.y}`);
 
-				queue.push({
-					point: { x: newX, y: newY },
-					path: [...path, { x: newX, y: newY }],
-					visited: newVisited,
-				});
+				// Recursively explore this path
+				currentPath.push(neighbor);
+				findPathsRecursive(neighbor, currentPath, newVisited);
+				currentPath.pop(); // Backtrack
 			}
 		}
 	}
+
+	// Start the recursive search
+	const initialVisited = new Set([`${start.x},${start.y}`]);
+	findPathsRecursive(start, [start], initialVisited);
+
 	return paths;
 }
 
