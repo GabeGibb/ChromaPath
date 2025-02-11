@@ -105,3 +105,127 @@ export default function getCombinationsArray(totalNumbers: number, numbersPerCom
 	generateCombinations(0, numbersPerCombo);
 	return combinations;
 }
+
+export function pathsIntersect(paths: Point[][]): boolean {
+	const pointSet = new Set<string>();
+
+	for (const path of paths) {
+		for (const point of path) {
+			const key = `${point.x},${point.y}`;
+			if (pointSet.has(key)) {
+				return true;
+			}
+			pointSet.add(key);
+		}
+	}
+
+	return false;
+}
+
+export function findAllPossiblePaths(board: Board, start: Point, end: Point, minPathLength: number = 3): Point[][] {
+	const paths: Point[][] = [];
+	const queue: {
+		point: Point;
+		path: Point[];
+		visited: Set<string>;
+	}[] = [
+		{
+			point: start,
+			path: [start],
+			visited: new Set([`${start.x},${start.y}`]),
+		},
+	];
+
+	while (queue.length > 0) {
+		const { point, path, visited } = queue.shift()!;
+
+		if (point.x === end.x && point.y === end.y && path.length >= minPathLength) {
+			if (isValidPath(path)) {
+				paths.push(path);
+			}
+			continue;
+		}
+
+		// Get all valid neighbors
+		const validMoves = [
+			{ x: -1, y: 0 },
+			{ x: 1, y: 0 },
+			{ x: 0, y: -1 },
+			{ x: 0, y: 1 },
+		];
+
+		for (const move of validMoves) {
+			const newX = point.x + move.x;
+			const newY = point.y + move.y;
+			const newKey = `${newX},${newY}`;
+
+			// Check if the move is valid and not visited in this path
+			if (
+				newX >= 0 &&
+				newX < board.length &&
+				newY >= 0 &&
+				newY < board[0].length &&
+				!visited.has(newKey) &&
+				(board[newY][newX] === null || (newX === end.x && newY === end.y))
+			) {
+				// Create new visited set for this path
+				const newVisited = new Set(visited);
+				newVisited.add(newKey);
+
+				queue.push({
+					point: { x: newX, y: newY },
+					path: [...path, { x: newX, y: newY }],
+					visited: newVisited,
+				});
+			}
+		}
+	}
+	return paths;
+}
+
+export function isValidPath(path: Point[]): boolean {
+	// Check each point in the path
+	for (let i = 0; i < path.length; i++) {
+		const point = path[i];
+		const isEndpoint = i === 0 || i === path.length - 1;
+
+		if (!isEndpoint) {
+			// Count adjacent path cells
+			let adjacentCount = 0;
+			const directions = [
+				{ x: -1, y: 0 },
+				{ x: 1, y: 0 },
+				{ x: 0, y: -1 },
+				{ x: 0, y: 1 },
+			];
+
+			for (const dir of directions) {
+				const checkX = point.x + dir.x;
+				const checkY = point.y + dir.y;
+
+				if (path.some((p) => p.x === checkX && p.y === checkY)) {
+					adjacentCount++;
+				}
+			}
+
+			// Non-endpoint cells should have exactly 2 adjacent cells
+			if (adjacentCount !== 2) {
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+export function getEmptyCells(board: Board): Point[] {
+	const emptyCells: Point[] = [];
+	for (let y = 0; y < board.length; y++) {
+		for (let x = 0; x < board[y].length; x++) {
+			if (!board[y][x]) {
+				emptyCells.push({ x, y });
+			}
+		}
+	}
+	return emptyCells;
+}

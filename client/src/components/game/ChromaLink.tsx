@@ -222,6 +222,7 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 				<button onClick={() => gameRef.current?.refreshPaths()} className="btn btn-primary m-auto">
 					<RefreshCcw size={24} />
 				</button>
+				<button onClick={() => {}}></button>
 			</div>
 		</div>
 	);
