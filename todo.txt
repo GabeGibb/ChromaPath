@@ -1,6 +1,6 @@
 - Better board generation
+- Cool board animation
 - make dragging not as expensive
-- fix mobile
 
 
 

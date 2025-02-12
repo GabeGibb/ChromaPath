@@ -7,6 +7,7 @@ import getCombinationsArray, {
 	getEmptyCells,
 	getValidNeighbors,
 	isValidPath,
+	removeNonEndpoints,
 	shuffleArray,
 } from "../../boardUtils";
 import { Board, GameState, Point } from "../../types";
@@ -26,9 +27,10 @@ export class BoardGenerator {
 	private maxNumPaths = 50;
 	private renderer: ChromaPathRenderer | null = null;
 	private pathStack: Point[][] = [];
+	private doRender: boolean = false;
 
 	constructor(renderer: ChromaPathRenderer | null) {
-		this.renderer = renderer;
+		if (this.doRender) this.renderer = renderer;
 	}
 
 	async generateBoard(boardSize: number): Promise<Board> {
@@ -36,12 +38,11 @@ export class BoardGenerator {
 		this.maxNumPaths = this.boardSize * 1.5; // Arbitrary
 
 		for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
-			this.board = this.initializeEmptyBoard();
 			if (await this.generateValidBoard()) {
 				// If board valid remove paths
 				console.log("attempts", attempt);
-				// return removeNonEndpoints(this.board);
-				return this.board;
+				return removeNonEndpoints(this.board);
+				// return this.board;
 			}
 		}
 		throw new Error("Failed to generate valid board after maximum attempts");
@@ -70,13 +71,14 @@ export class BoardGenerator {
 
 	private async generateValidBoard(): Promise<boolean> {
 		this.curColorIndex = 0;
-
+		this.pathStack = [];
+		this.board = this.initializeEmptyBoard();
 		while (true) {
 			if (this.curColorIndex >= this.maxNumPaths) {
 				return false;
 			}
 			if ((await this.placeColorEndpoints()) && this.curColorIndex < this.maxNumPaths) {
-				// await this.debugBoard(100);
+				await this.debugBoard(300);
 				// return true;
 				this.curColorIndex++;
 
@@ -85,19 +87,25 @@ export class BoardGenerator {
 					return true;
 				}
 			} else {
-				return false;
 				// TODO: RECURSE
-				// const lastPath = this.pathStack.pop();
-				// if (!lastPath) {
-				// 	return false;
+				await this.debugBoard(500);
+
+				// for (let i = 0; i < 3; i++) {
+				// 	this.curColorIndex--;
+				// 	const lastPath = this.pathStack.pop();
+				// 	if (!lastPath) {
+				// 		return false;
+				// 	}
+
+				// 	// Remove last path
+				// 	for (const point of lastPath) {
+				// 		this.board[point.y][point.x] = null;
+				// 	}
 				// }
 
-				// // Remove last path
-				// for (const point of lastPath) {
-				// 	this.board[point.y][point.x] = null;
-				// }
+				await this.debugBoard(500);
 
-				// return false;
+				return false;
 			}
 		}
 	}
@@ -106,14 +114,17 @@ export class BoardGenerator {
 		const blockedPaths = this.findBlockedPaths();
 		if (blockedPaths.length > 0) {
 			for (const blockedPath of blockedPaths) {
-				if (await this.attemptPathPlacement(blockedPath)) {
-					return true;
+				for (let i = 0; i < 5; i++) {
+					if (await this.attemptPathPlacement(blockedPath)) {
+						return true;
+					}
 				}
 			}
+			return false;
 		}
 
 		// Arbitrarily loop through
-		// for (let j = 0; j < this.boardSize; j++) {
+		// for (let j = 0; j < 3; j++) {
 		const emptyCells = shuffleArray(getEmptyCells(this.board));
 		for (let i = 0; i < emptyCells.length; i++) {
 			if (await this.attemptPathPlacement(emptyCells[i])) {
@@ -188,7 +199,7 @@ export class BoardGenerator {
 
 		// Weights favor continuing straight with occasional turns
 		const curWeights = {
-			straight: 100,
+			straight: 150,
 			left: 100,
 			right: 100,
 		};

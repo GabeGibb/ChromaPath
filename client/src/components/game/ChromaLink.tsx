@@ -1,4 +1,4 @@
-import { generatePuzzle } from "@chromapath/shared";
+import { BoardGenerator } from "@chromapath/shared";
 import { RefreshCcw } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { LocalStorageService } from "../../services/localStorage/localStorage";
@@ -152,9 +152,9 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 
 		setBoardGenerating(true);
 
-		// const boardGenerator = new BoardGenerator(rendererRef.current!);
-		// const board = await boardGenerator.generateBoard(boardSize);
-		const board = generatePuzzle({ width: boardSize, height: boardSize });
+		const boardGenerator = new BoardGenerator(rendererRef.current!);
+		const board = await boardGenerator.generateBoard(boardSize);
+		// const board = generatePuzzle({ width: boardSize, height: boardSize });
 		console.log(board);
 
 		setBoardGenerating(false);
@@ -216,7 +216,14 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 						className="checkbox checkbox-neutral"
 					/>
 				</label>
-				<button onClick={() => gameRef.current?.refreshPaths()} className="btn btn-primary m-auto">
+				<button
+					onClick={() => {
+						if (!gameRef.current || !rendererRef.current) return;
+						gameRef.current?.refreshPaths();
+						rendererRef.current.render(gameRef.current?.getState()!, boardSize);
+					}}
+					className="btn btn-primary m-auto"
+				>
 					<RefreshCcw size={24} />
 				</button>
 				<button onClick={() => {}}></button>
