@@ -1,6 +1,8 @@
-- Better board generation
-- Cool board animation
+- Faster board validation
+- Faster board generation
+- Cool board animation when switching
 - make dragging not as expensive
+
 
 
 
