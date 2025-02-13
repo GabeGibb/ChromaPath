@@ -25,9 +25,9 @@ export class ChromaPathRenderer {
 		if (!this.initialized) return;
 		this.cellSize = this.canvas.width / boardSize;
 		// Draw black background
-		this.ctx.fillStyle = "#000000";
+		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		this.ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
 		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-		// this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 		this.drawGrid(boardSize);
 		this.drawHover(state);
 		this.drawPaths(state);

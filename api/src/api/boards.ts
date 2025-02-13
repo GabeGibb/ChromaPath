@@ -1,7 +1,7 @@
 import { BoardGenerator } from "@chromapath/shared";
 import express, { Request, Response } from "express";
 
-const boardGenerator = new BoardGenerator();
+const boardGenerator = new BoardGenerator(null);
 const router = express.Router();
 
 router.get("/random", async (req: Request, res: Response) => {

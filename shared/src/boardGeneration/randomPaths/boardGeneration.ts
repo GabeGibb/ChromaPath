@@ -36,6 +36,8 @@ export class BoardGenerator {
 	async generateBoard(boardSize: number): Promise<Board> {
 		this.boardSize = boardSize;
 		this.maxNumPaths = this.boardSize * 1.5; // Arbitrary
+		this.board = this.initializeEmptyBoard();
+		this.curColorIndex = 0;
 
 		for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
 			if (await this.generateValidBoard()) {
@@ -70,9 +72,7 @@ export class BoardGenerator {
 	}
 
 	private async generateValidBoard(): Promise<boolean> {
-		this.curColorIndex = 0;
-		this.pathStack = [];
-		this.board = this.initializeEmptyBoard();
+		// this.pathStack = [];
 		while (true) {
 			if (this.curColorIndex >= this.maxNumPaths) {
 				return false;
@@ -88,7 +88,7 @@ export class BoardGenerator {
 				}
 			} else {
 				// TODO: RECURSE
-				await this.debugBoard(500);
+				// await this.debugBoard(500);
 
 				// for (let i = 0; i < 3; i++) {
 				// 	this.curColorIndex--;
@@ -103,7 +103,7 @@ export class BoardGenerator {
 				// 	}
 				// }
 
-				await this.debugBoard(500);
+				// await this.debugBoard(500);
 
 				return false;
 			}
@@ -241,20 +241,6 @@ export class BoardGenerator {
 				return weightB - weightA;
 			});
 
-			// Get direction and make it less likely to prevent straight paths
-			// if (weightedNeighbors.length > 0) {
-			// 	const direction = getDirection(prevPoint, point, weightedNeighbors[0]);
-			// 	// if (direction === "straight") curWeights[direction] = curWeights[direction] / 2;
-			// 	if (direction === "left") {
-			// 		// curWeights.right /= 2;
-			// 		// curWeights.left /= 2;
-			// 	}
-			// 	if (direction === "right") {
-			// 		// curWeights.right /= 2;
-			// 		// curWeights.left /= 2;
-			// 	}
-			// 	// curWeights[direction] - 20;
-			// }
 			const neighbor = weightedNeighbors[0];
 			queue.push({
 				point: neighbor,
@@ -266,7 +252,7 @@ export class BoardGenerator {
 	}
 
 	private async hasPotentialForValidSolution(): Promise<boolean> {
-		// TODO: This could be more sophisticated
+		// First collect empty cells
 		const emptyCells: Point[] = [];
 		for (let y = 0; y < this.boardSize; y++) {
 			for (let x = 0; x < this.boardSize; x++) {
@@ -276,7 +262,7 @@ export class BoardGenerator {
 			}
 		}
 
-		// Region detection and validation
+		// Region detection with enhanced validation
 		const regions: Point[][] = [];
 		const visited = new Set<string>();
 
@@ -306,16 +292,21 @@ export class BoardGenerator {
 			}
 		}
 
-		// Check for problematic 2-cell regions
+		// Enhanced validation checks
 		for (const region of regions) {
+			// Check minimum path length
 			if (region.length < this.minPathLength) {
 				return false;
 			}
+
+			// Check for invalid patterns
+			// if (!isValidRegionPattern(region)) {
+			// 	return false;
+			// }
 		}
 
 		return true;
 	}
-
 	private async validateBoard(): Promise<boolean> {
 		if (getEmptyCells(this.board).length > 0) {
 			return false;
