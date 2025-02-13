@@ -36,8 +36,6 @@ export class BoardGenerator {
 	async generateBoard(boardSize: number): Promise<Board> {
 		this.boardSize = boardSize;
 		this.maxNumPaths = this.boardSize * 1.5; // Arbitrary
-		this.board = this.initializeEmptyBoard();
-		this.curColorIndex = 0;
 
 		for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
 			if (await this.generateValidBoard()) {
@@ -72,7 +70,9 @@ export class BoardGenerator {
 	}
 
 	private async generateValidBoard(): Promise<boolean> {
-		// this.pathStack = [];
+		this.curColorIndex = 0;
+		this.pathStack = [];
+		this.board = this.initializeEmptyBoard();
 		while (true) {
 			if (this.curColorIndex >= this.maxNumPaths) {
 				return false;
