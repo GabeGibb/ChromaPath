@@ -1,3 +1,4 @@
+import { removeNonEndpoints } from "../../boardUtils";
 import { Board } from "../../types";
 import { pathsHaveBetterSolution } from "../randomPaths/boardValidatorUtils";
 import { Grid, UnionFind } from "./grid";
@@ -167,6 +168,7 @@ function make(w: number, h: number, mitm: Mitm, minNumbers: number = 0, maxNumbe
 }
 
 function generatePuzzle(options: PuzzleOptions): Board {
+	const start = performance.now();
 	const { width, height, minNumbers, maxNumbers } = options;
 
 	if (width < 4 || height < 4) {
@@ -176,7 +178,7 @@ function generatePuzzle(options: PuzzleOptions): Board {
 	const actualMinNumbers = minNumbers ?? width;
 	const actualMaxNumbers = maxNumbers ?? 1000;
 
-	for (let i = 0; i < 5; i++) {
+	for (let i = 0; i < 1000; i++) {
 		const mitm = new Mitm(2, 1);
 		// Using a larger path length in mitm might increase puzzle complexity, but
 		// 8 or 10 appears to be the sweet spot if we want small sizes like 4x4 to work
@@ -224,7 +226,8 @@ function generatePuzzle(options: PuzzleOptions): Board {
 			// return board;
 			continue;
 		}
-		return board;
+		console.log("time for generation", (performance.now() - start) / 1000);
+		return removeNonEndpoints(board);
 	}
 	throw new Error("Failed to generate a puzzle after 1000 tries");
 }

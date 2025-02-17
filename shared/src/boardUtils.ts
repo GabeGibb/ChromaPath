@@ -151,7 +151,9 @@ export function findAllPossiblePaths(board: Board, start: Point, end: Point, min
 
 	// Start the recursive search
 	const initialVisited = new Set([`${start.x},${start.y}`]);
+	const startTime = performance.now();
 	findPathsRecursive(start, [start], initialVisited);
+	console.log("TIME FOR FINDING ALL PATHS: ", (performance.now() - startTime) / 1000);
 
 	return paths;
 }

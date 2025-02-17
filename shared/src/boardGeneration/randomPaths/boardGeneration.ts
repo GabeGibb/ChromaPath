@@ -22,13 +22,14 @@ export class BoardGenerator {
 	async generateBoard(boardSize: number): Promise<Board> {
 		this.boardSize = boardSize;
 		this.maxNumPaths = this.boardSize * 1.15; // Arbitrary
+		const start = performance.now();
 
 		for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
 			if (await this.generateValidBoard()) {
 				// If board valid remove paths
 				console.log("attempts", attempt);
+				console.log("time for generation", (performance.now() - start) / 1000);
 				return removeNonEndpoints(this.board);
-				// return this.board;
 			}
 		}
 		throw new Error("Failed to generate valid board after maximum attempts");
