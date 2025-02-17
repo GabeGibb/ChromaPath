@@ -1,8 +1,15 @@
 - Faster board validation
+-- Make it so valid neighbors checks for adjacencies maybe?
+-- Make it so if endpoints are in different regions thats a return
+-- Make it so they backtrack in tandem
+
+
+
 - Faster board generation
 - Cool board animation when switching
 - make dragging not as expensive
-- hug when dragging
+- pixelated on phone numbers
+- phone needs refresh
 - server-side board generation
 - 
 
@@ -10,7 +17,7 @@
 
 - https://uiball.com/ldrs/ make a cool loading animation
 - Make dragging be able to drag close to another item
+- hug when dragging
 - More vibrant hues (customizable)
 -- time trial?
--- server side board generation?
 -- login / stats?

@@ -62,11 +62,11 @@ export function pathsHaveBetterSolution(board: Board, numPaths: number): boolean
 		board = createBoardWithoutPaths(boardCopy, pathsToRemove);
 
 		// Get all endpoints for removed paths
-		const endpointPairs: Array<[Point, Point]> = [];
+		const endpointPairs: Array<[Point, Point, number]> = [];
 		for (const pathIndex of pathsToRemove) {
 			const endpoints = findEndpointsForPath(board, pathIndex);
 			if (!endpoints) continue;
-			endpointPairs.push(endpoints);
+			endpointPairs.push([...endpoints, pathIndex]);
 		}
 
 		if (canEndpointsBeConnectedWithEmptyCells(board, endpointPairs)) {
@@ -107,68 +107,71 @@ export function pathsHaveBetterSolution(board: Board, numPaths: number): boolean
 	return false;
 }
 
-function canEndpointsBeConnectedWithEmptyCells(board: Board, endpointPairs: Array<[Point, Point]>): boolean {
+function canEndpointsBeConnectedWithEmptyCells(board: Board, endpointPairs: Array<[Point, Point, number]>): boolean {
 	// This function takes in n pairs of endpoints and checks if they can be connected with empty cells
 	// It will do this by generating paths between each pair recursively and backtracking on conflicts
 
-	const curPaths: Point[][] = [];
-	const endPoints: Point[] = [];
+	const curPaths: Point[][] = endpointPairs.map(([start]) => [start]);
 
-	// Initialize starting points and endpoints
-	for (const [start, end] of endpointPairs) {
-		curPaths.push([start]);
-		endPoints.push(end);
-	}
-
-	function recursivePathsReachedEmptySolution(paths: Point[][]): boolean {
-		for (let i = 0; i < paths.length; i++) {
-			const currentPath = paths[i];
-			const currentPoint = currentPath[currentPath.length - 1];
-			const targetPoint = endPoints[i];
-
-			// Check if we've reached the target for this path
-			if (currentPoint.x === targetPoint.x && currentPoint.y === targetPoint.y) {
-				// Try to solve remaining paths
-				continue;
-			}
-
-			// Get valid neighbors for the current point
-			const neighbors = getValidNeighbors(board, currentPoint, new Set<string>(), true);
-			// If the target point in neighbors remove all other neighbors
-			if (neighbors.some((n) => n.x === targetPoint.x && n.y === targetPoint.y)) {
-				neighbors.splice(0, neighbors.length, targetPoint);
-			} else {
-				// Check if the neighbor has more than one adjacent cell of the same path
-				neighbors.forEach((neighbor, index) => {
-					const adjacents = countAdjacent(currentPath, neighbor);
-					if (adjacents > 1) {
-						neighbors.splice(index, 1);
-					}
-				});
-			}
-
-			if (neighbors.length === 0) {
-				return false;
-			}
-
-			// Try each possible move
-			for (const neighbor of neighbors) {
-				// Mark cell as visited
-				paths[i].push(neighbor);
-
-				// Recursively try to solve with this move
-				if (recursivePathsReachedEmptySolution(paths)) {
-					return true;
-				}
-
-				// Backtrack: remove the neighbor and try other options
-				paths[i].pop();
-			}
+	function recursivePathsReachedEmptySolution(curEndpointPairIndex: number): boolean {
+		if (curEndpointPairIndex === endpointPairs.length) {
+			curEndpointPairIndex = 0;
 		}
+
+		const curPath = curPaths[curEndpointPairIndex];
+		const curPoint = curPath[curPath.length - 1];
+		const endPoint = endpointPairs[curEndpointPairIndex][1];
+		const pathIndex = endpointPairs[curEndpointPairIndex][2];
+
+		// Check if we've reached the target for this path
+		if (curPoint.x === endPoint.x && curPoint.y === endPoint.y) {
+			// Try to solve remaining paths
+			// TODO: Does this do what I want
+			return recursivePathsReachedEmptySolution(curEndpointPairIndex + 1);
+		}
+
+		// Get valid neighbors for the current point
+		const neighbors = getValidNeighbors(board, curPoint, new Set<string>(), true);
+		// If the target point in neighbors remove all other neighbors
+		if (neighbors.some((n) => n.x === endPoint.x && n.y === endPoint.y)) {
+			neighbors.splice(0, neighbors.length, endPoint);
+		} else {
+			// Check if the neighbor has more than one adjacent cell of the same path
+			neighbors.forEach((neighbor, index) => {
+				const adjacents = countAdjacent(curPath, neighbor);
+				if (adjacents > 1) {
+					neighbors.splice(index, 1);
+				}
+			});
+		}
+
+		//TODO: Zone checks or path way checks?? Something to further filter down
+
+		// This path is bad, backtrack
+		if (neighbors.length === 0) {
+			return false;
+		}
+
+		// Try each possible move
+		for (const neighbor of neighbors) {
+			// Mark cell as visited
+			curPath.push(neighbor);
+			board[neighbor.y][neighbor.x] = { pathIndex, isEndpoint: false };
+
+			// Recursively try to solve with this move
+			if (recursivePathsReachedEmptySolution(curEndpointPairIndex + 1)) {
+				return true;
+			}
+
+			// Backtrack: remove the neighbor and try other options
+			curPath.pop();
+			board[neighbor.y][neighbor.x] = null;
+		}
+		console.log(curPaths);
 
 		return false;
 	}
 
 	// Start the recursive path finding and return the result
-	return recursivePathsReachedEmptySolution(curPaths);
+	return recursivePathsReachedEmptySolution(0);
 }
