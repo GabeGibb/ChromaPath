@@ -106,7 +106,7 @@ export default function getCombinationsArray(totalNumbers: number, numbersPerCom
 	return combinations;
 }
 
-export function pathsIntersect(paths: Point[][]): boolean {
+export function doPathsIntersect(paths: Point[][]): boolean {
 	const pointSet = new Set<string>();
 
 	for (const path of paths) {
@@ -158,6 +158,27 @@ export function findAllPossiblePaths(board: Board, start: Point, end: Point, min
 	return paths;
 }
 
+export function countAdjacent(path: Point[], point: Point): number {
+	const directions = [
+		{ x: -1, y: 0 },
+		{ x: 1, y: 0 },
+		{ x: 0, y: -1 },
+		{ x: 0, y: 1 },
+	];
+	let adjacentCount = 0;
+
+	for (const dir of directions) {
+		const checkX = point.x + dir.x;
+		const checkY = point.y + dir.y;
+
+		if (path.some((p) => p.x === checkX && p.y === checkY)) {
+			adjacentCount++;
+		}
+	}
+
+	return adjacentCount;
+}
+
 export function isValidPath(board: Board, path: Point[]): boolean {
 	// * Makes sure each path has 2 adjacent cells at each point except endpoints
 
@@ -167,22 +188,8 @@ export function isValidPath(board: Board, path: Point[]): boolean {
 		const isEndpoint = board[point.y][point.x]?.isEndpoint;
 
 		// Count adjacent path cells
-		let adjacentCount = 0;
-		const directions = [
-			{ x: -1, y: 0 },
-			{ x: 1, y: 0 },
-			{ x: 0, y: -1 },
-			{ x: 0, y: 1 },
-		];
+		const adjacentCount = countAdjacent(path, point);
 
-		for (const dir of directions) {
-			const checkX = point.x + dir.x;
-			const checkY = point.y + dir.y;
-
-			if (path.some((p) => p.x === checkX && p.y === checkY)) {
-				adjacentCount++;
-			}
-		}
 		if (isEndpoint) {
 			if (adjacentCount !== 1) {
 				// Handle endpoint case

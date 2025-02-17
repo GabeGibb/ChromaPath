@@ -2,7 +2,9 @@
 - Faster board generation
 - Cool board animation when switching
 - make dragging not as expensive
-
+- hug when dragging
+- server-side board generation
+- 
 
 
 

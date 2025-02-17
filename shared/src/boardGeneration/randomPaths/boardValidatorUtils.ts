@@ -1,9 +1,10 @@
 import getCombinationsArray, {
+	countAdjacent,
 	createBoardWithoutPaths,
-	findAllPossiblePaths,
+	doPathsIntersect,
 	findEndpointsForPath,
 	getEmptyCells,
-	pathsIntersect,
+	getValidNeighbors,
 } from "../../boardUtils";
 import { Board, Point } from "../../types";
 
@@ -22,7 +23,7 @@ export function doesPathCombinationHaveRemainingEmptyCells(board: Board, paths: 
 export function doesPathCombinationIntersect(paths: Point[][]): boolean {
 	for (let i = 0; i < paths.length; i++) {
 		for (let j = i + 1; j < paths.length; j++) {
-			if (pathsIntersect(paths)) {
+			if (doPathsIntersect(paths)) {
 				return true;
 			}
 		}
@@ -68,38 +69,38 @@ export function pathsHaveBetterSolution(board: Board, numPaths: number): boolean
 			endpointPairs.push(endpoints);
 		}
 
-		// if (canE(board, endpointPairs)) {
-		// 	console.log("TIME FOR VALIDATION: ", (performance.now() - start) / 1000);
-		// 	return true;
+		if (canEndpointsBeConnectedWithEmptyCells(board, endpointPairs)) {
+			console.log("TIME FOR VALIDATION: ", (performance.now() - start) / 1000);
+			return true;
+		}
+
+		// // Find all possible paths for each endpoint pair
+		// const allPossiblePaths: Point[][] = [];
+		// for (const [start, end] of endpointPairs) {
+		// 	const paths = findAllPossiblePaths(board, start, end);
+		// 	if (paths.length === 0) continue;
+		// 	allPossiblePaths.push(...paths);
 		// }
 
-		// Find all possible paths for each endpoint pair
-		const allPossiblePaths: Point[][] = [];
-		for (const [start, end] of endpointPairs) {
-			const paths = findAllPossiblePaths(board, start, end);
-			if (paths.length === 0) continue;
-			allPossiblePaths.push(...paths);
-		}
+		// // Generate all possible combinations of paths
+		// const pathCombos = generatePathCombinations(allPossiblePaths, endpointPairs.length);
 
-		// Generate all possible combinations of paths
-		const pathCombos = generatePathCombinations(allPossiblePaths, endpointPairs.length);
+		// // Check each combination
+		// for (const pathCombo of pathCombos) {
+		// 	if (doesPathCombinationIntersect(pathCombo)) {
+		// 		continue;
+		// 	}
 
-		// Check each combination
-		for (const pathCombo of pathCombos) {
-			if (doesPathCombinationIntersect(pathCombo)) {
-				continue;
-			}
-
-			for (const path of pathCombo) {
-				for (const point of path) {
-					board[point.y][point.x] = null;
-				}
-			}
-			if (doesPathCombinationHaveRemainingEmptyCells(board, pathCombo)) {
-				console.log("TIME FOR VALIDATION: ", (performance.now() - start) / 1000);
-				return true;
-			}
-		}
+		// 	for (const path of pathCombo) {
+		// 		for (const point of path) {
+		// 			board[point.y][point.x] = null;
+		// 		}
+		// 	}
+		// 	if (doesPathCombinationHaveRemainingEmptyCells(board, pathCombo)) {
+		// 		console.log("TIME FOR VALIDATION: ", (performance.now() - start) / 1000);
+		// 		return true;
+		// 	}
+		// }
 	}
 	console.log("TIME FOR VALIDATION: ", (performance.now() - start) / 1000);
 	board = boardCopy;
@@ -108,29 +109,66 @@ export function pathsHaveBetterSolution(board: Board, numPaths: number): boolean
 
 function canEndpointsBeConnectedWithEmptyCells(board: Board, endpointPairs: Array<[Point, Point]>): boolean {
 	// This function takes in n pairs of endpoints and checks if they can be connected with empty cells
-	// It will do this by generating all possible paths between each pair and checking if they intersect, if either gets blocked and so on
+	// It will do this by generating paths between each pair recursively and backtracking on conflicts
 
-	function recursivePathsReachedEmptySolution(curPaths: Point[][]): boolean {
-		// If we've reached the last pair of endpoints
-		for (const curPath of curPaths) {
-			const newestPoint = curPath[curPath.length - 1];
-			if (currentPoint.x === end.x && currentPoint.y === end.y && currentPath.length >= minPathLength) {
-				if (isValidPath(board, currentPath)) {
-					paths.push([...currentPath]);
-				}
-				return;
+	const curPaths: Point[][] = [];
+	const endPoints: Point[] = [];
+
+	// Initialize starting points and endpoints
+	for (const [start, end] of endpointPairs) {
+		curPaths.push([start]);
+		endPoints.push(end);
+	}
+
+	function recursivePathsReachedEmptySolution(paths: Point[][]): boolean {
+		for (let i = 0; i < paths.length; i++) {
+			const currentPath = paths[i];
+			const currentPoint = currentPath[currentPath.length - 1];
+			const targetPoint = endPoints[i];
+
+			// Check if we've reached the target for this path
+			if (currentPoint.x === targetPoint.x && currentPoint.y === targetPoint.y) {
+				// Try to solve remaining paths
+				continue;
 			}
-			const neighbors = getValidNeighbors(board, currentPoint, visited, true);
+
+			// Get valid neighbors for the current point
+			const neighbors = getValidNeighbors(board, currentPoint, new Set<string>(), true);
+			// If the target point in neighbors remove all other neighbors
+			if (neighbors.some((n) => n.x === targetPoint.x && n.y === targetPoint.y)) {
+				neighbors.splice(0, neighbors.length, targetPoint);
+			} else {
+				// Check if the neighbor has more than one adjacent cell of the same path
+				neighbors.forEach((neighbor, index) => {
+					const adjacents = countAdjacent(currentPath, neighbor);
+					if (adjacents > 1) {
+						neighbors.splice(index, 1);
+					}
+				});
+			}
+
+			if (neighbors.length === 0) {
+				return false;
+			}
+
+			// Try each possible move
+			for (const neighbor of neighbors) {
+				// Mark cell as visited
+				paths[i].push(neighbor);
+
+				// Recursively try to solve with this move
+				if (recursivePathsReachedEmptySolution(paths)) {
+					return true;
+				}
+
+				// Backtrack: remove the neighbor and try other options
+				paths[i].pop();
+			}
 		}
 
 		return false;
 	}
 
-	const curPaths: Point[][] = [];
-
-	for (const [start, end] of endpointPairs) {
-		curPaths.push([start]);
-	}
-
+	// Start the recursive path finding and return the result
 	return recursivePathsReachedEmptySolution(curPaths);
 }
