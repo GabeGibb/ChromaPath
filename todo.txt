@@ -2,7 +2,8 @@
 -- Make it so valid neighbors checks for adjacencies maybe?
 -- Make it so if endpoints are in different regions thats a return
 -- Make it so they backtrack in tandem
-
+-- https://mzucker.github.io/2016/08/28/flow-solver.html
+-- https://www.lix.polytechnique.fr/~pilaud/enseignement/TP/DIX/INF421/1819/material/numberlink.pdf
 
 
 - Faster board generation

@@ -125,8 +125,12 @@ function canEndpointsBeConnectedWithEmptyCells(board: Board, endpointPairs: Arra
 
 		// Check if we've reached the target for this path
 		if (curPoint.x === endPoint.x && curPoint.y === endPoint.y) {
+			// Check if all paths are connected
+			if (curPaths.every((path) => path[path.length - 1].x === endPoint.x && path[path.length - 1].y === endPoint.y)) {
+				console.log("HERE???");
+				return true;
+			}
 			// Try to solve remaining paths
-			// TODO: Does this do what I want
 			return recursivePathsReachedEmptySolution(curEndpointPairIndex + 1);
 		}
 
@@ -168,7 +172,6 @@ function canEndpointsBeConnectedWithEmptyCells(board: Board, endpointPairs: Arra
 			board[neighbor.y][neighbor.x] = null;
 		}
 		console.log(curPaths);
-
 		return false;
 	}
 
