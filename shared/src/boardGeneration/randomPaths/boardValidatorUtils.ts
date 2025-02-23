@@ -119,8 +119,6 @@ export function pathsHaveBetterSolution(board: Board, numPaths: number): boolean
 		const pathCombos = generatePathCombinations(allPossiblePaths, endpointPairs.length);
 		profiler.end("generateCombinations");
 
-		profiler.start("validateCombinations");
-
 		for (const pathCombo of pathCombos) {
 			profiler.start("intersectionCheck");
 			const intersects = doesPathCombinationIntersect(pathCombo);
@@ -143,19 +141,16 @@ export function pathsHaveBetterSolution(board: Board, numPaths: number): boolean
 			profiler.end("remainingCellsCheck");
 
 			if (hasRemainingCells) {
-				profiler.end("validateCombinations");
 				profiler.end("total");
 				profiler.summary();
 				console.log("FILTERED OUT BAD DOH");
 				return true;
 			}
 		}
-
-		profiler.end("validateCombinations");
 	}
 
 	profiler.end("total");
-	// profiler.summary();
+	profiler.summary();
 	board = boardCopy;
 	return false;
 }

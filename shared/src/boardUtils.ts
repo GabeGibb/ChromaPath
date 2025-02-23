@@ -129,6 +129,10 @@ export function findAllPossiblePaths(
 	endpointPairs: Array<[Point, Point, number]>
 ): Point[][] {
 	const paths: Point[][] = [];
+	const endpointIndex = endpointPairs.findIndex(
+		([startPoint, endPoint]) =>
+			startPoint.x === start.x && startPoint.y === start.y && endPoint.x === end.x && endPoint.y === end.y
+	);
 
 	function findPathsRecursive(currentPoint: Point, currentPath: Point[], visited: Set<string>) {
 		// If we've reached the end point and the path is long enough
@@ -144,10 +148,10 @@ export function findAllPossiblePaths(
 		// Try each possible move
 		for (const neighbor of neighbors) {
 			if (isValidPath(board, [...currentPath, neighbor])) {
-				// ! THHIS IS BAD!!!!!!!!
-				if (wouldBlockOtherPaths(board, [...currentPath, neighbor], endpointPairs, 0)) {
-					continue;
-				}
+				// if (wouldBlockOtherPaths(board, [...currentPath, neighbor], endpointPairs, endpointIndex)) {
+				// 	console.log("blocked");
+				// 	continue;
+				// }
 				// // TODO: THIS ONLY WORKS FOR 2!!!!
 				// const boardWithPath = board.map((row) => row.map((cell) => cell));
 				// for (const point of [...currentPath, neighbor]) {
@@ -176,43 +180,6 @@ export function findAllPossiblePaths(
 	return paths;
 }
 
-function canReachEndpoint(board: Board, start: Point, end: Point, existingPath: Point[] = []): boolean {
-	// Create a queue for BFS
-	const queue: Point[] = [start];
-	// Keep track of visited points
-	const visited = new Set<string>();
-	visited.add(`${start.x},${start.y}`);
-
-	// Mark existing path as visited/blocked
-	for (const point of existingPath) {
-		visited.add(`${point.x},${point.y}`);
-	}
-
-	while (queue.length > 0) {
-		const current = queue.shift()!;
-
-		// Check if we've reached the end
-		if (current.x === end.x && current.y === end.y) {
-			return true;
-		}
-
-		// Get valid neighbors
-		const neighbors = getValidNeighbors(board, current, visited, true);
-
-		// Add valid neighbors to queue
-		for (const neighbor of neighbors) {
-			const key = `${neighbor.x},${neighbor.y}`;
-			if (!visited.has(key)) {
-				visited.add(key);
-				queue.push(neighbor);
-			}
-		}
-	}
-
-	// If we've exhausted all possibilities without finding the end, return false
-	return false;
-}
-
 // Helper function to validate if placing a path would block other endpoints
 function wouldBlockOtherPaths(
 	board: Board,
@@ -234,13 +201,42 @@ function wouldBlockOtherPaths(
 
 		const [start, end] = endpointPairs[i];
 
-		// If we can't reach from start to end, the path is blocking
-		if (!canReachEndpoint(tempBoard, start, end)) {
-			return true;
+		// If we can't find a path between the endpoints, this path is blocking
+		if (!findPathToPoint(tempBoard, start, end)) {
+			return true; // Path is blocking
 		}
 	}
 
-	return false;
+	return false; // Path is not blocking
+}
+
+function findPathToPoint(board: Board, start: Point, target: Point, visited = new Set<string>()): boolean {
+	const queue = [{ point: start, path: [start] }];
+
+	while (queue.length > 0) {
+		const { point, path } = queue.shift()!;
+
+		// Check if we've reached the target
+		if (path.length > 1 && point.x === target.x && point.y === target.y) {
+			return true; // Path found!
+		}
+
+		const pointKey = `${point.x},${point.y}`;
+		if (visited.has(pointKey)) continue;
+		visited.add(pointKey);
+
+		// Get valid neighbors
+		const neighbors = getValidNeighbors(board, point, visited, true);
+
+		for (const neighbor of neighbors) {
+			const neighborKey = `${neighbor.x},${neighbor.y}`;
+			if (!visited.has(neighborKey)) {
+				queue.push({ point: neighbor, path: [...path, neighbor] });
+			}
+		}
+	}
+
+	return false; // No path found
 }
 
 export function countAdjacent(path: Point[], point: Point): number {
