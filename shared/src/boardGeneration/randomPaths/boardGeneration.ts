@@ -1,5 +1,13 @@
 import { ChromaPathRenderer } from "../../../../client/src/components/game/Renderer";
-import { getDirection, getEmptyCells, getValidNeighbors, isValidPath, removeNonEndpoints, shuffleArray } from "../../boardUtils";
+import {
+	getDirection,
+	getEmptyCells,
+	getEmptyRegions,
+	getValidNeighbors,
+	isValidPath,
+	removeNonEndpoints,
+	shuffleArray,
+} from "../../boardUtils";
 import { Board, GameState, Point } from "../../types";
 import { pathsHaveBetterSolution } from "./boardValidatorUtils";
 
@@ -21,7 +29,7 @@ export class BoardGenerator {
 
 	async generateBoard(boardSize: number): Promise<Board> {
 		this.boardSize = boardSize;
-		this.maxNumPaths = this.boardSize * 1.15; // Arbitrary
+		this.maxNumPaths = 2;
 		const start = performance.now();
 
 		for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
@@ -239,48 +247,12 @@ export class BoardGenerator {
 	}
 
 	private async hasPotentialForValidSolution(): Promise<boolean> {
-		// First collect empty cells
-		const emptyCells: Point[] = [];
-		for (let y = 0; y < this.boardSize; y++) {
-			for (let x = 0; x < this.boardSize; x++) {
-				if (!this.board[y][x]) {
-					emptyCells.push({ x, y });
-				}
-			}
-		}
-
-		if (emptyCells.length > (this.maxPathLength - this.curColorIndex) * this.boardSize) {
-			return false;
-		}
-
 		// Region detection with enhanced validation
-		const regions: Point[][] = [];
-		const visited = new Set<string>();
+		const regions = getEmptyRegions(this.board);
 
-		for (const cell of emptyCells) {
-			const key = `${cell.x},${cell.y}`;
-			if (!visited.has(key)) {
-				const region: Point[] = [];
-				const queue: Point[] = [cell];
-
-				while (queue.length > 0) {
-					const current = queue.shift()!;
-					const currentKey = `${current.x},${current.y}`;
-
-					if (!visited.has(currentKey)) {
-						visited.add(currentKey);
-						region.push(current);
-
-						const neighbors = getValidNeighbors(this.board, current, visited, false);
-						for (const neighbor of neighbors) {
-							if (!visited.has(`${neighbor.x},${neighbor.y}`)) {
-								queue.push(neighbor);
-							}
-						}
-					}
-				}
-				regions.push(region);
-			}
+		const totalEmptyCells = regions.reduce((acc, region) => acc + region.length, 0);
+		if (totalEmptyCells > (this.maxPathLength - this.curColorIndex) * this.boardSize) {
+			return false;
 		}
 
 		// Enhanced validation checks

@@ -122,12 +122,18 @@ export function doPathsIntersect(paths: Point[][]): boolean {
 	return false;
 }
 
-export function findAllPossiblePaths(board: Board, start: Point, end: Point, minPathLength: number = 3): Point[][] {
+export function findAllPossiblePaths(
+	board: Board,
+	start: Point,
+	end: Point,
+	endpointPairs: Array<[Point, Point, number]>
+): Point[][] {
 	const paths: Point[][] = [];
 
 	function findPathsRecursive(currentPoint: Point, currentPath: Point[], visited: Set<string>) {
 		// If we've reached the end point and the path is long enough
-		if (currentPoint.x === end.x && currentPoint.y === end.y && currentPath.length >= minPathLength) {
+		if (currentPoint.x === end.x && currentPoint.y === end.y && currentPath.length >= 3) {
+			// ! Min path length is 3
 			if (isValidPath(board, currentPath)) {
 				paths.push([...currentPath]);
 			}
@@ -138,6 +144,20 @@ export function findAllPossiblePaths(board: Board, start: Point, end: Point, min
 		// Try each possible move
 		for (const neighbor of neighbors) {
 			if (isValidPath(board, [...currentPath, neighbor])) {
+				// ! THHIS IS BAD!!!!!!!!
+				if (wouldBlockOtherPaths(board, [...currentPath, neighbor], endpointPairs, 0)) {
+					continue;
+				}
+				// // TODO: THIS ONLY WORKS FOR 2!!!!
+				// const boardWithPath = board.map((row) => row.map((cell) => cell));
+				// for (const point of [...currentPath, neighbor]) {
+				// 	boardWithPath[point.y][point.x] = { pathIndex: -1, isEndpoint: false };
+				// }
+				// const regions = getEmptyRegions(boardWithPath);
+				// if (regions.length > 1) {
+				// 	continue;
+				// }
+
 				const newVisited = new Set(visited);
 				newVisited.add(`${neighbor.x},${neighbor.y}`);
 
@@ -151,11 +171,76 @@ export function findAllPossiblePaths(board: Board, start: Point, end: Point, min
 
 	// Start the recursive search
 	const initialVisited = new Set([`${start.x},${start.y}`]);
-	const startTime = performance.now();
 	findPathsRecursive(start, [start], initialVisited);
-	console.log("TIME FOR FINDING ALL PATHS: ", (performance.now() - startTime) / 1000);
 
 	return paths;
+}
+
+function canReachEndpoint(board: Board, start: Point, end: Point, existingPath: Point[] = []): boolean {
+	// Create a queue for BFS
+	const queue: Point[] = [start];
+	// Keep track of visited points
+	const visited = new Set<string>();
+	visited.add(`${start.x},${start.y}`);
+
+	// Mark existing path as visited/blocked
+	for (const point of existingPath) {
+		visited.add(`${point.x},${point.y}`);
+	}
+
+	while (queue.length > 0) {
+		const current = queue.shift()!;
+
+		// Check if we've reached the end
+		if (current.x === end.x && current.y === end.y) {
+			return true;
+		}
+
+		// Get valid neighbors
+		const neighbors = getValidNeighbors(board, current, visited, true);
+
+		// Add valid neighbors to queue
+		for (const neighbor of neighbors) {
+			const key = `${neighbor.x},${neighbor.y}`;
+			if (!visited.has(key)) {
+				visited.add(key);
+				queue.push(neighbor);
+			}
+		}
+	}
+
+	// If we've exhausted all possibilities without finding the end, return false
+	return false;
+}
+
+// Helper function to validate if placing a path would block other endpoints
+function wouldBlockOtherPaths(
+	board: Board,
+	proposedPath: Point[],
+	endpointPairs: Array<[Point, Point, number]>,
+	currentPairIndex: number
+): boolean {
+	// Create a temporary board with the proposed path marked as occupied
+	const tempBoard = board.map((row) => row.map((cell) => ({ ...cell })));
+
+	// Mark the proposed path on the temporary board
+	for (const point of proposedPath) {
+		tempBoard[point.y][point.x] = { pathIndex: -1, isEndpoint: false };
+	}
+
+	// Check each endpoint pair except the current one
+	for (let i = 0; i < endpointPairs.length; i++) {
+		if (i === currentPairIndex) continue;
+
+		const [start, end] = endpointPairs[i];
+
+		// If we can't reach from start to end, the path is blocking
+		if (!canReachEndpoint(tempBoard, start, end)) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 export function countAdjacent(path: Point[], point: Point): number {
@@ -267,4 +352,46 @@ export function findEndpointsForPath(board: Board, pathIndex: number): [Point, P
 		}
 	}
 	return endpoints.length === 2 ? [endpoints[0], endpoints[1]] : null;
+}
+
+export function getEmptyRegions(board: Board): Point[][] {
+	const emptyCells: Point[] = [];
+	for (let y = 0; y < board.length; y++) {
+		for (let x = 0; x < board[0].length; x++) {
+			if (!board[y][x]) {
+				emptyCells.push({ x, y });
+			}
+		}
+	}
+
+	// Region detection with enhanced validation
+	const regions: Point[][] = [];
+	const visited = new Set<string>();
+
+	for (const cell of emptyCells) {
+		const key = `${cell.x},${cell.y}`;
+		if (!visited.has(key)) {
+			const region: Point[] = [];
+			const queue: Point[] = [cell];
+
+			while (queue.length > 0) {
+				const current = queue.shift()!;
+				const currentKey = `${current.x},${current.y}`;
+
+				if (!visited.has(currentKey)) {
+					visited.add(currentKey);
+					region.push(current);
+
+					const neighbors = getValidNeighbors(board, current, visited, false);
+					for (const neighbor of neighbors) {
+						if (!visited.has(`${neighbor.x},${neighbor.y}`)) {
+							queue.push(neighbor);
+						}
+					}
+				}
+			}
+			regions.push(region);
+		}
+	}
+	return regions;
 }

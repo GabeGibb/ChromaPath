@@ -1,4 +1,3 @@
-import { removeNonEndpoints } from "../../boardUtils";
 import { Board } from "../../types";
 import { pathsHaveBetterSolution } from "../randomPaths/boardValidatorUtils";
 import { Grid, UnionFind } from "./grid";
@@ -227,7 +226,8 @@ function generatePuzzle(options: PuzzleOptions): Board {
 			continue;
 		}
 		console.log("time for generation", (performance.now() - start) / 1000);
-		return removeNonEndpoints(board);
+		// return removeNonEndpoints(board);
+		return board;
 	}
 	throw new Error("Failed to generate a puzzle after 1000 tries");
 }
