@@ -106,75 +106,166 @@ export function pathsHaveBetterSolution(board: Board, numPaths: number): boolean
 	board = boardCopy;
 	return false;
 }
+export type Solution = Point[][];
 
-function canEndpointsBeConnectedWithEmptyCells(board: Board, endpointPairs: Array<[Point, Point, number]>): boolean {
-	// This function takes in n pairs of endpoints and checks if they can be connected with empty cells
-	// It will do this by generating paths between each pair recursively and backtracking on conflicts
-
+function findAllSolutions(board: Board, endpointPairs: Array<[Point, Point, number]>): Solution[] {
+	const solutions: Solution[] = [];
+	// Initialize paths with just start points
 	const curPaths: Point[][] = endpointPairs.map(([start]) => [start]);
 
-	function recursivePathsReachedEmptySolution(curEndpointPairIndex: number): boolean {
-		if (curEndpointPairIndex === endpointPairs.length) {
-			curEndpointPairIndex = 0;
-		}
-
-		const curPath = curPaths[curEndpointPairIndex];
-		const curPoint = curPath[curPath.length - 1];
-		const endPoint = endpointPairs[curEndpointPairIndex][1];
-		const pathIndex = endpointPairs[curEndpointPairIndex][2];
-
-		// Check if we've reached the target for this path
-		if (curPoint.x === endPoint.x && curPoint.y === endPoint.y) {
-			// Check if all paths are connected
-			if (curPaths.every((path) => path[path.length - 1].x === endPoint.x && path[path.length - 1].y === endPoint.y)) {
-				console.log("HERE???");
-				return true;
-			}
-			// Try to solve remaining paths
-			return recursivePathsReachedEmptySolution(curEndpointPairIndex + 1);
-		}
-
-		// Get valid neighbors for the current point
-		const neighbors = getValidNeighbors(board, curPoint, new Set<string>(), true);
-		// If the target point in neighbors remove all other neighbors
-		if (neighbors.some((n) => n.x === endPoint.x && n.y === endPoint.y)) {
-			neighbors.splice(0, neighbors.length, endPoint);
-		} else {
-			// Check if the neighbor has more than one adjacent cell of the same path
-			neighbors.forEach((neighbor, index) => {
-				const adjacents = countAdjacent(curPath, neighbor);
-				if (adjacents > 1) {
-					neighbors.splice(index, 1);
-				}
-			});
-		}
-
-		//TODO: Zone checks or path way checks?? Something to further filter down
-
-		// This path is bad, backtrack
-		if (neighbors.length === 0) {
+	function isValidMove(point: Point, pathIndex: number, curPath: Point[], board: Board): boolean {
+		// Check if cell is already occupied by another path
+		if (board[point.y][point.x]?.pathIndex !== undefined && board[point.y][point.x]?.pathIndex !== pathIndex) {
 			return false;
 		}
 
-		// Try each possible move
-		for (const neighbor of neighbors) {
-			// Mark cell as visited
-			curPath.push(neighbor);
-			board[neighbor.y][neighbor.x] = { pathIndex, isEndpoint: false };
-
-			// Recursively try to solve with this move
-			if (recursivePathsReachedEmptySolution(curEndpointPairIndex + 1)) {
-				return true;
-			}
-
-			// Backtrack: remove the neighbor and try other options
-			curPath.pop();
-			board[neighbor.y][neighbor.x] = null;
+		// Check for adjacent cells from same path (no self-crossing)
+		const adjacentCount = countAdjacent(curPath, point);
+		if (adjacentCount > 1) {
+			return false;
 		}
-		console.log(curPaths);
-		return false;
+
+		return true;
 	}
 
-	// Start the recursive path finding and return the result
-	return recursivePathsReachedEmptySolution(0);
+	function makeMove(point: Point, pathIndex: number, board: Board): void {
+		board[point.y][point.x] = { pathIndex, isEndpoint: false };
+	}
+
+	function undoMove(point: Point, board: Board): void {
+		board[point.y][point.x] = null;
+	}
+
+	function getNextValidMoves(
+		board: Board,
+		paths: Point[][],
+		endpointPairs: Array<[Point, Point, number]>
+	): Array<{ pathIndex: number; point: Point }> {
+		const validMoves: Array<{ pathIndex: number; point: Point }> = [];
+
+		for (let pathIndex = 0; pathIndex < paths.length; pathIndex++) {
+			const path = paths[pathIndex];
+			const curPoint = path[path.length - 1];
+			const [_, endPoint] = endpointPairs[pathIndex];
+
+			// Skip if this path is already complete
+			if (curPoint.x === endPoint.x && curPoint.y === endPoint.y) {
+				continue;
+			}
+
+			const neighbors = getValidNeighbors(board, curPoint, new Set<string>(), true).filter((neighbor) => {
+				if (!isValidMove(neighbor, pathIndex, path, board)) {
+					return false;
+				}
+
+				// Allow reaching endpoint
+				if (neighbor.x === endPoint.x && neighbor.y === endPoint.y) {
+					return true;
+				}
+
+				// Check if move would block other paths
+				return !wouldBlockOtherPaths(board, neighbor, endpointPairs, pathIndex);
+			});
+
+			for (const neighbor of neighbors) {
+				validMoves.push({ pathIndex, point: neighbor });
+			}
+		}
+
+		return validMoves;
+	}
+
+	function isComplete(paths: Point[][], endpointPairs: Array<[Point, Point, number]>): boolean {
+		return paths.every((path, index) => {
+			const endPoint = endpointPairs[index][1];
+			const lastPoint = path[path.length - 1];
+			return lastPoint.x === endPoint.x && lastPoint.y === endPoint.y;
+		});
+	}
+
+	function recursiveSolve(board: Board): boolean {
+		// If all paths are complete, we've found a solution
+		if (isComplete(curPaths, endpointPairs)) {
+			if (doesPathCombinationHaveRemainingEmptyCells(board, curPaths)) {
+				solutions.push(curPaths.map((path) => [...path]));
+				return false;
+			}
+			return true;
+		}
+
+		// Get all valid moves for all incomplete paths
+		const validMoves = getNextValidMoves(board, curPaths, endpointPairs);
+
+		// Try each valid move
+		for (const { pathIndex, point } of validMoves) {
+			// Make the move
+			curPaths[pathIndex].push(point);
+			makeMove(point, pathIndex, board);
+
+			// Recurse
+			if (!recursiveSolve(board)) {
+				return false;
+			}
+
+			// Undo the move
+			curPaths[pathIndex].pop();
+			undoMove(point, board);
+		}
+		return true;
+	}
+
+	// Start the recursive search
+	recursiveSolve(board);
+	return solutions;
+}
+
+// Updated function to use the new solver
+function canEndpointsBeConnectedWithEmptyCells(board: Board, endpointPairs: Array<[Point, Point, number]>): boolean {
+	const solutions = findAllSolutions(board, endpointPairs);
+	return solutions.length > 0;
+}
+// Helper function to check if a move would block other paths from reaching their endpoints
+function wouldBlockOtherPaths(
+	board: Board,
+	point: Point,
+	endpointPairs: Array<[Point, Point, number]>,
+	currentPairIndex: number
+): boolean {
+	// Simple flood fill check for each remaining endpoint pair
+	for (let i = currentPairIndex + 1; i < endpointPairs.length; i++) {
+		const [start, end] = endpointPairs[i];
+
+		// Create a temporary board copy with the proposed move
+		const tempBoard = board.map((row) => [...row]);
+		tempBoard[point.y][point.x] = { pathIndex: -1, isEndpoint: false };
+
+		// Check if there's still a possible path between start and end
+		if (!hasPathBetweenPoints(tempBoard, start, end)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// Helper function to check if a path exists between two points
+function hasPathBetweenPoints(board: Board, start: Point, end: Point): boolean {
+	const visited = new Set<string>();
+	const queue: Point[] = [start];
+
+	while (queue.length > 0) {
+		const current = queue.shift()!;
+		const key = `${current.x},${current.y}`;
+
+		if (current.x === end.x && current.y === end.y) {
+			return true;
+		}
+
+		if (visited.has(key)) continue;
+		visited.add(key);
+
+		const neighbors = getValidNeighbors(board, current, visited, false);
+		queue.push(...neighbors);
+	}
+
+	return false;
 }
