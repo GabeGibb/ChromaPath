@@ -1,4 +1,4 @@
-import { ChromaPathRenderer } from "../../../../client/src/components/game/renderer2";
+import { ChromaPathRenderer } from "../../../../client/src/components/game/renderer";
 import {
 	getDirection,
 	getEmptyCells,
