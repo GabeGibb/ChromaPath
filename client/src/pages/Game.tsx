@@ -1,8 +1,8 @@
 import { BoardGenerator } from "@chromapath/shared";
 import { RefreshCcw } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
-import { ChromaPathGame } from "../components/game/GameLogic";
-import { ChromaPathRenderer } from "../components/game/Renderer";
+import { ChromaPathGame } from "../components/game/game-logic";
+import { ChromaPathRenderer } from "../components/game/renderer";
 import { LocalStorageService } from "../services/localStorage/localStorage";
 
 interface Props {
