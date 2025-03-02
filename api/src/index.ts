@@ -1,9 +1,13 @@
 import app from "./app";
 
-const port: number = 5000;
+const port = process.env.PORT || 5000;
 
-app.listen(port, () => {
-	/* eslint-disable no-console */
-	console.log(`Listening: http://localhost:${port}`);
-	/* eslint-enable no-console */
-});
+// For production
+if (process.env.NODE_ENV !== "test") {
+	app.listen(port, () => {
+		console.log(`Listening: http://localhost:${port}`);
+	});
+}
+
+// This export is important for Vercel
+export default app;
