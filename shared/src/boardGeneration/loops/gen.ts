@@ -175,7 +175,7 @@ function generatePuzzle(options: PuzzleOptions): Board {
 	}
 
 	const actualMinNumbers = minNumbers ?? width;
-	const actualMaxNumbers = maxNumbers ?? 1000;
+	const actualMaxNumbers = maxNumbers ?? width * 1.2;
 
 	for (let i = 0; i < 1000; i++) {
 		const mitm = new Mitm(2, 1);

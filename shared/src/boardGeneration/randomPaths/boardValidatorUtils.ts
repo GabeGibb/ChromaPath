@@ -11,11 +11,6 @@ export function doesPathCombinationHaveRemainingEmptyCells(board: Board, paths: 
 	// Calculate total space used by paths
 	const totalSpaceAvailable = getEmptyCells(board).length;
 	const totalPathLength = paths.reduce((sum, path) => sum + path.length, 0);
-	// Check if paths use all available space
-	if (totalPathLength !== totalSpaceAvailable) {
-		console.log("FILTERED OUT BAD DOH");
-	}
-	// return false;
 	return totalPathLength !== totalSpaceAvailable;
 }
 

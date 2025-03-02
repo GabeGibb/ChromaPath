@@ -149,18 +149,8 @@ export function findAllPossiblePaths(
 		for (const neighbor of neighbors) {
 			if (isValidPath(board, [...currentPath, neighbor])) {
 				if (wouldBlockOtherPaths(board, [...currentPath, neighbor], endpointPairs, endpointIndex)) {
-					console.log("blocked");
 					continue;
 				}
-				// TODO: THIS ONLY WORKS FOR 2!!!!
-				// const boardWithPath = board.map((row) => row.map((cell) => cell));
-				// for (const point of [...currentPath, neighbor]) {
-				// 	boardWithPath[point.y][point.x] = { pathIndex: -1, isEndpoint: false };
-				// }
-				// const regions = getEmptyRegions(boardWithPath);
-				// if (regions.length > 1) {
-				// 	continue;
-				// }
 
 				const newVisited = new Set(visited);
 				newVisited.add(`${neighbor.x},${neighbor.y}`);
@@ -203,7 +193,6 @@ function wouldBlockOtherPaths(
 
 		// If we can't find a path between the endpoints, this path is blocking
 		if (!findPathToPoint(tempBoard, start, end)) {
-			console.log(tempBoard, start, end);
 			return true; // Path is blocking
 		}
 	}
