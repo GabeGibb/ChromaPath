@@ -148,11 +148,11 @@ export function findAllPossiblePaths(
 		// Try each possible move
 		for (const neighbor of neighbors) {
 			if (isValidPath(board, [...currentPath, neighbor])) {
-				// if (wouldBlockOtherPaths(board, [...currentPath, neighbor], endpointPairs, endpointIndex)) {
-				// 	console.log("blocked");
-				// 	continue;
-				// }
-				// // TODO: THIS ONLY WORKS FOR 2!!!!
+				if (wouldBlockOtherPaths(board, [...currentPath, neighbor], endpointPairs, endpointIndex)) {
+					console.log("blocked");
+					continue;
+				}
+				// TODO: THIS ONLY WORKS FOR 2!!!!
 				// const boardWithPath = board.map((row) => row.map((cell) => cell));
 				// for (const point of [...currentPath, neighbor]) {
 				// 	boardWithPath[point.y][point.x] = { pathIndex: -1, isEndpoint: false };
@@ -188,7 +188,7 @@ function wouldBlockOtherPaths(
 	currentPairIndex: number
 ): boolean {
 	// Create a temporary board with the proposed path marked as occupied
-	const tempBoard = board.map((row) => row.map((cell) => ({ ...cell })));
+	const tempBoard = board.map((row) => row.map((cell) => cell));
 
 	// Mark the proposed path on the temporary board
 	for (const point of proposedPath) {
@@ -203,6 +203,7 @@ function wouldBlockOtherPaths(
 
 		// If we can't find a path between the endpoints, this path is blocking
 		if (!findPathToPoint(tempBoard, start, end)) {
+			console.log(tempBoard, start, end);
 			return true; // Path is blocking
 		}
 	}
