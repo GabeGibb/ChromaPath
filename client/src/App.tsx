@@ -1,9 +1,9 @@
-import ChromaPath from "./components/game/ChromaLink";
+import Game from "./pages/game";
 
 function App() {
 	return (
 		<div className="w-[100dvw] h-[100dvh] flex items-center justify-center">
-			<ChromaPath />
+			<Game />
 		</div>
 	);
 }

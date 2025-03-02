@@ -29,7 +29,7 @@ export class BoardGenerator {
 
 	async generateBoard(boardSize: number): Promise<Board> {
 		this.boardSize = boardSize;
-		this.maxNumPaths = this.boardSize * 1.2;
+		this.maxNumPaths = this.boardSize * 1.25;
 		const start = performance.now();
 
 		for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
@@ -74,7 +74,6 @@ export class BoardGenerator {
 			}
 			if ((await this.placeColorEndpoints()) && this.curColorIndex < this.maxNumPaths) {
 				await this.debugBoard(200);
-				// return true;
 				this.curColorIndex++;
 
 				if (getEmptyCells(this.board).length === 0) {
@@ -86,6 +85,7 @@ export class BoardGenerator {
 				// TODO: RECURSE
 				await this.debugBoard(200);
 
+				// ! BROKEN BACKTRACKING LOGIC
 				// for (let i = 0; i < 1; i++) {
 				// 	const lastPath = this.pathStack.pop();
 				// 	if (!lastPath) {
@@ -119,14 +119,14 @@ export class BoardGenerator {
 		}
 
 		// Arbitrarily loop through
-		// for (let j = 0; j < 3; j++) {
-		const emptyCells = shuffleArray(getEmptyCells(this.board));
-		for (let i = 0; i < emptyCells.length; i++) {
-			if (await this.attemptPathPlacement(emptyCells[i])) {
-				return true;
+		for (let j = 0; j < 3; j++) {
+			const emptyCells = shuffleArray(getEmptyCells(this.board));
+			for (let i = 0; i < emptyCells.length; i++) {
+				if (await this.attemptPathPlacement(emptyCells[i])) {
+					return true;
+				}
 			}
 		}
-		// }
 		return false; // Return false if no valid placement was found
 	}
 
@@ -194,7 +194,7 @@ export class BoardGenerator {
 
 		// Weights favor continuing straight with occasional turns
 		const curWeights = {
-			straight: 100 + this.boardSize * 5,
+			straight: 100 + this.boardSize * 15,
 			left: 100,
 			right: 100,
 		};
@@ -251,7 +251,8 @@ export class BoardGenerator {
 		const regions = getEmptyRegions(this.board);
 
 		const totalEmptyCells = regions.reduce((acc, region) => acc + region.length, 0);
-		if (totalEmptyCells > (this.maxPathLength - this.curColorIndex) * this.boardSize) {
+		// Check if there are too many empty cells
+		if (totalEmptyCells > (this.maxNumPaths - this.curColorIndex) * this.boardSize) {
 			return false;
 		}
 
@@ -262,6 +263,7 @@ export class BoardGenerator {
 				return false;
 			}
 
+			// ! Complex and slow?
 			// Check for invalid patterns
 			// if (!isValidRegionPattern(region)) {
 			// 	return false;

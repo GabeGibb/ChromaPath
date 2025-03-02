@@ -1,15 +1,15 @@
-import { generatePuzzle } from "@chromapath/shared";
+import { BoardGenerator } from "@chromapath/shared";
 import { RefreshCcw } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
-import { LocalStorageService } from "../../services/localStorage/localStorage";
-import { ChromaPathGame } from "./GameLogic";
-import { ChromaPathRenderer } from "./Renderer";
+import { ChromaPathGame } from "../components/game/GameLogic";
+import { ChromaPathRenderer } from "../components/game/Renderer";
+import { LocalStorageService } from "../services/localStorage/localStorage";
 
 interface Props {
 	initialSize?: number;
 }
 
-const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
+const Game: React.FC<Props> = ({ initialSize = 5 }) => {
 	const canvasRef = useRef<HTMLDivElement>(null);
 	const gameRef = useRef<ChromaPathGame | null>(null);
 	const rendererRef = useRef<ChromaPathRenderer | null>(null);
@@ -152,9 +152,9 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 
 		setBoardGenerating(true);
 
-		// const boardGenerator = new BoardGenerator(rendererRef.current!);
-		// const board = await boardGenerator.generateBoard(boardSize);
-		const board = generatePuzzle({ width: boardSize, height: boardSize });
+		const boardGenerator = new BoardGenerator(rendererRef.current!);
+		const board = await boardGenerator.generateBoard(boardSize);
+		// const board = generatePuzzle({ width: boardSize, height: boardSize });
 		console.log(board);
 
 		setBoardGenerating(false);
@@ -232,4 +232,4 @@ const ChromaPath: React.FC<Props> = ({ initialSize = 5 }) => {
 	);
 };
 
-export default ChromaPath;
+export default Game;
