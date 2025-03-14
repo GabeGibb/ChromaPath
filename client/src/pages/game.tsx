@@ -20,19 +20,6 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
 	const gameActionsNotReady = !gameRef.current || !rendererRef.current || !rendererRef.current.initialized || boardGenerating;
 
 	useEffect(() => {
-		if (!canvasRef.current) return;
-		async function initializeObjects() {
-			rendererRef.current = new ChromaPathRenderer(canvasRef.current!);
-			gameRef.current = new ChromaPathGame();
-		}
-		initializeObjects();
-
-		return () => {
-			rendererRef.current?.destroy();
-		};
-	}, []);
-
-	useEffect(() => {
 		if (gameActionsNotReady) return;
 		const renderer = rendererRef.current!;
 		const game = gameRef.current!;
@@ -116,34 +103,60 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
 			if (state) renderer.render(state, boardSize);
 		};
 
-		document.addEventListener("pointerdown", handlePointerDown);
-		document.addEventListener("pointermove", handlePointerMove);
-		document.addEventListener("pointerup", handlePointerUp);
-		document.addEventListener("mousemove", handleMouseMove);
-		canvas.addEventListener("touchstart", handleTouchStart);
-		canvas.addEventListener("touchmove", handleTouchMove);
-		document.addEventListener("touchend", handlePointerUp);
-		addEventListener("resize", handleWindowResize);
+		const preventSideSwipe = (event: TouchEvent) => {
+			// Check if the touch is within the canvas bounds
+			if (event.touches[0].clientX !== 0) {
+				event.preventDefault(); // Only prevent default for touches inside canvas
+			}
+		};
 
-		document.addEventListener(
-			"touchmove",
-			function (event) {
-				if (event.touches[0].clientX !== 0) {
-					event.preventDefault(); // Prevent horizontal swiping
-				}
-			},
-			{ passive: false } // Required to make `preventDefault` work
-		);
+		// Feature detection for different input types
+		const supportsPointerEvents = window.PointerEvent !== undefined;
+		const supportsTouchEvents = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+		const supportsMouseEvents = true; // Almost all devices support mouse events
 
+		// Now conditionally add the event listeners
+		if (supportsPointerEvents) {
+			// Use pointer events for devices that support them (most modern browsers)
+			document.addEventListener("pointerdown", handlePointerDown);
+			document.addEventListener("pointermove", handlePointerMove);
+			document.addEventListener("pointerup", handlePointerUp);
+		} else if (supportsTouchEvents) {
+			// Fallback to touch events for older mobile devices
+			canvas.addEventListener("touchstart", handleTouchStart);
+			canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+			document.addEventListener("touchend", handlePointerUp);
+
+			// Only add this touchmove prevention on touch devices
+			// and only if the browser doesn't support pointer events
+			document.addEventListener("touchmove", preventSideSwipe, { passive: false });
+		}
+
+		if (supportsMouseEvents) {
+			// Mouse events - useful for desktop
+			canvas.addEventListener("mousemove", handleMouseMove);
+		}
+
+		// Resize event is universal
+		window.addEventListener("resize", handleWindowResize);
+
+		// Clean up function with conditional removals
 		return () => {
-			document.removeEventListener("pointerdown", handlePointerDown);
-			document.removeEventListener("pointermove", handlePointerMove);
-			document.removeEventListener("pointerup", handlePointerUp);
-			canvas.removeEventListener("mousemove", handleMouseMove);
-			canvas.removeEventListener("touchstart", handleTouchStart);
-			canvas.removeEventListener("touchmove", handleTouchMove);
-			document.removeEventListener("touchend", handlePointerUp);
-			removeEventListener("resize", handleWindowResize);
+			if (supportsPointerEvents) {
+				document.removeEventListener("pointerdown", handlePointerDown);
+				document.removeEventListener("pointermove", handlePointerMove);
+				document.removeEventListener("pointerup", handlePointerUp);
+			} else if (supportsTouchEvents) {
+				canvas.removeEventListener("touchstart", handleTouchStart);
+				canvas.removeEventListener("touchmove", handleTouchMove);
+				document.removeEventListener("touchend", handlePointerUp);
+				document.removeEventListener("touchmove", preventSideSwipe);
+			}
+			if (supportsMouseEvents) {
+				canvas.removeEventListener("mousemove", handleMouseMove);
+			}
+
+			window.removeEventListener("resize", handleWindowResize);
 		};
 	}, [boardSize, gameActionsNotReady]);
 
@@ -167,8 +180,15 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
 	};
 
 	useEffect(() => {
+		if (!canvasRef.current) return;
+		rendererRef.current = new ChromaPathRenderer(canvasRef.current!);
+		gameRef.current = new ChromaPathGame();
 		handleNewLevel();
-	}, [boardSize]);
+
+		return () => {
+			rendererRef.current?.destroy();
+		};
+	}, []);
 
 	useEffect(() => {
 		if (!rendererRef.current) return;

@@ -30,8 +30,8 @@ export class ChromaPathGame {
 			currentPathIndex: null,
 			startPoint: null,
 			completed: false,
-			mouseX: 0,
-			mouseY: 0,
+			mouseX: -1,
+			mouseY: -1,
 		};
 	}
 

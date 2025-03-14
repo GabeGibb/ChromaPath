@@ -1,12 +1,11 @@
 
 
-- Faster board generation
-- Cool board animation when switching
-- make dragging not as expensive
-- pixelated on phone numbers
+- make dragging not as expensive (slow on mobile)
+- pixelated on phone also slow
 - phone needs refresh
-- server-side board generation
-- 
+- server-side board generation (some machines too slow)
+- server side board storage / truncating
+- server side board generation if new ones ever needed
 
 
 
