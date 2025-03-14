@@ -15,6 +15,8 @@ export class ChromaPathRenderer {
 		this.canvas.height = container.clientHeight;
 		this.ctx = this.canvas.getContext("2d")!;
 		this.cellSize = this.canvas.width / 5;
+		this.ctx.imageSmoothingEnabled = true;
+		this.ctx.imageSmoothingQuality = "high";
 
 		container.appendChild(this.canvas);
 		this.initialized = true;
@@ -70,8 +72,13 @@ export class ChromaPathRenderer {
 					this.ctx.fill();
 
 					if (this.showNumbers) {
+						const pixelRatio = window.devicePixelRatio || 1;
 						this.ctx.fillStyle = this.getHighContrastColor(curColor);
-						this.ctx.font = `${this.cellSize / 3}px Sour Gummy`;
+
+						// Use a larger base font size
+						const fontSize = Math.max(this.cellSize / 3, 16); // Ensure minimum size
+						this.ctx.font = `${fontSize}px Sour Gummy`;
+
 						this.ctx.textAlign = "center";
 						this.ctx.textBaseline = "middle";
 						this.ctx.fillText(
@@ -137,7 +144,7 @@ export class ChromaPathRenderer {
 			this.cellSize / 2
 		);
 		gradient.addColorStop(0, `${color.slice(0, -1)}, ${aValue})`);
-		// gradient.addColorStop(0.2, `${color.slice(0, -1)}, ${aValue})`);
+		gradient.addColorStop(0.2, `${color.slice(0, -1)}, ${aValue})`);
 		this.ctx.fillStyle = gradient;
 		this.ctx.fillRect(cellX, cellY, this.cellSize, this.cellSize);
 	}

@@ -180,6 +180,10 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
 	};
 
 	useEffect(() => {
+		handleNewLevel();
+	}, [boardSize]);
+
+	useEffect(() => {
 		if (!canvasRef.current) return;
 		rendererRef.current = new ChromaPathRenderer(canvasRef.current!);
 		gameRef.current = new ChromaPathGame();
