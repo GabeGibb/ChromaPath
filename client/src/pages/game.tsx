@@ -1,8 +1,8 @@
-import { BoardGenerator } from "@chromapath/shared";
 import { RefreshCcw } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { ChromaPathGame } from "../components/game/game-logic";
 import { ChromaPathRenderer } from "../components/game/renderer";
+import BoardService from "../services/board";
 import { LocalStorageService } from "../services/localStorage/localStorage";
 
 interface Props {
@@ -165,10 +165,11 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
 
 		setBoardGenerating(true);
 
-		const boardGenerator = new BoardGenerator(rendererRef.current!);
-		const board = await boardGenerator.generateBoard(boardSize);
+		// const boardGenerator = new BoardGenerator(rendererRef.current!);
+		// const board = await boardGenerator.generateBoard(boardSize);
 		// const board = generatePuzzle({ width: boardSize, height: boardSize });
-		console.log(board);
+		// console.log(board);
+		const board = await BoardService.getRandomBoard(boardSize);
 
 		setBoardGenerating(false);
 		if (!board) return;
@@ -219,7 +220,7 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
 					onChange={(e) => setBoardSize(Number(e.target.value))}
 					className="select w-full max-w-xs focus:outline-0 focus:border-0 m-auto"
 				>
-					{Array.from({ length: 22 }, (_, i) => (
+					{Array.from({ length: 14 }, (_, i) => (
 						<option key={i + 4} value={i + 4}>
 							{i + 4}x{i + 4}
 						</option>

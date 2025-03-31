@@ -14,7 +14,7 @@ import { pathsHaveBetterSolution } from "./boardValidatorUtils";
 export class BoardGenerator {
 	private boardSize: number = 5;
 	private board: Board = [];
-	private readonly maxAttempts = 2000;
+	private readonly maxAttempts = 100000;
 	private curColorIndex = 0;
 	private minPathLength = 3;
 	private maxPathLength = this.boardSize * this.boardSize;
