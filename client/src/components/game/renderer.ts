@@ -72,7 +72,7 @@ export class ChromaPathRenderer {
 					this.ctx.fill();
 
 					if (this.showNumbers) {
-						const pixelRatio = window.devicePixelRatio || 1;
+						// const pixelRatio = window.devicePixelRatio || 1;
 						this.ctx.fillStyle = this.getHighContrastColor(curColor);
 
 						// Use a larger base font size
