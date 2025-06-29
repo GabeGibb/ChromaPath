@@ -40,6 +40,7 @@ export class BoardGenerator {
 				return removeNonEndpoints(this.board);
 			}
 		}
+
 		throw new Error("Failed to generate valid board after maximum attempts");
 	}
 
