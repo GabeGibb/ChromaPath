@@ -12,7 +12,6 @@ export class ChromaPathRenderer {
   private cellSize: number;
   public initialized: boolean = false;
   public showNumbers: boolean = false;
-  private debug: boolean = true;
   private colorsArray: string[] = [];
 
   constructor(container: HTMLDivElement) {
