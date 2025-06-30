@@ -129,7 +129,8 @@ export class ChromaPathRenderer {
           if (
             j === path.length - 1 &&
             state.currentPathIndex === i &&
-            path.length > 2
+            path.length > 2 &&
+            state.board[path[j].y][path[j].x] === null
           )
             continue;
 
@@ -140,8 +141,16 @@ export class ChromaPathRenderer {
         }
 
         // Draw interpolated path to mouse if this is the current path
-        if (state.currentPathIndex === i && path.length > 0) {
+        if (
+          state.currentPathIndex === i &&
+          path.length > 0 &&
+          this.determineIfCurrentPathIsAtMouse(state)
+        ) {
           const lastPoint = path[path.length - 1];
+          if (state.board[lastPoint.y][lastPoint.x] !== null) {
+            this.ctx.stroke();
+            continue;
+          }
           const lastCenterX = lastPoint.x * this.cellSize + this.cellSize / 2;
           const lastCenterY = lastPoint.y * this.cellSize + this.cellSize / 2;
 
@@ -235,7 +244,24 @@ export class ChromaPathRenderer {
     const color = state.currentPathIndex
       ? this.colorsArray[state.currentPathIndex]
       : "rgb(255, 255, 255)";
+
+    if (state.currentPathIndex) {
+      if (this.determineIfCurrentPathIsAtMouse(state)) {
+        this.drawGradientCell(mouseX, mouseY, color, 0.03);
+      } else {
+        return;
+      }
+    }
     this.drawGradientCell(mouseX, mouseY, color, 0.03);
+  }
+
+  private determineIfCurrentPathIsAtMouse(state: GameState): boolean {
+    if (state.currentPathIndex === null) return false;
+    const lastPoint =
+      state.paths[state.currentPathIndex][
+        state.paths[state.currentPathIndex].length - 1
+      ];
+    return lastPoint.x === state.mouseX && lastPoint.y === state.mouseY;
   }
 
   private drawGradientCell(
