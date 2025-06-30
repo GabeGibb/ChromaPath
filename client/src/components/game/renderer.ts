@@ -163,12 +163,8 @@ export class ChromaPathRenderer {
         state.currentPathIndex === pathIndex &&
         path.length > 1
       ) {
-        const lastCell = state.board[path[j].y][path[j].x];
-        if (lastCell === null || lastCell.pathIndex !== pathIndex) {
-          continue;
-        }
+        continue;
       }
-
       const center = getCellCenter(path[j].x, path[j].y);
       this.ctx.lineTo(center.x, center.y);
     }
