@@ -169,6 +169,22 @@ export class ChromaPathRenderer {
       this.ctx.lineTo(center.x, center.y);
     }
 
+    // Check if the path has two endpoints to stop drawing
+    let hasTwoEndpoints = false;
+    const endpoints = path.filter(
+      (point) => state.board[point.y][point.x]?.isEndpoint
+    );
+    if (endpoints.length === 2) {
+      hasTwoEndpoints = true;
+    }
+    const lastPoint = path[path.length - 1];
+    if (hasTwoEndpoints) {
+      const center = getCellCenter(lastPoint.x, lastPoint.y);
+      this.ctx.lineTo(center.x, center.y);
+      this.ctx.stroke();
+      return;
+    }
+
     // Draw interpolated path to mouse if this is the current path
     if (state.currentPathIndex === pathIndex && path.length > 0) {
       const lastPoint = path[path.length - 1];
@@ -186,19 +202,6 @@ export class ChromaPathRenderer {
       const deltaX = mouseX - lastCenter.x;
       const deltaY = mouseY - lastCenter.y;
 
-      // Handle corner navigation - draw to center point if changing direction
-      if (path.length >= 2) {
-        const prevPoint = path[path.length - 2];
-        const cellDeltaX = state.mouseX - prevPoint.x;
-        const shouldDrawToCenter =
-          (cellDeltaX !== 0 && Math.abs(deltaX) < Math.abs(deltaY)) ||
-          (cellDeltaX === 0 && Math.abs(deltaX) > Math.abs(deltaY));
-
-        if (shouldDrawToCenter) {
-          this.ctx.lineTo(lastCenter.x, lastCenter.y);
-        }
-      }
-
       // Check available directions
       const directions = {
         right: canMoveTo(lastPoint.x + 1, lastPoint.y),
@@ -213,6 +216,7 @@ export class ChromaPathRenderer {
 
       const isPrimaryHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
 
+      let direction: "horizontal" | "vertical" = "horizontal";
       if (isPrimaryHorizontal) {
         // Try horizontal movement first
         if (deltaX > 0 && directions.right) {
@@ -234,6 +238,7 @@ export class ChromaPathRenderer {
             targetX = lastCenter.x;
             targetY = Math.max(mouseY, upCenter.y);
           }
+          direction = "vertical";
         }
       } else {
         // Try vertical movement first
@@ -241,10 +246,12 @@ export class ChromaPathRenderer {
           const downCenter = getCellCenter(lastPoint.x, lastPoint.y + 1);
           targetX = lastCenter.x;
           targetY = Math.min(mouseY, downCenter.y);
+          direction = "vertical";
         } else if (deltaY < 0 && directions.up) {
           const upCenter = getCellCenter(lastPoint.x, lastPoint.y - 1);
           targetX = lastCenter.x;
           targetY = Math.max(mouseY, upCenter.y);
+          direction = "vertical";
         } else {
           // Fall back to horizontal
           if (deltaX > 0 && directions.right) {
@@ -256,6 +263,20 @@ export class ChromaPathRenderer {
             targetX = Math.max(mouseX, leftCenter.x);
             targetY = lastCenter.y;
           }
+        }
+      }
+
+      // Handle corner navigation - draw to center point if changing direction
+      if (path.length >= 2) {
+        const prevPoint = path[path.length - 2];
+        const cellDeltaX = state.mouseX - prevPoint.x;
+        const cellDeltaY = state.mouseY - prevPoint.y;
+        const shouldDrawToCenter =
+          (cellDeltaX !== 0 && direction === "vertical") ||
+          (cellDeltaY !== 0 && direction === "horizontal");
+
+        if (shouldDrawToCenter) {
+          this.ctx.lineTo(lastCenter.x, lastCenter.y);
         }
       }
 
