@@ -271,9 +271,19 @@ export class ChromaPathRenderer {
         const prevPoint = path[path.length - 2];
         const cellDeltaX = state.mouseX - prevPoint.x;
         const cellDeltaY = state.mouseY - prevPoint.y;
-        const shouldDrawToCenter =
+        let shouldDrawToCenter =
           (cellDeltaX !== 0 && direction === "vertical") ||
           (cellDeltaY !== 0 && direction === "horizontal");
+
+        // Handle when the mouse is not on the latest cell for smoother drawing
+        if (cellDeltaX !== 0 && cellDeltaY !== 0) {
+          const lastPoint = path[path.length - 1];
+          const deltaXBetweenPoints = lastPoint.x - prevPoint.x;
+          const deltaYBetweenPoints = lastPoint.y - prevPoint.y;
+          shouldDrawToCenter =
+            (deltaXBetweenPoints !== 0 && direction === "vertical") ||
+            (deltaYBetweenPoints !== 0 && direction === "horizontal");
+        }
 
         if (shouldDrawToCenter) {
           this.ctx.lineTo(lastCenter.x, lastCenter.y);
