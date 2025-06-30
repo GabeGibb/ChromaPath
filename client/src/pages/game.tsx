@@ -29,21 +29,6 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
     const game = gameRef.current!;
     const canvas = renderer.getCanvas();
 
-    const handleMouseMove = (event: MouseEvent) => {
-      if (gameActionsNotReady) return;
-
-      const rect = canvas.getBoundingClientRect();
-      const canvasWidth = rect.width;
-      const cellSize = canvasWidth / boardSize;
-
-      const x = Math.floor((event.clientX - rect.left) / cellSize);
-      const y = Math.floor((event.clientY - rect.top) / cellSize);
-
-      game.handleMouseMove(x, y);
-      const state = game.getState();
-      if (state) renderer.render(state, boardSize);
-    };
-
     const handlePointerDown = (event: PointerEvent | Touch) => {
       if (gameActionsNotReady) return;
 
@@ -77,6 +62,7 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
 
       game.handleDrag(clampedX, clampedY);
       game.setPreciseMouse(preciseX, preciseY);
+      game.handleMouseMove(x, y);
       const state = game.getState();
       if (state) renderer.render(state, boardSize);
     };
@@ -121,7 +107,6 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
     const supportsPointerEvents = window.PointerEvent !== undefined;
     const supportsTouchEvents =
       "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    const supportsMouseEvents = true; // Almost all devices support mouse events
 
     // Now conditionally add the event listeners
     if (supportsPointerEvents) {
@@ -142,11 +127,6 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
       });
     }
 
-    if (supportsMouseEvents) {
-      // Mouse events - useful for desktop
-      canvas.addEventListener("mousemove", handleMouseMove);
-    }
-
     // Resize event is universal
     window.addEventListener("resize", handleWindowResize);
 
@@ -161,9 +141,6 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
         canvas.removeEventListener("touchmove", handleTouchMove);
         document.removeEventListener("touchend", handlePointerUp);
         document.removeEventListener("touchmove", preventSideSwipe);
-      }
-      if (supportsMouseEvents) {
-        canvas.removeEventListener("mousemove", handleMouseMove);
       }
 
       window.removeEventListener("resize", handleWindowResize);

@@ -67,6 +67,7 @@ export class ChromaPathGame {
       this.state.currentPathIndex = cell.pathIndex;
       this.state.startPoint = { x, y };
       this.state.paths[cell.pathIndex] = [{ x, y }];
+      this.updateBoardFromPaths();
     }
     // Check if clicked on any existing path
     for (let i = 0; i < this.state.paths.length; i++) {
@@ -80,6 +81,7 @@ export class ChromaPathGame {
         this.state.startPoint = path[0];
         // Slice up to the clicked point's position + 1, not the path index
         this.state.paths[i] = path.slice(0, clickedIndex + 1);
+        this.updateBoardFromPaths();
         return;
       }
     }
@@ -93,6 +95,33 @@ export class ChromaPathGame {
   public setPreciseMouse(x: number, y: number): void {
     this.state.preciseMouseX = x;
     this.state.preciseMouseY = y;
+  }
+
+  private updateBoardFromPaths(): void {
+    // Clear all non-endpoint cells first
+    for (let y = 0; y < this.boardSize; y++) {
+      for (let x = 0; x < this.boardSize; x++) {
+        const cell = this.state.board[y][x];
+        if (cell && !cell.isEndpoint) {
+          this.state.board[y][x] = null;
+        }
+      }
+    }
+
+    // Update board with current paths
+    for (let pathIndex = 0; pathIndex < this.state.paths.length; pathIndex++) {
+      const path = this.state.paths[pathIndex];
+      for (const point of path) {
+        // Don't overwrite endpoints
+        const existingCell = this.state.board[point.y][point.x];
+        if (!existingCell?.isEndpoint) {
+          this.state.board[point.y][point.x] = {
+            pathIndex,
+            isEndpoint: false,
+          };
+        }
+      }
+    }
   }
 
   public handleDrag(x: number, y: number): void {
@@ -131,6 +160,7 @@ export class ChromaPathGame {
         0,
         backtrackIndex + 1
       );
+      this.updateBoardFromPaths();
       return;
     }
 
@@ -149,6 +179,7 @@ export class ChromaPathGame {
         ...currentPath,
         { x, y },
       ];
+      this.updateBoardFromPaths();
       return;
     }
 
@@ -164,6 +195,7 @@ export class ChromaPathGame {
           .slice(0, i)
           .concat(this.state.paths[this.state.currentPathIndex]);
         this.state.paths[this.state.currentPathIndex] = path;
+        this.updateBoardFromPaths();
         return;
       }
     }
@@ -351,6 +383,7 @@ export class ChromaPathGame {
       this.state.paths[i] = [];
     }
     this.state.board = removeNonEndpoints(this.state.board);
+    this.updateBoardFromPaths();
   }
 
   private checkCompletion(): boolean {

@@ -3,6 +3,7 @@ import {
   Cell,
   GameState,
   getDistancedColorArray,
+  Point,
 } from "@chromapath/shared";
 
 export class ChromaPathRenderer {
@@ -63,7 +64,7 @@ export class ChromaPathRenderer {
     // Draw board
     board.forEach((row: Cell[], y: number) => {
       row.forEach((cell: Cell, x: number) => {
-        if (cell?.isEndpoint || (this.debug && cell?.pathIndex != null)) {
+        if (cell?.isEndpoint) {
           const curColor = this.colorsArray[cell.pathIndex];
           this.ctx.beginPath();
           this.ctx.fillStyle = curColor;
@@ -111,131 +112,161 @@ export class ChromaPathRenderer {
       const path = paths[i];
       const color = this.colorsArray[i];
       if (path.length > 1) {
-        this.ctx.beginPath();
-        this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = this.cellSize / 4;
-        this.ctx.lineCap = "round";
-        this.ctx.lineJoin = "round";
-
-        // Draw all confirmed path segments first
-        this.drawGradientCell(path[0].x, path[0].y, color);
-        this.ctx.moveTo(
-          path[0].x * this.cellSize + this.cellSize / 2,
-          path[0].y * this.cellSize + this.cellSize / 2
-        );
-
-        for (let j = 1; j < path.length; j++) {
-          this.drawGradientCell(path[j].x, path[j].y, color);
-          if (
-            j === path.length - 1 &&
-            state.currentPathIndex === i &&
-            path.length > 2 &&
-            state.board[path[j].y][path[j].x] === null
-          )
-            continue;
-
-          this.ctx.lineTo(
-            path[j].x * this.cellSize + this.cellSize / 2,
-            path[j].y * this.cellSize + this.cellSize / 2
-          );
-        }
-
-        // Draw interpolated path to mouse if this is the current path
-        if (
-          state.currentPathIndex === i &&
-          path.length > 0 &&
-          this.determineIfCurrentPathIsAtMouse(state)
-        ) {
-          const lastPoint = path[path.length - 1];
-          if (state.board[lastPoint.y][lastPoint.x] !== null) {
-            this.ctx.stroke();
-            continue;
-          }
-          const lastCenterX = lastPoint.x * this.cellSize + this.cellSize / 2;
-          const lastCenterY = lastPoint.y * this.cellSize + this.cellSize / 2;
-
-          // Use precise mouse coordinates
-          const mouseX = state.preciseMouseX * this.cellSize;
-          const mouseY = state.preciseMouseY * this.cellSize;
-
-          // Calculate direction to mouse
-          const deltaX = mouseX - lastCenterX;
-          const deltaY = mouseY - lastCenterY;
-
-          const prevPoint = path[path.length - 2];
-          const cellDeltaX = state.mouseX - prevPoint.x;
-          const cellDeltaY = state.mouseY - prevPoint.y;
-          console.log(cellDeltaX, cellDeltaY);
-          // If the deltas result in something that would cause a turn, draw the centerpoint of the last cell
-          if (cellDeltaX !== 0) {
-            if (Math.abs(deltaX) < Math.abs(deltaY)) {
-              this.ctx.lineTo(lastCenterX, lastCenterY);
-            }
-          } else {
-            if (Math.abs(deltaX) > Math.abs(deltaY)) {
-              this.ctx.lineTo(lastCenterX, lastCenterY);
-            }
-          }
-
-          // Check if adjacent cells are available
-          const canGoRight =
-            lastPoint.x < state.board[0].length - 1 &&
-            state.board[lastPoint.y][lastPoint.x + 1] === null;
-          const canGoLeft =
-            lastPoint.x > 0 &&
-            state.board[lastPoint.y][lastPoint.x - 1] === null;
-          const canGoDown =
-            lastPoint.y < state.board.length - 1 &&
-            state.board[lastPoint.y + 1][lastPoint.x] === null;
-          const canGoUp =
-            lastPoint.y > 0 &&
-            state.board[lastPoint.y - 1][lastPoint.x] === null;
-
-          let targetX = lastCenterX;
-          let targetY = lastCenterY;
-
-          // Determine primary direction and interpolate smoothly
-          if (Math.abs(deltaX) > Math.abs(deltaY)) {
-            // Horizontal movement is primary
-            if (deltaX > 0 && canGoRight) {
-              // Moving right - interpolate from current center to mouse, but don't go past next cell center
-              const rightCellCenterX =
-                (lastPoint.x + 1) * this.cellSize + this.cellSize / 2;
-              targetX = Math.min(mouseX, rightCellCenterX);
-              targetY = lastCenterY; // Keep Y rigid
-            } else if (deltaX < 0 && canGoLeft) {
-              // Moving left - interpolate from current center to mouse, but don't go past next cell center
-              const leftCellCenterX =
-                (lastPoint.x - 1) * this.cellSize + this.cellSize / 2;
-              targetX = Math.max(mouseX, leftCellCenterX);
-              targetY = lastCenterY; // Keep Y rigid
-            }
-          } else {
-            // Vertical movement is primary
-            if (deltaY > 0 && canGoDown) {
-              // Moving down - interpolate from current center to mouse, but don't go past next cell center
-              const downCellCenterY =
-                (lastPoint.y + 1) * this.cellSize + this.cellSize / 2;
-              targetX = lastCenterX; // Keep X rigid
-              targetY = Math.min(mouseY, downCellCenterY);
-            } else if (deltaY < 0 && canGoUp) {
-              // Moving up - interpolate from current center to mouse, but don't go past next cell center
-              const upCellCenterY =
-                (lastPoint.y - 1) * this.cellSize + this.cellSize / 2;
-              targetX = lastCenterX; // Keep X rigid
-              targetY = Math.max(mouseY, upCellCenterY);
-            }
-          }
-
-          // Only draw the interpolated line if we have a valid target different from current position
-          //   if (targetX !== lastCenterX || targetY !== lastCenterY) {
-          this.ctx.lineTo(targetX, targetY);
-          //   }
-        }
-
-        this.ctx.stroke();
+        this.drawSinglePath(path, color, state, i);
       }
     }
+  }
+
+  private drawSinglePath(
+    path: Point[],
+    color: string,
+    state: GameState,
+    pathIndex: number
+  ): void {
+    this.ctx.beginPath();
+    this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = this.cellSize / 4;
+    this.ctx.lineCap = "round";
+    this.ctx.lineJoin = "round";
+
+    // Helper function to get cell center coordinates
+    const getCellCenter = (x: number, y: number) => ({
+      x: x * this.cellSize + this.cellSize / 2,
+      y: y * this.cellSize + this.cellSize / 2,
+    });
+
+    // Helper function to check if a direction is available
+    const canMoveTo = (x: number, y: number): boolean => {
+      if (
+        x < 0 ||
+        x >= state.board[0].length ||
+        y < 0 ||
+        y >= state.board.length
+      ) {
+        return false;
+      }
+      const cell = state.board[y][x];
+      return cell === null || cell?.pathIndex === pathIndex;
+    };
+
+    // Draw confirmed path segments
+    this.drawGradientCell(path[0].x, path[0].y, color);
+    const startCenter = getCellCenter(path[0].x, path[0].y);
+    this.ctx.moveTo(startCenter.x, startCenter.y);
+
+    for (let j = 1; j < path.length; j++) {
+      this.drawGradientCell(path[j].x, path[j].y, color);
+
+      // Skip drawing line to last point if it's the current path and the cell is not occupied by this path
+      if (
+        j === path.length - 1 &&
+        state.currentPathIndex === pathIndex &&
+        path.length > 1
+      ) {
+        const lastCell = state.board[path[j].y][path[j].x];
+        if (lastCell === null || lastCell.pathIndex !== pathIndex) {
+          continue;
+        }
+      }
+
+      const center = getCellCenter(path[j].x, path[j].y);
+      this.ctx.lineTo(center.x, center.y);
+    }
+
+    // Draw interpolated path to mouse if this is the current path
+    if (state.currentPathIndex === pathIndex && path.length > 0) {
+      const lastPoint = path[path.length - 1];
+
+      // Don't interpolate if the last point is occupied by a different path
+      const lastCell = state.board[lastPoint.y][lastPoint.x];
+      if (lastCell !== null && lastCell.pathIndex !== pathIndex) {
+        this.ctx.stroke();
+        return;
+      }
+
+      const lastCenter = getCellCenter(lastPoint.x, lastPoint.y);
+      const mouseX = state.preciseMouseX * this.cellSize;
+      const mouseY = state.preciseMouseY * this.cellSize;
+      const deltaX = mouseX - lastCenter.x;
+      const deltaY = mouseY - lastCenter.y;
+
+      // Handle corner navigation - draw to center point if changing direction
+      if (path.length >= 2) {
+        const prevPoint = path[path.length - 2];
+        const cellDeltaX = state.mouseX - prevPoint.x;
+        const shouldDrawToCenter =
+          (cellDeltaX !== 0 && Math.abs(deltaX) < Math.abs(deltaY)) ||
+          (cellDeltaX === 0 && Math.abs(deltaX) > Math.abs(deltaY));
+
+        if (shouldDrawToCenter) {
+          this.ctx.lineTo(lastCenter.x, lastCenter.y);
+        }
+      }
+
+      // Check available directions
+      const directions = {
+        right: canMoveTo(lastPoint.x + 1, lastPoint.y),
+        left: canMoveTo(lastPoint.x - 1, lastPoint.y),
+        down: canMoveTo(lastPoint.x, lastPoint.y + 1),
+        up: canMoveTo(lastPoint.x, lastPoint.y - 1),
+      };
+
+      // Calculate target position based on mouse direction and available moves
+      let targetX = lastCenter.x;
+      let targetY = lastCenter.y;
+
+      const isPrimaryHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
+
+      if (isPrimaryHorizontal) {
+        // Try horizontal movement first
+        if (deltaX > 0 && directions.right) {
+          const rightCenter = getCellCenter(lastPoint.x + 1, lastPoint.y);
+          targetX = Math.min(mouseX, rightCenter.x);
+          targetY = lastCenter.y;
+        } else if (deltaX < 0 && directions.left) {
+          const leftCenter = getCellCenter(lastPoint.x - 1, lastPoint.y);
+          targetX = Math.max(mouseX, leftCenter.x);
+          targetY = lastCenter.y;
+        } else {
+          // Fall back to vertical
+          if (deltaY > 0 && directions.down) {
+            const downCenter = getCellCenter(lastPoint.x, lastPoint.y + 1);
+            targetX = lastCenter.x;
+            targetY = Math.min(mouseY, downCenter.y);
+          } else if (deltaY < 0 && directions.up) {
+            const upCenter = getCellCenter(lastPoint.x, lastPoint.y - 1);
+            targetX = lastCenter.x;
+            targetY = Math.max(mouseY, upCenter.y);
+          }
+        }
+      } else {
+        // Try vertical movement first
+        if (deltaY > 0 && directions.down) {
+          const downCenter = getCellCenter(lastPoint.x, lastPoint.y + 1);
+          targetX = lastCenter.x;
+          targetY = Math.min(mouseY, downCenter.y);
+        } else if (deltaY < 0 && directions.up) {
+          const upCenter = getCellCenter(lastPoint.x, lastPoint.y - 1);
+          targetX = lastCenter.x;
+          targetY = Math.max(mouseY, upCenter.y);
+        } else {
+          // Fall back to horizontal
+          if (deltaX > 0 && directions.right) {
+            const rightCenter = getCellCenter(lastPoint.x + 1, lastPoint.y);
+            targetX = Math.min(mouseX, rightCenter.x);
+            targetY = lastCenter.y;
+          } else if (deltaX < 0 && directions.left) {
+            const leftCenter = getCellCenter(lastPoint.x - 1, lastPoint.y);
+            targetX = Math.max(mouseX, leftCenter.x);
+            targetY = lastCenter.y;
+          }
+        }
+      }
+
+      this.ctx.lineTo(targetX, targetY);
+    }
+
+    this.ctx.stroke();
   }
 
   private drawHover(state: GameState): void {
