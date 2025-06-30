@@ -68,12 +68,15 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
       const canvasWidth = rect.width;
       const cellSize = canvasWidth / boardSize;
 
-      const x = Math.floor((event.clientX - rect.left) / cellSize);
-      const y = Math.floor((event.clientY - rect.top) / cellSize);
+      const preciseX = (event.clientX - rect.left) / cellSize;
+      const preciseY = (event.clientY - rect.top) / cellSize;
+      const x = Math.floor(preciseX);
+      const y = Math.floor(preciseY);
       const clampedX = Math.max(0, Math.min(x, boardSize - 1));
       const clampedY = Math.max(0, Math.min(y, boardSize - 1));
 
       game.handleDrag(clampedX, clampedY);
+      game.setPreciseMouse(preciseX, preciseY);
       const state = game.getState();
       if (state) renderer.render(state, boardSize);
     };

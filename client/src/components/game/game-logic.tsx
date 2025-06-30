@@ -36,6 +36,8 @@ export class ChromaPathGame {
       completed: false,
       mouseX: -1,
       mouseY: -1,
+      preciseMouseX: -1,
+      preciseMouseY: -1,
     };
   }
 
@@ -83,67 +85,14 @@ export class ChromaPathGame {
     }
   }
 
-  private findClosestValidPoint(
-    x: number,
-    y: number,
-    pathIndex: number
-  ): Point | null {
-    // First check if the target point itself is valid
-    if (this.isValidMove(x, y, pathIndex)) {
-      return { x, y };
-    }
+  public handleMouseMove(x: number, y: number): void {
+    this.state.mouseX = x;
+    this.state.mouseY = y;
+  }
 
-    // Get the last point of the current path to sort by distance to it
-    const currentPath = this.state.paths[pathIndex];
-    const lastPathPoint = currentPath[currentPath.length - 1];
-
-    // Search in expanding circles around the target point
-    const maxSearchRadius = 2; // Limit search radius for performance
-
-    for (let radius = 1; radius <= maxSearchRadius; radius++) {
-      const candidates: Point[] = [];
-
-      // Generate all points at this radius
-      for (let dx = -radius; dx <= radius; dx++) {
-        for (let dy = -radius; dy <= radius; dy++) {
-          // Only include points at exactly this radius (Manhattan distance)
-          if (Math.abs(dx) + Math.abs(dy) === radius) {
-            const candidateX = x + dx;
-            const candidateY = y + dy;
-
-            // Check bounds
-            if (
-              candidateX >= 0 &&
-              candidateX < this.boardSize &&
-              candidateY >= 0 &&
-              candidateY < this.boardSize
-            ) {
-              candidates.push({ x: candidateX, y: candidateY });
-            }
-          }
-        }
-      }
-
-      // Sort candidates by distance to the last path point (Euclidean distance for smoother feel)
-      candidates.sort((a, b) => {
-        const distA = Math.sqrt(
-          (a.x - lastPathPoint.x) ** 2 + (a.y - lastPathPoint.y) ** 2
-        );
-        const distB = Math.sqrt(
-          (b.x - lastPathPoint.x) ** 2 + (b.y - lastPathPoint.y) ** 2
-        );
-        return distA - distB;
-      });
-
-      // Check each candidate
-      for (const candidate of candidates) {
-        if (this.isValidMove(candidate.x, candidate.y, pathIndex)) {
-          return candidate;
-        }
-      }
-    }
-
-    return null; // No valid point found within search radius
+  public setPreciseMouse(x: number, y: number): void {
+    this.state.preciseMouseX = x;
+    this.state.preciseMouseY = y;
   }
 
   public handleDrag(x: number, y: number): void {
@@ -218,6 +167,69 @@ export class ChromaPathGame {
         return;
       }
     }
+  }
+
+  private findClosestValidPoint(
+    x: number,
+    y: number,
+    pathIndex: number
+  ): Point | null {
+    // First check if the target point itself is valid
+    if (this.isValidMove(x, y, pathIndex)) {
+      return { x, y };
+    }
+
+    // Get the last point of the current path to sort by distance to it
+    const currentPath = this.state.paths[pathIndex];
+    const lastPathPoint = currentPath[currentPath.length - 1];
+
+    // Search in expanding circles around the target point
+    const maxSearchRadius = 2; // Limit search radius for performance
+
+    for (let radius = 1; radius <= maxSearchRadius; radius++) {
+      const candidates: Point[] = [];
+
+      // Generate all points at this radius
+      for (let dx = -radius; dx <= radius; dx++) {
+        for (let dy = -radius; dy <= radius; dy++) {
+          // Only include points at exactly this radius (Manhattan distance)
+          if (Math.abs(dx) + Math.abs(dy) === radius) {
+            const candidateX = x + dx;
+            const candidateY = y + dy;
+
+            // Check bounds
+            if (
+              candidateX >= 0 &&
+              candidateX < this.boardSize &&
+              candidateY >= 0 &&
+              candidateY < this.boardSize
+            ) {
+              candidates.push({ x: candidateX, y: candidateY });
+            }
+          }
+        }
+      }
+
+      // Sort candidates by distance to the last path point (Euclidean distance for smoother feel)
+      candidates.sort((a, b) => {
+        const distA = Math.sqrt(
+          (a.x - lastPathPoint.x) ** 2 + (a.y - lastPathPoint.y) ** 2
+        );
+        const distB = Math.sqrt(
+          (b.x - lastPathPoint.x) ** 2 + (b.y - lastPathPoint.y) ** 2
+        );
+        return distA - distB;
+      });
+
+      // Check each candidate
+      for (const candidate of candidates) {
+        if (this.isValidMove(candidate.x, candidate.y, pathIndex)) {
+          return candidate;
+        }
+      }
+    }
+
+    return null; // No valid point found within search radius
   }
 
   private isAtEndpoint(point: Point, startPoint: Point): boolean {
@@ -341,12 +353,8 @@ export class ChromaPathGame {
     this.state.board = removeNonEndpoints(this.state.board);
   }
 
-  public handleMouseMove(x: number, y: number): void {
-    this.state.mouseX = x;
-    this.state.mouseY = y;
-  }
-
   private checkCompletion(): boolean {
+    // TODO: BETTER CHECKER!!
     let total = 0;
     for (const path in this.state.paths) {
       total += this.state.paths[path].length;
