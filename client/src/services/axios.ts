@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const customAxios = axios.create({
-  baseURL: "http://192.168.10.155:5000",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000",
   headers: {
     "Content-Type": "application/json",
   },
