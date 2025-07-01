@@ -81,7 +81,7 @@ export class ChromaPathRenderer {
             this.ctx.fillStyle = this.getHighContrastColor(curColor);
 
             // Use a larger base font size
-            const fontSize = Math.max(this.cellSize / 3, 16); // Ensure minimum size
+            const fontSize = this.cellSize * 0.45;
             this.ctx.font = `${fontSize}px Sour Gummy`;
 
             this.ctx.textAlign = "center";

@@ -208,9 +208,9 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
           onChange={(e) => setBoardSize(Number(e.target.value))}
           className="select w-full max-w-xs focus:outline-0 focus:border-0 m-auto"
         >
-          {Array.from({ length: 12 }, (_, i) => (
-            <option key={i + 4} value={i + 4}>
-              {i + 4}x{i + 4}
+          {Array.from({ length: 11 }, (_, i) => (
+            <option key={i + 5} value={i + 5}>
+              {i + 5}x{i + 5}
             </option>
           ))}
         </select>
