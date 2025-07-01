@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build:api": "pnpm run build --filter=@chromapath/api..."
+    "build:shared": "cd shared && pnpm install && pnpm run build",
+    "build:api": "cd api && pnpm install && pnpm run build",
+    "build": "pnpm run build:shared && pnpm run build:api",
+    "start:api": "cd api && pnpm start"
   },
   "keywords": [],
   "author": "",
