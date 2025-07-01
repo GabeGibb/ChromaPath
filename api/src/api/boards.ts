@@ -1,11 +1,12 @@
 import { BoardGenerator } from "@chromapath/shared";
-import express, { Request, Response } from "express";
+import express, { Request, Response, Router } from "express";
 
 const boardGenerator = new BoardGenerator(null);
-const router = express.Router();
+const router: Router = express.Router();
 
 // Cache for boards with size > 10
 const CACHE_SIZE = 1;
+const MIN_BOARD_SIZE = 5;
 const MIN_CACHE_SIZE = 10;
 const MAX_BOARD_SIZE = 15; // Maximum board size to cache
 const boardCache: Map<number, any[]> = new Map();
@@ -94,6 +95,16 @@ initializeCache().catch((err) => {
 // Route handler
 router.get("/random", async (req: Request, res: Response) => {
   const size = parseInt(req.query.size as string) || 5;
+  if (size > MAX_BOARD_SIZE) {
+    // Return error
+    res.status(400).json({ error: "Board size too large" });
+    return;
+  }
+  if (size < MIN_BOARD_SIZE) {
+    // Return error
+    res.status(400).json({ error: "Board size too small" });
+    return;
+  }
   const board = await getBoardOfSize(size);
   res.json(board);
 });

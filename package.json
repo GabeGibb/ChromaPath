@@ -1,0 +1,12 @@
+{
+  "name": "ChromaPath",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build:api": "pnpm run build --filter=@chromapath/api..."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
