@@ -65,6 +65,9 @@ importers:
 
   client:
     dependencies:
+      '@chromapath/api':
+        specifier: workspace:*
+        version: link:../api
       '@chromapath/shared':
         specifier: workspace:*
         version: link:../shared
