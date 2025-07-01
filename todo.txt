@@ -1,8 +1,6 @@
 
 
-- server-side board generation (some machines too slow)
 - server side board storage / truncating
-- server side board generation if new ones ever needed
 - make dragging not as expensive (slow on mobile)
 - pixelated on phone also slow
 - phone needs refresh

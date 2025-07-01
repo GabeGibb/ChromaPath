@@ -4,7 +4,7 @@ import {
   getValidNeighbors,
   Point,
   removeNonEndpoints,
-} from "@chromapath/shared";
+} from "@chromapath/shared/src";
 
 export class ChromaPathGame {
   private state: GameState;
