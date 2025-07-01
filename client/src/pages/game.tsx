@@ -4,6 +4,7 @@ import { ChromaPathGame } from "../components/game/game-logic";
 import { ChromaPathRenderer } from "../components/game/renderer";
 import BoardService from "../services/board";
 import { LocalStorageService } from "../services/localStorage/localStorage";
+import { Button, LoadingSpinner } from "../components/ui";
 
 interface Props {
   initialSize?: number;
@@ -192,21 +193,49 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
   }, []);
 
   return (
-    <div className="h-full w-full flex flex-col justify-evenly items-center gap-4 touch-none select-none">
-      <div className="text-2xl font-bold text-neutral-content">ChromaLink</div>
-      <span>Paths: {numPaths}</span>
-      <div
-        ref={canvasRef} // TODO: Improve view widths
-        className="w-[99dvw] h-[99dvw] md:w-[80dvh] md:h-[80dvh] border border-neutral shadow-lg overscroll-none overflow-hidden"
-      />
-      <div className="flex gap-4">
-        <button onClick={handleNewLevel} className="btn btn-primary m-auto">
-          New Level
-        </button>
+    <div className="h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300 pt-16 pb-4 flex flex-col items-center justify-between gap-2 touch-none select-none">
+      {/* Game Header */}
+      <div className="text-center space-y-0">
+        <div className="text-md text-base-content/80">
+          Paths: <span className="font-bold text-primary">{numPaths}</span>
+        </div>
+      </div>
+
+      {/* Game Canvas */}
+      <div className="relative flex-1 flex items-center justify-center">
+        {boardGenerating && (
+          <div className="absolute inset-0 bg-base-300/80 backdrop-blur-sm flex items-center justify-center rounded-lg z-10">
+            <div className="text-center space-y-2">
+              <LoadingSpinner size="md" />
+              <div className="text-base-content font-semibold text-sm">
+                Generating Board...
+              </div>
+            </div>
+          </div>
+        )}
+        <div
+          ref={canvasRef}
+          className="w-[95dvw] h-[95dvw] md:w-[75dvh] md:h-[75dvh] border-2 border-base-300 rounded-lg shadow-2xl overscroll-none overflow-hidden bg-base-200"
+        />
+      </div>
+
+      {/* Game Controls */}
+      <div className="flex flex-row gap-2 justify-center items-center max-w-2xl mx-auto px-2 py-1">
+        <Button
+          onClick={handleNewLevel}
+          loading={boardGenerating}
+          disabled={boardGenerating}
+          size="sm"
+          className="min-w-[80px]"
+        >
+          New
+        </Button>
+
         <select
           value={boardSize}
           onChange={(e) => setBoardSize(Number(e.target.value))}
-          className="select w-full max-w-xs focus:outline-0 focus:border-0 m-auto"
+          className="select select-bordered select-sm bg-base-200 text-base-content focus:outline-none focus:border-primary transition-colors min-w-[70px]"
+          disabled={boardGenerating}
         >
           {Array.from({ length: 11 }, (_, i) => (
             <option key={i + 5} value={i + 5}>
@@ -214,8 +243,9 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
             </option>
           ))}
         </select>
-        <label className="flex items-center space-x-2">
-          <span>Show Numbers</span>
+
+        <label className="flex items-center gap-1 text-base-content">
+          <span className="text-xs">Show Numbers</span>
           <input
             type="checkbox"
             defaultChecked={LocalStorageService.getSettings()?.show_numbers}
@@ -231,20 +261,23 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
                 show_numbers: e.target.checked,
               });
             }}
-            className="checkbox checkbox-neutral"
+            className="checkbox checkbox-primary checkbox-sm"
           />
         </label>
-        <button
+
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => {
             if (!gameRef.current || !rendererRef.current) return;
             gameRef.current?.refreshPaths();
             rendererRef.current.render(gameRef.current?.getState()!, boardSize);
           }}
-          className="btn btn-primary m-auto"
+          disabled={boardGenerating}
+          className="min-w-[40px]"
         >
-          <RefreshCcw size={24} />
-        </button>
-        <button onClick={() => {}}></button>
+          <RefreshCcw size={14} />
+        </Button>
       </div>
     </div>
   );

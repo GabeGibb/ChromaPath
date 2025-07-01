@@ -1,26 +1,21 @@
 
-
-- server side board storage / truncating
-- make dragging not as expensive (slow on mobile)
+- fix phone swipping and initial load
 - pixelated on phone also slow
-- phone needs refresh
-
 
 - https://uiball.com/ldrs/ make a cool loading animation
-- Make dragging be able to drag close to another item
-- hug when dragging
-- More vibrant hues (customizable)
 
 
-Maybe?
--- time trial?
--- login / stats?
+FEATURES
+- stats (get the time, xbyx for each, have some sort of better selector or something)
+- about page
+- home page
 
 stats
 - total games (by size)
-- average time?
-- 
 
+FUTURE:
+- customizable colors
+- light mode
 
 monetization
 - pay for harder levels (hardest is 15x15) (requires account)
