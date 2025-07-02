@@ -121,17 +121,21 @@ export class ChromaPathRenderer {
             this.ctx.fillStyle = this.getHighContrastColor(curColor);
 
             // Scale font size appropriately for high-DPI
-            const fontSize = this.cellSize * 0.45;
+            const fontSize = this.cellSize * 0.55; // Reduced font size for better fit
             this.ctx.font = `${fontSize}px Sour Gummy`;
 
             this.ctx.textAlign = "center";
             this.ctx.textBaseline = "middle";
 
-            // Use fillText with proper positioning
+            // Calculate center position more precisely
+            const centerX = x * this.cellSize + this.cellSize / 2;
+            const centerY = y * this.cellSize + this.cellSize / 2;
+
+            // Use fillText with precise positioning
             this.ctx.fillText(
               (cell.pathIndex + 1).toString(),
-              x * this.cellSize + this.cellSize / 2,
-              y * this.cellSize + this.cellSize / 2
+              centerX,
+              centerY
             );
           }
         }
