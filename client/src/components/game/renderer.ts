@@ -10,16 +10,33 @@ export class ChromaPathRenderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private cellSize: number;
+  private pixelRatio: number;
   public initialized: boolean = false;
   public showNumbers: boolean = false;
   private colorsArray: string[] = [];
 
   constructor(container: HTMLDivElement) {
     this.canvas = document.createElement("canvas");
-    this.canvas.width = container.clientWidth;
-    this.canvas.height = container.clientHeight;
+    this.pixelRatio = window.devicePixelRatio || 1;
+
+    // Set display size (CSS pixels)
+    const displayWidth = container.clientWidth;
+    const displayHeight = container.clientHeight;
+
+    // Set actual canvas size (device pixels)
+    this.canvas.width = displayWidth * this.pixelRatio;
+    this.canvas.height = displayHeight * this.pixelRatio;
+
+    // Scale canvas back down using CSS
+    this.canvas.style.width = displayWidth + "px";
+    this.canvas.style.height = displayHeight + "px";
+
     this.ctx = this.canvas.getContext("2d")!;
-    this.cellSize = this.canvas.width / 5;
+
+    // Scale the drawing context so everything draws at the correct size
+    this.ctx.scale(this.pixelRatio, this.pixelRatio);
+
+    this.cellSize = displayWidth / 5;
     this.ctx.imageSmoothingEnabled = true;
     this.ctx.imageSmoothingQuality = "high";
 
@@ -30,37 +47,61 @@ export class ChromaPathRenderer {
 
   public render(state: GameState, boardSize: number): void {
     if (!this.initialized) return;
-    this.cellSize = this.canvas.width / boardSize;
-    // Draw black background
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Use display width for calculations
+    const displayWidth =
+      this.canvas.clientWidth || this.canvas.width / this.pixelRatio;
+    const displayHeight =
+      this.canvas.clientHeight || this.canvas.height / this.pixelRatio;
+
+    this.cellSize = displayWidth / boardSize;
+
+    // Clear using display dimensions
+    this.ctx.clearRect(0, 0, displayWidth, displayHeight);
     this.ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    this.drawGrid(boardSize);
+    this.ctx.fillRect(0, 0, displayWidth, displayHeight);
+
+    this.drawGrid(boardSize, displayWidth, displayHeight);
     this.drawHover(state);
     this.drawPaths(state);
     this.drawBoard(state.board);
   }
 
   public resize(container: HTMLDivElement) {
-    this.canvas.width = container.clientWidth;
-    this.canvas.height = container.clientHeight;
+    this.pixelRatio = window.devicePixelRatio || 1;
+
+    const displayWidth = container.clientWidth;
+    const displayHeight = container.clientHeight;
+
+    this.canvas.width = displayWidth * this.pixelRatio;
+    this.canvas.height = displayHeight * this.pixelRatio;
+
+    this.canvas.style.width = displayWidth + "px";
+    this.canvas.style.height = displayHeight + "px";
+
+    // Re-scale the context after resize
+    this.ctx.scale(this.pixelRatio, this.pixelRatio);
   }
 
-  private drawGrid(boardSize: number): void {
+  private drawGrid(
+    boardSize: number,
+    displayWidth: number,
+    displayHeight: number
+  ): void {
     this.ctx.strokeStyle = "#ffffff";
     this.ctx.lineWidth = 1;
 
     for (let i = 0; i <= boardSize; i++) {
       this.ctx.beginPath();
       this.ctx.moveTo(i * this.cellSize, 0);
-      this.ctx.lineTo(i * this.cellSize, this.canvas.height);
+      this.ctx.lineTo(i * this.cellSize, displayHeight);
       this.ctx.moveTo(0, i * this.cellSize);
-      this.ctx.lineTo(this.canvas.width, i * this.cellSize);
+      this.ctx.lineTo(displayWidth, i * this.cellSize);
       this.ctx.stroke();
     }
   }
+
   private drawBoard(board: Board): void {
-    // Draw board
     board.forEach((row: Cell[], y: number) => {
       row.forEach((cell: Cell, x: number) => {
         if (cell?.isEndpoint) {
@@ -77,15 +118,16 @@ export class ChromaPathRenderer {
           this.ctx.fill();
 
           if (this.showNumbers) {
-            // const pixelRatio = window.devicePixelRatio || 1;
             this.ctx.fillStyle = this.getHighContrastColor(curColor);
 
-            // Use a larger base font size
+            // Scale font size appropriately for high-DPI
             const fontSize = this.cellSize * 0.45;
             this.ctx.font = `${fontSize}px Sour Gummy`;
 
             this.ctx.textAlign = "center";
             this.ctx.textBaseline = "middle";
+
+            // Use fillText with proper positioning
             this.ctx.fillText(
               (cell.pathIndex + 1).toString(),
               x * this.cellSize + this.cellSize / 2,

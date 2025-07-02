@@ -73,18 +73,10 @@ const Home: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16">
+        <div className="grid grid-cols-2 gap-4 mt-16">
           <div className="text-center">
             <div className="text-3xl font-bold text-primary">∞</div>
             <div className="text-sm text-base-content/70">Unique Boards</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-secondary">5-15</div>
-            <div className="text-sm text-base-content/70">Board Sizes</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-accent">🎯</div>
-            <div className="text-sm text-base-content/70">Precision</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-info">📱</div>
