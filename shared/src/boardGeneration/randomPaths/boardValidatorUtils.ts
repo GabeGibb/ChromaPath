@@ -78,7 +78,7 @@ class SimpleProfiler {
     const results = Array.from(this.durations.entries())
       .sort((a, b) => b[1] - a[1])
       .map(([label, duration]) => `${label}: ${(duration / 1000).toFixed(3)}s`);
-    // console.log("Performance Summary:\n" + results.join("\n"));
+    console.log("Performance Summary:\n" + results.join("\n"));
   }
 }
 
@@ -152,7 +152,7 @@ export function pathsHaveBetterSolution(
 
       if (hasRemainingCells) {
         profiler.end("total");
-        profiler.summary();
+        // profiler.summary();
         // console.log("FILTERED OUT BAD DOH");
         return true;
       }
@@ -160,7 +160,7 @@ export function pathsHaveBetterSolution(
   }
 
   profiler.end("total");
-  profiler.summary();
+  //   profiler.summary();
   board = boardCopy;
   return false;
 }
