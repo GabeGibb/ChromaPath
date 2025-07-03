@@ -1,6 +1,12 @@
 
+-phonme sizing
+- sounds
+- clean up pages
+- settings
+
+
 - fix phone swipping and initial load
-- pixelated on phone also slow
+
 
 - https://uiball.com/ldrs/ make a cool loading animation
 
