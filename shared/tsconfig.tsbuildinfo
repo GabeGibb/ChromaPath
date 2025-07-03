@@ -1,0 +1,1 @@
+{"root":["./src/boardutils.ts","./src/index.ts","./src/types.ts","./src/boardgeneration/loops/gen.ts","./src/boardgeneration/loops/grid.ts","./src/boardgeneration/loops/mitm.ts","./src/boardgeneration/randompaths/boardgeneration.ts","./src/boardgeneration/randompaths/boardvalidatorutils.ts"],"version":"5.7.3"}
