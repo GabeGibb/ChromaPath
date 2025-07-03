@@ -55,7 +55,12 @@ async function getBoardOfSize(size: number): Promise<any> {
 
   // If cache is getting low, start repopulating in background
   if (cacheForSize.length < CACHE_SIZE / 2) {
-    setTimeout(() => repopulateCache(size), 0);
+    // Use setImmediate for non-blocking background work
+    setImmediate(() => {
+      repopulateCache(size).catch((err) => {
+        console.error(`Failed to repopulate cache for size ${size}:`, err);
+      });
+    });
   }
 
   return board;
@@ -85,9 +90,9 @@ async function initializeCache(): Promise<void> {
 }
 
 // Initialize cache on startup
-initializeCache().catch((err) => {
-  console.error("Failed to initialize board cache:", err);
-});
+// initializeCache().catch((err) => {
+//   console.error("Failed to initialize board cache:", err);
+// });
 
 // Route handler
 router.get("/random", async (req: Request, res: Response) => {

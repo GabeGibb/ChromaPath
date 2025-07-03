@@ -37,7 +37,7 @@ export class BoardGenerator {
         // If board valid remove paths
         // console.log("attempts", attempt);
         console.log(
-          "time for generations",
+          "time for generation",
           (performance.now() - start) / 1000,
           "for board size",
           this.boardSize
