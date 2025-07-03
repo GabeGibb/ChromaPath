@@ -81,9 +81,6 @@ async function initializeCache(): Promise<void> {
     for (let i = 0; i < CACHE_SIZE; i++) {
       await generateAndCacheBoard(size);
     }
-    console.log(
-      `Initialized cache for board size ${size} with ${CACHE_SIZE} boards`
-    );
   }
 }
 

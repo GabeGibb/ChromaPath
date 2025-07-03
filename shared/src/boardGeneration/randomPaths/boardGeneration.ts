@@ -35,8 +35,13 @@ export class BoardGenerator {
     for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
       if (await this.generateValidBoard()) {
         // If board valid remove paths
-        console.log("attempts", attempt);
-        console.log("time for generation", (performance.now() - start) / 1000);
+        // console.log("attempts", attempt);
+        console.log(
+          "time for generations",
+          (performance.now() - start) / 1000,
+          "for board size",
+          this.boardSize
+        );
         return removeNonEndpoints(this.board);
       }
     }
@@ -87,7 +92,7 @@ export class BoardGenerator {
 
         if (getEmptyCells(this.board).length === 0) {
           // await this.debugBoard(100);
-          console.log("starting validatrion");
+          // console.log("starting validatrion");
           return !(await pathsHaveBetterSolution(
             this.board,
             this.curColorIndex
