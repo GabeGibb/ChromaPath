@@ -37,15 +37,12 @@ const CompletionSummary: React.FC<CompletionSummaryProps> = ({
     return `${movesPerSecond} moves/sec`;
   };
 
-  const getCompletionRate = (): string => {
-    // For ChromaPath, completion means all paths are connected
-    // This is a simplified calculation based on completed paths
-    const totalPaths = stats.boardSize * stats.boardSize;
-    const completionRate = Math.min(
-      (stats.pathsCompleted / totalPaths) * 100,
-      100
-    ).toFixed(1);
-    return `${completionRate}%`;
+  const getPathsPerMinute = (): string => {
+    const timeTaken = stats.endTime ? stats.endTime - stats.startTime : 0;
+    const minutes = timeTaken / (1000 * 60);
+    const pathsPerMinute =
+      minutes > 0 ? (stats.pathsCompleted / minutes).toFixed(1) : "0";
+    return `${pathsPerMinute} paths/min`;
   };
 
   return (
@@ -92,27 +89,25 @@ const CompletionSummary: React.FC<CompletionSummaryProps> = ({
               </div>
               <div className="text-xs text-base-content/70">Efficiency</div>
             </div>
-          </div>
 
-          {/* Additional Stats */}
-          <div className="bg-base-300 rounded-lg p-4 space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-base-content/70">
-                Board Coverage:
-              </span>
-              <span className="text-sm font-semibold">
-                {getCompletionRate()}
-              </span>
+            <div className="bg-base-300 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-warning">
+                {getPathsPerMinute()}
+              </div>
+              <div className="text-xs text-base-content/70">
+                Paths per Minute
+              </div>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-base-content/70">
-                Average Moves per Path:
-              </span>
-              <span className="text-sm font-semibold">
+
+            <div className="bg-base-300 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-success">
                 {stats.pathsCompleted > 0
                   ? Math.round(stats.totalMoves / stats.pathsCompleted)
                   : 0}
-              </span>
+              </div>
+              <div className="text-xs text-base-content/70">
+                Avg Moves per Path
+              </div>
             </div>
           </div>
 
