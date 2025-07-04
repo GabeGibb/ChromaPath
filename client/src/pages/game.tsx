@@ -17,9 +17,20 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<ChromaPathGame | null>(null);
   const rendererRef = useRef<ChromaPathRenderer | null>(null);
+
+  // Helper function to render game state and update UI
+  const renderGameState = () => {
+    if (!gameRef.current || !rendererRef.current) return;
+    const state = gameRef.current.getState();
+    if (state) {
+      rendererRef.current.render(state, boardSize);
+      setNumCurrentPaths(state.numConnectedPaths);
+    }
+  };
   const [boardSize, setBoardSize] = useState(initialSize);
   const [boardGenerating, setBoardGenerating] = useState<boolean>(true);
   const [numPaths, setNumPaths] = useState<number>(0);
+  const [numCurrentPaths, setNumCurrentPaths] = useState<number>(0);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [showCompletionSummary, setShowCompletionSummary] =
     useState<boolean>(false);
@@ -39,7 +50,7 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
     const canvas = renderer.getCanvas();
 
     const handlePointerDown = (event: PointerEvent | Touch) => {
-      if (gameActionsNotReady) return;
+      if (gameActionsNotReady || showCompletionSummary) return;
 
       const rect = canvas.getBoundingClientRect();
       const canvasWidth = rect.width;
@@ -51,12 +62,11 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
       const clampedY = Math.max(0, Math.min(y, boardSize - 1));
 
       game.handleCellClick(clampedX, clampedY);
-      const state = game.getState();
-      if (state) renderer.render(state, boardSize);
+      renderGameState();
     };
 
     const handlePointerMove = (event: PointerEvent | Touch) => {
-      if (gameActionsNotReady) return;
+      if (gameActionsNotReady || showCompletionSummary) return;
 
       const rect = canvas.getBoundingClientRect();
       const canvasWidth = rect.width;
@@ -72,8 +82,21 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
       game.handleDrag(clampedX, clampedY);
       game.setPreciseMouse(preciseX, preciseY);
       game.handleMouseMove(x, y);
-      const state = game.getState();
-      if (state) renderer.render(state, boardSize);
+      renderGameState();
+    };
+
+    const handlePointerUp = () => {
+      if (gameActionsNotReady || showCompletionSummary) return;
+
+      const gameComplete = game.endDrag();
+      renderGameState();
+
+      if (gameComplete) {
+        soundService.playSuccessSound();
+        setShowCompletionSummary(true);
+        setIsReplaying(false);
+        setLastStats(null);
+      }
     };
 
     const handleTouchMove = (event: TouchEvent) => {
@@ -86,28 +109,13 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
       handlePointerDown(touch);
     };
 
-    const handlePointerUp = () => {
-      if (gameActionsNotReady) return;
-
-      const gameComplete = game.endDrag();
-      const state = game.getState();
-      if (state) renderer.render(state, boardSize);
-
-      if (gameComplete) {
-        soundService.playSuccessSound();
-        setShowCompletionSummary(true);
-        setIsReplaying(false);
-        setLastStats(null);
-      }
-    };
-
     const handleWindowResize = () => {
       if (gameActionsNotReady || !canvasRef.current) return;
       renderer.resize(canvasRef.current);
-      const state = game.getState();
-      if (state) renderer.render(state, boardSize);
+      renderGameState();
     };
 
+    // ! I DONT THINK THIS WORKS!!
     const preventSideSwipe = (event: TouchEvent) => {
       // Check if the touch is within the canvas bounds
       if (event.touches[0].clientX !== 0) {
@@ -157,7 +165,7 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
 
       window.removeEventListener("resize", handleWindowResize);
     };
-  }, [boardSize, gameActionsNotReady]);
+  }, [boardSize, gameActionsNotReady, showCompletionSummary]);
 
   const handleNewLevel = async () => {
     if (gameActionsNotReady && !boardGenerating) return;
@@ -167,11 +175,6 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
     setIsReplaying(false);
     setLastStats(null);
 
-    // ! OTHER BOARD GEN??
-    // const boardGenerator = new BoardGenerator(rendererRef.current!);
-    // const board = await boardGenerator.generateBoard(boardSize);
-    // const board = generatePuzzle({ width: boardSize, height: boardSize });
-    // console.log(board);
     const board = await BoardService.getRandomBoard(boardSize);
 
     setBoardGenerating(false);
@@ -180,15 +183,16 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
     gameRef.current?.reset(board);
     const state = gameRef.current?.getState();
     setNumPaths(state?.paths.length ?? 0);
-    if (state) rendererRef.current?.render(state, boardSize);
+    setNumCurrentPaths(state?.numConnectedPaths ?? 0);
+    renderGameState();
   };
 
   const handleReplayLevel = async () => {
     if (gameActionsNotReady && !boardGenerating) return;
 
-    // Store the current stats before hiding the summary
-    if (gameRef.current) {
-      setLastStats(gameRef.current.getState()?.stats!);
+    // Store the current stats before hiding the summary (only if we don't already have lastStats)
+    if (gameRef.current && !lastStats) {
+      setLastStats({ ...gameRef.current.getState()?.stats! });
     }
 
     setShowCompletionSummary(false);
@@ -197,7 +201,8 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
     gameRef.current?.refreshPaths();
     const state = gameRef.current?.getState();
     setNumPaths(state?.paths.length ?? 0);
-    if (state) rendererRef.current?.render(state, boardSize);
+    setNumCurrentPaths(state?.numConnectedPaths ?? 0);
+    renderGameState();
   };
 
   const handleBackToStats = () => {
@@ -225,7 +230,7 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
     const settings = LocalStorageService.getSettings();
     const showNumbers = settings ? settings.show_numbers : false;
     rendererRef.current.showNumbers = showNumbers;
-    rendererRef.current.render(gameRef.current?.getState()!, boardSize);
+    renderGameState();
   }, []);
 
   // Initialize sound state
@@ -235,17 +240,18 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
     setSoundEnabled(soundEnabled);
     soundService.setEnabled(soundEnabled);
   }, []);
+  console.log(lastStats);
 
   return (
     <div className="h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300 pt-4 pb-4 flex flex-col items-center justify-between gap-2 touch-none select-none">
       {/* Game Header */}
-      <div className="text-center space-y-0 relative">
+      <div className="flex flex-row justify-between items-center text-center space-y-0 relative px-12">
         {isReplaying && (
           <Button
             variant="ghost"
             size="sm"
             onClick={handleBackToStats}
-            className="absolute left-0 top-0 min-w-[40px] p-2"
+            className="absolute left-0 top-1/2 -translate-y-1/2 min-w-[40px] p-2"
           >
             <ArrowLeft size={16} />
           </Button>
@@ -254,7 +260,10 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
           {isReplaying && (
             <div className="text-xs text-warning mb-1">Replaying Level</div>
           )}
-          Paths: <span className="font-bold text-primary">{numPaths}</span>
+          Paths:{" "}
+          <span className="font-bold text-primary">
+            {numCurrentPaths}/{numPaths}
+          </span>
         </div>
       </div>
 
@@ -317,10 +326,7 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               if (!gameRef.current || !rendererRef.current) return;
               rendererRef.current.showNumbers = e.target.checked;
-              rendererRef.current.render(
-                gameRef.current?.getState()!,
-                boardSize
-              );
+              renderGameState();
 
               LocalStorageService.setSettings({
                 show_numbers: e.target.checked,
@@ -354,7 +360,7 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
           onClick={() => {
             if (!gameRef.current || !rendererRef.current) return;
             gameRef.current?.refreshPaths();
-            rendererRef.current.render(gameRef.current?.getState()!, boardSize);
+            renderGameState();
           }}
           disabled={boardGenerating}
           className="min-w-[40px]"

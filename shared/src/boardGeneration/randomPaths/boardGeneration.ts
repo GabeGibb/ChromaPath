@@ -77,6 +77,7 @@ export class BoardGenerator {
         pathsCompleted: 0,
         boardSize: this.boardSize,
       },
+      numConnectedPaths: 0,
     };
     this.renderer.render(gameState, this.boardSize);
     await new Promise((resolve) => setTimeout(resolve, timeout));

@@ -3,10 +3,6 @@ class SoundService {
   private hardClickAudio: HTMLAudioElement | null = null;
   private successAudio: HTMLAudioElement | null = null;
   private isEnabled: boolean = true;
-  private lastSoftClickTime: number = 0;
-  private lastHardClickTime: number = 0;
-  private readonly SOFT_CLICK_DEBOUNCE = 50; // 50ms debounce
-  private readonly HARD_CLICK_DEBOUNCE = 100; // 100ms debounce
 
   constructor() {
     this.initializeAudio();
@@ -16,7 +12,7 @@ class SoundService {
     try {
       // Import audio files using Vite's asset handling
       this.softClickAudio = new Audio(
-        new URL("../assets/mouse-click.wav", import.meta.url).href
+        new URL("../assets/mouse-click-low.wav", import.meta.url).href
       );
       this.hardClickAudio = new Audio(
         new URL("../assets/light-switch-tap.wav", import.meta.url).href
@@ -36,10 +32,6 @@ class SoundService {
   public playSoftClick(): void {
     if (!this.isEnabled || !this.softClickAudio) return;
 
-    const now = Date.now();
-    if (now - this.lastSoftClickTime < this.SOFT_CLICK_DEBOUNCE) return;
-    this.lastSoftClickTime = now;
-
     try {
       // Reset the audio to the beginning and play
       this.softClickAudio.currentTime = 0;
@@ -54,13 +46,10 @@ class SoundService {
   public playHardClick(): void {
     if (!this.isEnabled || !this.hardClickAudio) return;
 
-    const now = Date.now();
-    if (now - this.lastHardClickTime < this.HARD_CLICK_DEBOUNCE) return;
-    this.lastHardClickTime = now;
-
     try {
       // Reset the audio to the beginning and play
       this.hardClickAudio.currentTime = 0;
+      this.hardClickAudio.volume = 0.8;
       this.hardClickAudio.play().catch((error) => {
         console.warn("Failed to play hard click sound:", error);
       });

@@ -106,7 +106,7 @@ const Navigation: React.FC = () => {
             {/* Mobile Logo - Centered */}
             <div className="flex-1 flex justify-center">
               <div
-                className="text-xl font-bold text-primary cursor-pointer hover:text-primary-focus transition-colors"
+                className="text-xl font-bold text-primary cursor-pointer hover:text-primary-focus transition-colors text-left w-full"
                 onClick={() => handleNavClick("/")}
               >
                 ChromaPath

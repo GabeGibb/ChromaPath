@@ -21,6 +21,7 @@ export type GameStats = {
 };
 
 export type GameState = {
+  stats: GameStats;
   board: Board;
   paths: Paths;
   currentPathIndex: number | null;
@@ -30,5 +31,5 @@ export type GameState = {
   mouseY: number;
   preciseMouseX: number;
   preciseMouseY: number;
-  stats: GameStats;
+  numConnectedPaths: number;
 };

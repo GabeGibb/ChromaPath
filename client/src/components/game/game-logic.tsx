@@ -53,6 +53,7 @@ export class ChromaPathGame {
       preciseMouseX: -1,
       preciseMouseY: -1,
       stats,
+      numConnectedPaths: 0,
     };
   }
 
@@ -140,6 +141,8 @@ export class ChromaPathGame {
 
     // Update path completion count
     this.updatePathCompletionCount();
+    // Update connected paths count
+    this.updateConnectedPathsCount();
   }
 
   private incrementMoves(): void {
@@ -176,6 +179,25 @@ export class ChromaPathGame {
       }
     }
     this.state.stats.pathsCompleted = completedPaths;
+  }
+
+  private updateConnectedPathsCount(): void {
+    this.state.numConnectedPaths = this.state.paths.filter((path) => {
+      if (path.length === 0) return false;
+
+      const startPoint = path[0];
+      const endPoint = path[path.length - 1];
+
+      if (startPoint.x === endPoint.x && startPoint.y === endPoint.y) {
+        return false;
+      }
+
+      // Check if start and end points are endpoints
+      const startCell = this.state.board[startPoint.y]?.[startPoint.x];
+      const endCell = this.state.board[endPoint.y]?.[endPoint.x];
+
+      return startCell?.isEndpoint && endCell?.isEndpoint;
+    }).length;
   }
 
   public handleDrag(x: number, y: number): void {
@@ -477,6 +499,13 @@ export class ChromaPathGame {
     }
     this.state.board = removeNonEndpoints(this.state.board);
     this.updateBoardFromPaths();
+    this.state.stats = {
+      startTime: Date.now(),
+      endTime: null,
+      totalMoves: 0,
+      pathsCompleted: 0,
+      boardSize: this.boardSize,
+    };
   }
 
   private checkCompletion(): boolean {
