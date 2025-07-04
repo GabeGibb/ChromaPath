@@ -1,14 +1,12 @@
 
--phonme sizing
-- sounds
+- phonme sizing
 - clean up pages
 - settings
+- validate stats
+- implement replay
+- dont let play bopard on endscreen
 
 
-- fix phone swipping and initial load
-
-
-- https://uiball.com/ldrs/ make a cool loading animation
 
 
 FEATURES

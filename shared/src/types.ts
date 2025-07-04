@@ -12,6 +12,14 @@ export type Board = Cell[][];
 
 export type Paths = Point[][];
 
+export type GameStats = {
+  startTime: number;
+  endTime: number | null;
+  totalMoves: number;
+  pathsCompleted: number;
+  boardSize: number;
+};
+
 export type GameState = {
   board: Board;
   paths: Paths;
@@ -22,4 +30,5 @@ export type GameState = {
   mouseY: number;
   preciseMouseX: number;
   preciseMouseY: number;
+  stats: GameStats;
 };

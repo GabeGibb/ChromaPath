@@ -1,6 +1,7 @@
 import {
   Board,
   GameState,
+  GameStats,
   getValidNeighbors,
   Point,
   removeNonEndpoints,
@@ -30,6 +31,17 @@ export class ChromaPathGame {
 
     const paths = Object.keys(endpointGroups).map(() => []);
 
+    const stats: GameStats = {
+      startTime: Date.now(),
+      endTime: null,
+      totalMoves: 0,
+      pathsCompleted: 0,
+      boardSize: newBoard.length,
+    };
+
+    // Play success sound
+    soundService.playSuccessSound();
+
     return {
       board: newBoard,
       paths,
@@ -40,6 +52,7 @@ export class ChromaPathGame {
       mouseY: -1,
       preciseMouseX: -1,
       preciseMouseY: -1,
+      stats,
     };
   }
 
@@ -124,6 +137,45 @@ export class ChromaPathGame {
         }
       }
     }
+
+    // Update path completion count
+    this.updatePathCompletionCount();
+  }
+
+  private incrementMoves(): void {
+    this.state.stats.totalMoves++;
+  }
+
+  private checkPathCompletion(pathIndex: number): boolean {
+    const path = this.state.paths[pathIndex];
+    if (path.length < 2) return false;
+
+    const startPoint = path[0];
+    const endPoint = path[path.length - 1];
+
+    const startCell = this.state.board[startPoint.y][startPoint.x];
+    const endCell = this.state.board[endPoint.y][endPoint.x];
+
+    // Check if both start and end are endpoints of the same color
+    return !!(
+      (
+        startCell?.isEndpoint &&
+        endCell?.isEndpoint &&
+        startCell.pathIndex === pathIndex &&
+        endCell.pathIndex === pathIndex &&
+        (startPoint.x !== endPoint.x || startPoint.y !== endPoint.y)
+      ) // Ensure they're different points
+    );
+  }
+
+  private updatePathCompletionCount(): void {
+    let completedPaths = 0;
+    for (let i = 0; i < this.state.paths.length; i++) {
+      if (this.checkPathCompletion(i)) {
+        completedPaths++;
+      }
+    }
+    this.state.stats.pathsCompleted = completedPaths;
   }
 
   public handleDrag(x: number, y: number): void {
@@ -185,6 +237,7 @@ export class ChromaPathGame {
         { x, y },
       ];
       this.updateBoardFromPaths();
+      this.incrementMoves();
 
       // Check if this move connects to an endpoint
       const cell = this.state.board[y][x];
@@ -211,6 +264,7 @@ export class ChromaPathGame {
           .concat(this.state.paths[this.state.currentPathIndex]);
         this.state.paths[this.state.currentPathIndex] = path;
         this.updateBoardFromPaths();
+        this.incrementMoves();
 
         // Check if this pathfinding move connects to an endpoint
         const cell = this.state.board[y][x];
@@ -408,7 +462,11 @@ export class ChromaPathGame {
   public endDrag(): boolean {
     this.state.currentPathIndex = null;
     this.state.startPoint = null;
-    return this.checkCompletion();
+    const completed = this.checkCompletion();
+    if (completed) {
+      this.state.stats.endTime = Date.now();
+    }
+    return completed;
   }
 
   public refreshPaths(): void {

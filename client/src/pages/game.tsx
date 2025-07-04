@@ -2,6 +2,7 @@ import { RefreshCcw, Volume2, VolumeX } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { ChromaPathGame } from "../components/game/game-logic";
 import { ChromaPathRenderer } from "../components/game/renderer";
+import CompletionSummary from "../components/game/CompletionSummary";
 import BoardService from "../services/board";
 import { LocalStorageService } from "../services/localStorage/localStorage";
 import { Button, LoadingSpinner } from "../components/ui";
@@ -19,6 +20,8 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
   const [boardGenerating, setBoardGenerating] = useState<boolean>(true);
   const [numPaths, setNumPaths] = useState<number>(0);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [showCompletionSummary, setShowCompletionSummary] =
+    useState<boolean>(false);
 
   const gameActionsNotReady =
     !gameRef.current ||
@@ -89,7 +92,7 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
 
       if (gameComplete) {
         soundService.playSuccessSound();
-        handleNewLevel();
+        setShowCompletionSummary(true);
       }
     };
 
@@ -155,6 +158,7 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
     if (gameActionsNotReady && !boardGenerating) return;
 
     setBoardGenerating(true);
+    setShowCompletionSummary(false);
 
     // ! OTHER BOARD GEN??
     // const boardGenerator = new BoardGenerator(rendererRef.current!);
@@ -167,6 +171,17 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
     if (!board) return;
 
     gameRef.current?.reset(board);
+    const state = gameRef.current?.getState();
+    setNumPaths(state?.paths.length ?? 0);
+    if (state) rendererRef.current?.render(state, boardSize);
+  };
+
+  const handleReplayLevel = async () => {
+    if (gameActionsNotReady && !boardGenerating) return;
+
+    setShowCompletionSummary(false);
+
+    gameRef.current?.refreshPaths();
     const state = gameRef.current?.getState();
     setNumPaths(state?.paths.length ?? 0);
     if (state) rendererRef.current?.render(state, boardSize);
@@ -223,6 +238,13 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
               </div>
             </div>
           </div>
+        )}
+        {showCompletionSummary && gameRef.current && (
+          <CompletionSummary
+            stats={gameRef.current.getState()?.stats!}
+            onContinue={handleNewLevel}
+            onReplay={handleReplayLevel}
+          />
         )}
         <div
           ref={canvasRef}
