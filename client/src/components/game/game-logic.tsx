@@ -5,6 +5,7 @@ import {
   Point,
   removeNonEndpoints,
 } from "@chromapath/shared/src";
+import soundService from "../../services/sound";
 
 export class ChromaPathGame {
   private state: GameState;
@@ -28,6 +29,7 @@ export class ChromaPathGame {
     }, {} as Record<number, (typeof newBoard)[0]>);
 
     const paths = Object.keys(endpointGroups).map(() => []);
+
     return {
       board: newBoard,
       paths,
@@ -156,11 +158,14 @@ export class ChromaPathGame {
     // Handle backtracking
     const backtrackIndex = currentPath.findIndex((p) => p.x === x && p.y === y);
     if (backtrackIndex !== -1) {
-      this.state.paths[this.state.currentPathIndex] = currentPath.slice(
-        0,
-        backtrackIndex + 1
-      );
-      this.updateBoardFromPaths();
+      const newPath = currentPath.slice(0, backtrackIndex + 1);
+      // Only update and play sound if the path actually changed
+      if (newPath.length !== currentPath.length) {
+        this.state.paths[this.state.currentPathIndex] = newPath;
+        this.updateBoardFromPaths();
+        // Play soft click sound for backtracking
+        soundService.playSoftClick();
+      }
       return;
     }
 
@@ -180,6 +185,16 @@ export class ChromaPathGame {
         { x, y },
       ];
       this.updateBoardFromPaths();
+
+      // Check if this move connects to an endpoint
+      const cell = this.state.board[y][x];
+      if (cell?.isEndpoint && cell.pathIndex === this.state.currentPathIndex) {
+        // Play hard click sound for connection
+        soundService.playHardClick();
+      } else {
+        // Play soft click sound for tile placement
+        soundService.playSoftClick();
+      }
       return;
     }
 
@@ -196,6 +211,19 @@ export class ChromaPathGame {
           .concat(this.state.paths[this.state.currentPathIndex]);
         this.state.paths[this.state.currentPathIndex] = path;
         this.updateBoardFromPaths();
+
+        // Check if this pathfinding move connects to an endpoint
+        const cell = this.state.board[y][x];
+        if (
+          cell?.isEndpoint &&
+          cell.pathIndex === this.state.currentPathIndex
+        ) {
+          // Play hard click sound for connection
+          soundService.playHardClick();
+        } else {
+          // Play soft click sound for pathfinding tile placement
+          soundService.playSoftClick();
+        }
         return;
       }
     }
@@ -302,6 +330,11 @@ export class ChromaPathGame {
         // Found path
         if (this.state.currentPathIndex !== null) {
           this.state.paths[this.state.currentPathIndex] = path;
+
+          // Play hard click sound for connection
+          if (this.isAtEndpoint(point, start)) {
+            soundService.playHardClick();
+          }
         }
         return true;
       }

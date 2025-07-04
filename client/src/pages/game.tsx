@@ -1,10 +1,11 @@
-import { RefreshCcw } from "lucide-react";
+import { RefreshCcw, Volume2, VolumeX } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { ChromaPathGame } from "../components/game/game-logic";
 import { ChromaPathRenderer } from "../components/game/renderer";
 import BoardService from "../services/board";
 import { LocalStorageService } from "../services/localStorage/localStorage";
 import { Button, LoadingSpinner } from "../components/ui";
+import soundService from "../services/sound";
 
 interface Props {
   initialSize?: number;
@@ -17,6 +18,7 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
   const [boardSize, setBoardSize] = useState(initialSize);
   const [boardGenerating, setBoardGenerating] = useState<boolean>(true);
   const [numPaths, setNumPaths] = useState<number>(0);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
   const gameActionsNotReady =
     !gameRef.current ||
@@ -86,6 +88,7 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
       if (state) renderer.render(state, boardSize);
 
       if (gameComplete) {
+        soundService.playSuccessSound();
         handleNewLevel();
       }
     };
@@ -192,6 +195,14 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
     rendererRef.current.render(gameRef.current?.getState()!, boardSize);
   }, []);
 
+  // Initialize sound state
+  useEffect(() => {
+    const settings = LocalStorageService.getSettings();
+    const soundEnabled = settings ? settings.sound_enabled !== false : true;
+    setSoundEnabled(soundEnabled);
+    soundService.setEnabled(soundEnabled);
+  }, []);
+
   return (
     <div className="h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300 pt-4 pb-4 flex flex-col items-center justify-between gap-2 touch-none select-none">
       {/* Game Header */}
@@ -264,6 +275,24 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
             className="checkbox checkbox-primary checkbox-sm"
           />
         </label>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            const newSoundState = !soundEnabled;
+            setSoundEnabled(newSoundState);
+            soundService.setEnabled(newSoundState);
+
+            // Save to localStorage
+            LocalStorageService.setSettings({
+              sound_enabled: newSoundState,
+            });
+          }}
+          className="min-w-[40px] p-2"
+        >
+          {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+        </Button>
 
         <Button
           variant="secondary"
