@@ -1,6 +1,6 @@
 import { RefreshCcw, Volume2, VolumeX, ArrowLeft } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
-import { ChromaPathGame } from "../components/game/game-logic";
+import { ChromaPathGame } from "../services/game-logic";
 import { ChromaPathRenderer } from "../components/game/renderer";
 import CompletionSummary from "../components/game/CompletionSummary";
 import BoardService from "../services/board";
@@ -175,7 +175,8 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
     setIsReplaying(false);
     setLastStats(null);
 
-    const board = await BoardService.getRandomBoard(boardSize);
+    const boardRequest = await BoardService.getRandomBoard(boardSize);
+    const board = boardRequest.board;
 
     setBoardGenerating(false);
     if (!board) return;

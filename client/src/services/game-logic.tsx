@@ -6,7 +6,7 @@ import {
   Point,
   removeNonEndpoints,
 } from "@chromapath/shared/src";
-import soundService from "../../services/sound";
+import soundService from "./sound";
 
 export class ChromaPathGame {
   private state: GameState;

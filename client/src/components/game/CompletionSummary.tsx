@@ -37,12 +37,12 @@ const CompletionSummary: React.FC<CompletionSummaryProps> = ({
     return `${movesPerSecond} moves/sec`;
   };
 
-  const getPathsPerMinute = (): string => {
+  const getPathsPerSecond = (): string => {
     const timeTaken = stats.endTime ? stats.endTime - stats.startTime : 0;
-    const minutes = timeTaken / (1000 * 60);
-    const pathsPerMinute =
-      minutes > 0 ? (stats.pathsCompleted / minutes).toFixed(1) : "0";
-    return `${pathsPerMinute} paths/min`;
+    const seconds = timeTaken / 1000;
+    const pathsPerSecond =
+      seconds > 0 ? (stats.pathsCompleted / seconds).toFixed(2) : "0";
+    return `${pathsPerSecond} paths/sec`;
   };
 
   return (
@@ -92,10 +92,10 @@ const CompletionSummary: React.FC<CompletionSummaryProps> = ({
 
             <div className="bg-base-300 rounded-lg p-3 text-center">
               <div className="text-2xl font-bold text-warning">
-                {getPathsPerMinute()}
+                {getPathsPerSecond()}
               </div>
               <div className="text-xs text-base-content/70">
-                Paths per Minute
+                Paths per Second
               </div>
             </div>
 

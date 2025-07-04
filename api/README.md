@@ -1,53 +1,153 @@
-# Express API Starter
+# ChromaPath API
 
-How to use this template:
+A serverless API for generating ChromaPath game boards, designed to run on Vercel.
 
-```sh
-npx create-express-api --directory my-api-name
-```
+## Features
 
-Includes API Server utilities:
+- Generate random ChromaPath boards of various sizes
+- Serverless architecture for scalability
+- Health check endpoints
+- Board size validation
+- Prepared for future database integration
 
-* [morgan](https://www.npmjs.com/package/morgan)
-  * HTTP request logger middleware for node.js
-* [helmet](https://www.npmjs.com/package/helmet)
-  * Helmet helps you secure your Express apps by setting various HTTP headers. It's not a silver bullet, but it can help!
-* [dotenv](https://www.npmjs.com/package/dotenv)
-  * Dotenv is a zero-dependency module that loads environment variables from a `.env` file into `process.env`
-* [cors](https://www.npmjs.com/package/cors)
-  * CORS is a node.js package for providing a Connect/Express middleware that can be used to enable CORS with various options.
+## API Endpoints
 
-Development utilities:
-
-* [nodemon](https://www.npmjs.com/package/nodemon)
-  * nodemon is a tool that helps develop node.js based applications by automatically restarting the node application when file changes in the directory are detected.
-* [eslint](https://www.npmjs.com/package/eslint)
-  * ESLint is a tool for identifying and reporting on patterns found in ECMAScript/JavaScript code.
-* [jest](https://www.npmjs.com/package/jest)
-  * Jest is a delightful JavaScript Testing Framework with a focus on simplicity.
-* [supertest](https://www.npmjs.com/package/supertest)
-  * HTTP assertions made easy via superagent.
-
-## Setup
+### Generate Random Board
 
 ```
-npm install
+GET /api/v1/boards/random?size={size}
 ```
 
-## Lint
+**Parameters:**
+
+- `size` (optional): Board size (5-15, default: 5)
+
+**Response:**
+
+```json
+{
+  "board": [...],
+  "size": 5,
+  "generatedAt": "2024-01-01T00:00:00.000Z"
+}
+```
+
+### Health Check
 
 ```
-npm run lint
+GET /api/v1/boards/health
 ```
 
-## Test
+**Response:**
+
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "minBoardSize": 5,
+  "maxBoardSize": 15
+}
+```
+
+### Get Constraints
 
 ```
-npm test
+GET /api/v1/boards/constraints
+```
+
+**Response:**
+
+```json
+{
+  "minSize": 5,
+  "maxSize": 15
+}
 ```
 
 ## Development
 
-```
+### Local Development
+
+```bash
+npm install
 npm run dev
 ```
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+### Deploy to Vercel
+
+```bash
+vercel
+```
+
+## Architecture
+
+### Current State (Serverless)
+
+- Stateless board generation
+- No caching (each request generates a new board)
+- Suitable for low to medium traffic
+
+### Future Database Integration
+
+The API is structured to easily integrate with a database for caching:
+
+1. **Board Caching**: Store pre-generated boards in database
+2. **Cache Replenishment**: Separate endpoints to refill cache
+3. **Performance Optimization**: Serve cached boards for faster response times
+
+#### Planned Database Schema
+
+```sql
+-- Boards table for caching
+CREATE TABLE boards (
+  id SERIAL PRIMARY KEY,
+  size INTEGER NOT NULL,
+  board_data JSONB NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  used_count INTEGER DEFAULT 0
+);
+
+-- Cache management
+CREATE TABLE cache_stats (
+  size INTEGER PRIMARY KEY,
+  available_count INTEGER DEFAULT 0,
+  last_replenished TIMESTAMP DEFAULT NOW()
+);
+```
+
+#### Future API Endpoints
+
+```
+POST /api/v1/boards/cache/replenish?size={size}&count={count}
+GET /api/v1/boards/cache/stats
+DELETE /api/v1/boards/cache/clear
+```
+
+## Environment Variables
+
+- `NODE_ENV`: Environment (development/production)
+- `PORT`: Server port (for local development)
+
+## Error Handling
+
+The API returns consistent error responses:
+
+```json
+{
+  "error": "Error description",
+  "message": "Detailed error message",
+  "additionalInfo": "..."
+}
+```
+
+Common HTTP status codes:
+
+- `200`: Success
+- `400`: Bad request (invalid board size)
+- `500`: Internal server error
