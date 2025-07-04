@@ -6,8 +6,10 @@
   "scripts": {
     "build:shared": "cd shared && pnpm install && pnpm run build",
     "build:api": "cd api && pnpm install && pnpm run build",
-    "build": "pnpm run build:shared && pnpm run build:api",
-    "start:api": "cd api && pnpm start"
+    "build:client": "cd client && pnpm install && pnpm run build",
+    "build": "pnpm run build:shared && pnpm run build:api && pnpm run build:client",
+    "start:api": "cd api && pnpm start",
+    "dev:client": "cd client && pnpm run dev"
   },
   "keywords": [],
   "author": "",
