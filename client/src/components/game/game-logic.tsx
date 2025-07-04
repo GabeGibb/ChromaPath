@@ -243,6 +243,7 @@ export class ChromaPathGame {
       const cell = this.state.board[y][x];
       if (cell?.isEndpoint && cell.pathIndex === this.state.currentPathIndex) {
         // Play hard click sound for connection
+        soundService.playSoftClick();
         soundService.playHardClick();
       } else {
         // Play soft click sound for tile placement
@@ -273,6 +274,7 @@ export class ChromaPathGame {
           cell.pathIndex === this.state.currentPathIndex
         ) {
           // Play hard click sound for connection
+          soundService.playSoftClick();
           soundService.playHardClick();
         } else {
           // Play soft click sound for pathfinding tile placement

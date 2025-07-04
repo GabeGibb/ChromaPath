@@ -1,4 +1,4 @@
-import { RefreshCcw, Volume2, VolumeX } from "lucide-react";
+import { RefreshCcw, Volume2, VolumeX, ArrowLeft } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { ChromaPathGame } from "../components/game/game-logic";
 import { ChromaPathRenderer } from "../components/game/renderer";
@@ -7,6 +7,7 @@ import BoardService from "../services/board";
 import { LocalStorageService } from "../services/localStorage/localStorage";
 import { Button, LoadingSpinner } from "../components/ui";
 import soundService from "../services/sound";
+import { GameStats } from "@chromapath/shared/src";
 
 interface Props {
   initialSize?: number;
@@ -22,6 +23,8 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [showCompletionSummary, setShowCompletionSummary] =
     useState<boolean>(false);
+  const [isReplaying, setIsReplaying] = useState<boolean>(false);
+  const [lastStats, setLastStats] = useState<GameStats | null>(null);
 
   const gameActionsNotReady =
     !gameRef.current ||
@@ -93,6 +96,8 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
       if (gameComplete) {
         soundService.playSuccessSound();
         setShowCompletionSummary(true);
+        setIsReplaying(false);
+        setLastStats(null);
       }
     };
 
@@ -159,6 +164,8 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
 
     setBoardGenerating(true);
     setShowCompletionSummary(false);
+    setIsReplaying(false);
+    setLastStats(null);
 
     // ! OTHER BOARD GEN??
     // const boardGenerator = new BoardGenerator(rendererRef.current!);
@@ -179,12 +186,23 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
   const handleReplayLevel = async () => {
     if (gameActionsNotReady && !boardGenerating) return;
 
+    // Store the current stats before hiding the summary
+    if (gameRef.current) {
+      setLastStats(gameRef.current.getState()?.stats!);
+    }
+
     setShowCompletionSummary(false);
+    setIsReplaying(true);
 
     gameRef.current?.refreshPaths();
     const state = gameRef.current?.getState();
     setNumPaths(state?.paths.length ?? 0);
     if (state) rendererRef.current?.render(state, boardSize);
+  };
+
+  const handleBackToStats = () => {
+    setShowCompletionSummary(true);
+    setIsReplaying(false);
   };
 
   useEffect(() => {
@@ -221,8 +239,21 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
   return (
     <div className="h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300 pt-4 pb-4 flex flex-col items-center justify-between gap-2 touch-none select-none">
       {/* Game Header */}
-      <div className="text-center space-y-0">
+      <div className="text-center space-y-0 relative">
+        {isReplaying && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleBackToStats}
+            className="absolute left-0 top-0 min-w-[40px] p-2"
+          >
+            <ArrowLeft size={16} />
+          </Button>
+        )}
         <div className="text-lg text-base-content/80">
+          {isReplaying && (
+            <div className="text-xs text-warning mb-1">Replaying Level</div>
+          )}
           Paths: <span className="font-bold text-primary">{numPaths}</span>
         </div>
       </div>
@@ -239,13 +270,14 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
             </div>
           </div>
         )}
-        {showCompletionSummary && gameRef.current && (
-          <CompletionSummary
-            stats={gameRef.current.getState()?.stats!}
-            onContinue={handleNewLevel}
-            onReplay={handleReplayLevel}
-          />
-        )}
+        {showCompletionSummary &&
+          (lastStats || gameRef.current?.getState()?.stats) && (
+            <CompletionSummary
+              stats={lastStats || gameRef.current?.getState()?.stats!}
+              onContinue={handleNewLevel}
+              onReplay={handleReplayLevel}
+            />
+          )}
         <div
           ref={canvasRef}
           className="w-[95dvw] h-[95dvw] md:w-[75dvh] md:h-[75dvh] border-2 border-base-300 rounded-lg shadow-2xl overscroll-none overflow-hidden bg-base-200"

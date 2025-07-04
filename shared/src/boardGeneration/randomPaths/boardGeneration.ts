@@ -70,6 +70,13 @@ export class BoardGenerator {
       mouseY: -1,
       preciseMouseX: -1,
       preciseMouseY: -1,
+      stats: {
+        startTime: Date.now(),
+        endTime: null,
+        totalMoves: 0,
+        pathsCompleted: 0,
+        boardSize: this.boardSize,
+      },
     };
     this.renderer.render(gameState, this.boardSize);
     await new Promise((resolve) => setTimeout(resolve, timeout));
