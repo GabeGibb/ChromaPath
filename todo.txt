@@ -1,11 +1,12 @@
 
+- settings
+- fix next js jank shit
+-- initial load
+-- local storage
+-- sounds
+
 - phonme sizing
 - clean up pages
-- settings
-- validate stats
-- implement replay
-- dont let play bopard on endscreen
-
 
 
 

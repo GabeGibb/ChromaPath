@@ -4,9 +4,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { ChromaPathGame } from "@/services/game-logic";
 import { ChromaPathRenderer } from "@/components/game/renderer";
 import CompletionSummary from "@/components/game/CompletionSummary";
-import { LocalStorageService } from "@/services/localStorage/localStorage";
+import { useSetting } from "@/services/localStorage/SettingsContext";
 import { Button, LoadingSpinner } from "@/components/ui";
-import soundService from "@/services/sound";
+import { useSound } from "@/services/sound/SoundContext";
 import { GameStats } from "@/shared";
 
 const Game: React.FC = () => {
@@ -14,6 +14,11 @@ const Game: React.FC = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<ChromaPathGame | null>(null);
   const rendererRef = useRef<ChromaPathRenderer | null>(null);
+
+  // Use settings hooks
+  const [showNumbers, setShowNumbers] = useSetting("show_numbers");
+  const [soundEnabled, setSoundEnabled] = useSetting("sound_enabled");
+  const soundService = useSound();
 
   // Helper function to render game state and update UI
   const renderGameState = () => {
@@ -28,7 +33,6 @@ const Game: React.FC = () => {
   const [boardGenerating, setBoardGenerating] = useState<boolean>(true);
   const [numPaths, setNumPaths] = useState<number>(0);
   const [numCurrentPaths, setNumCurrentPaths] = useState<number>(0);
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [showCompletionSummary, setShowCompletionSummary] =
     useState<boolean>(false);
   const [isReplaying, setIsReplaying] = useState<boolean>(false);
@@ -215,7 +219,7 @@ const Game: React.FC = () => {
   useEffect(() => {
     if (!canvasRef.current) return;
     rendererRef.current = new ChromaPathRenderer(canvasRef.current!);
-    gameRef.current = new ChromaPathGame();
+    gameRef.current = new ChromaPathGame(soundService);
     handleNewLevel();
 
     return () => {
@@ -225,19 +229,9 @@ const Game: React.FC = () => {
 
   useEffect(() => {
     if (!rendererRef.current) return;
-    const settings = LocalStorageService.getSettings();
-    const showNumbers = settings ? settings.show_numbers : false;
     rendererRef.current.showNumbers = showNumbers;
     renderGameState();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Initialize sound state
-  useEffect(() => {
-    const settings = LocalStorageService.getSettings();
-    const soundEnabled = settings ? settings.sound_enabled !== false : true;
-    setSoundEnabled(soundEnabled);
-    soundService.setEnabled(soundEnabled);
-  }, []);
+  }, [showNumbers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="h-[100dvh] bg-gradient-to-br from-base-300 via-base-200 to-base-300 pt-4 pb-4 flex flex-col items-center justify-between gap-2 touch-none select-none">
@@ -319,15 +313,12 @@ const Game: React.FC = () => {
           <span className="text-xs">Show Numbers</span>
           <input
             type="checkbox"
-            defaultChecked={LocalStorageService.getSettings()?.show_numbers}
+            checked={showNumbers}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               if (!gameRef.current || !rendererRef.current) return;
               rendererRef.current.showNumbers = e.target.checked;
               renderGameState();
-
-              LocalStorageService.setSettings({
-                show_numbers: e.target.checked,
-              });
+              setShowNumbers(e.target.checked);
             }}
             className="checkbox checkbox-primary checkbox-sm"
           />
@@ -339,12 +330,6 @@ const Game: React.FC = () => {
           onClick={() => {
             const newSoundState = !soundEnabled;
             setSoundEnabled(newSoundState);
-            soundService.setEnabled(newSoundState);
-
-            // Save to localStorage
-            LocalStorageService.setSettings({
-              sound_enabled: newSoundState,
-            });
           }}
           className="min-w-[40px] p-2"
         >

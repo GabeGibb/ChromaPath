@@ -1,4 +1,5 @@
 import { BoardGenerator } from "@/shared";
+import { MAX_BOARD_SIZE, MIN_BOARD_SIZE } from "@/shared/consts";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -6,7 +7,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const size = parseInt(searchParams.get("size") || "5");
 
-    if (size < 5 || size > 15) {
+    if (size < MIN_BOARD_SIZE || size > MAX_BOARD_SIZE) {
       return NextResponse.json(
         { error: "Invalid board size" },
         { status: 400 }

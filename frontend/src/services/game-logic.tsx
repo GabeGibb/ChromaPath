@@ -6,13 +6,17 @@ import {
   Point,
   removeNonEndpoints,
 } from "@/shared";
-import soundService from "./sound";
+
+// Import the sound context type
+import type { SoundContextType } from "./sound/SoundContext";
 
 export class ChromaPathGame {
   private state: GameState;
   private boardSize: number = 0;
+  private soundService: SoundContextType;
 
-  constructor() {
+  constructor(soundService: SoundContextType) {
+    this.soundService = soundService;
     this.state = this.initializeState();
   }
 
@@ -40,7 +44,7 @@ export class ChromaPathGame {
     };
 
     // Play success sound
-    soundService.playSuccessSound();
+    this.soundService.playSuccessSound();
 
     return {
       board: newBoard,
@@ -238,7 +242,7 @@ export class ChromaPathGame {
         this.state.paths[this.state.currentPathIndex] = newPath;
         this.updateBoardFromPaths();
         // Play soft click sound for backtracking
-        soundService.playSoftClick();
+        this.soundService.playSoftClick();
       }
       return;
     }
@@ -265,11 +269,11 @@ export class ChromaPathGame {
       const cell = this.state.board[y][x];
       if (cell?.isEndpoint && cell.pathIndex === this.state.currentPathIndex) {
         // Play hard click sound for connection
-        soundService.playSoftClick();
-        soundService.playHardClick();
+        this.soundService.playSoftClick();
+        this.soundService.playHardClick();
       } else {
         // Play soft click sound for tile placement
-        soundService.playSoftClick();
+        this.soundService.playSoftClick();
       }
       return;
     }
@@ -296,11 +300,11 @@ export class ChromaPathGame {
           cell.pathIndex === this.state.currentPathIndex
         ) {
           // Play hard click sound for connection
-          soundService.playSoftClick();
-          soundService.playHardClick();
+          this.soundService.playSoftClick();
+          this.soundService.playHardClick();
         } else {
           // Play soft click sound for pathfinding tile placement
-          soundService.playSoftClick();
+          this.soundService.playSoftClick();
         }
         return;
       }
@@ -411,7 +415,7 @@ export class ChromaPathGame {
 
           // Play hard click sound for connection
           if (this.isAtEndpoint(point, start)) {
-            soundService.playHardClick();
+            this.soundService.playHardClick();
           }
         }
         return true;

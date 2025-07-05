@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navigation from "@/components/layout/Navigation";
+import { SettingsProvider } from "@/services/localStorage/SettingsContext";
+import { SoundProvider } from "@/services/sound/SoundContext";
 
 export const metadata: Metadata = {
   title: "ChromaPath",
@@ -15,8 +17,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`antialiased`}>
-        <Navigation />
-        {children}
+        <SoundProvider>
+          <SettingsProvider>
+            <Navigation />
+            {children}
+          </SettingsProvider>
+        </SoundProvider>
       </body>
     </html>
   );
