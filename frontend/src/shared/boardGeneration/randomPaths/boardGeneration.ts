@@ -19,7 +19,7 @@ export class BoardGenerator {
   private minPathLength = 3;
   private maxPathLength = this.boardSize * this.boardSize;
   private maxNumPaths = 50;
-  private renderer: any | null = null;
+  private renderer: ChromaPathRenderer | null = null;
   private pathStack: Point[][] = [];
   private doRender: boolean = false;
 
@@ -147,7 +147,7 @@ export class BoardGenerator {
     for (let j = 0; j < 3; j++) {
       const emptyCells = shuffleArray(getEmptyCells(this.board));
       for (let i = 0; i < emptyCells.length; i++) {
-        if (await this.attemptPathPlacement(emptyCells[i])) {
+        if (await this.attemptPathPlacement(emptyCells[i] as Point)) {
           return true;
         }
       }
