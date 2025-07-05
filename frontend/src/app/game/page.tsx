@@ -7,7 +7,7 @@ import CompletionSummary from "@/components/game/CompletionSummary";
 import { LocalStorageService } from "@/services/localStorage/localStorage";
 import { Button, LoadingSpinner } from "@/components/ui";
 import soundService from "@/services/sound";
-import { GameStats } from "@chromapath/shared/src";
+import { GameStats } from "@/shared";
 
 const Game: React.FC = () => {
   const initialSize = 5; // Default size, can be made configurable via URL params or localStorage later

@@ -5,7 +5,7 @@ import {
   getValidNeighbors,
   Point,
   removeNonEndpoints,
-} from "@chromapath/shared/src";
+} from "@/shared";
 import soundService from "./sound";
 
 export class ChromaPathGame {

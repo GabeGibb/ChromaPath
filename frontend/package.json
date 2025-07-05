@@ -12,7 +12,6 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "next": "15.3.5",
-    "@chromapath/shared": "workspace:*",
     "@tailwindcss/vite": "^4.0.0",
     "@types/react-router-dom": "^5.3.3",
     "@vercel/node": "^5.3.3",

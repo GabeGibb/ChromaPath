@@ -1,4 +1,4 @@
-import { BoardGenerator } from "@chromapath/shared";
+import { BoardGenerator } from "@/shared";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {

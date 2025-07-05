@@ -1,5 +1,5 @@
 import React from "react";
-import { GameStats } from "@chromapath/shared/src";
+import { GameStats } from "@/shared";
 import { Button } from "../ui";
 
 interface CompletionSummaryProps {

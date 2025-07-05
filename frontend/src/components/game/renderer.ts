@@ -4,7 +4,7 @@ import {
   GameState,
   getDistancedColorArray,
   Point,
-} from "@chromapath/shared/src";
+} from "@/shared";
 
 export class ChromaPathRenderer {
   private canvas: HTMLCanvasElement;
