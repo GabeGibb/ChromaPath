@@ -1,10 +1,8 @@
 import { Button, Card } from "@/components/ui";
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import Link from "next/link";
 
 const Info: React.FC = () => {
-  const navigate = useNavigate();
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300 pt-20 pb-8">
       <div className="max-w-4xl mx-auto px-4 space-y-8">
@@ -83,8 +81,10 @@ const Info: React.FC = () => {
               <ul className="space-y-2 text-neutral-400">
                 <li>• Start with smaller board sizes (5x5 or 6x6)</li>
                 <li>• Look for endpoints that are close together</li>
-                <li>• Use the "Show Numbers" feature to track paths</li>
-                <li>• Don't be afraid to use the refresh button</li>
+                <li>
+                  • Use the &quot;Show Numbers&quot; feature to track paths
+                </li>
+                <li>• Don&apos;t be afraid to use the refresh button</li>
               </ul>
             </div>
             <div className="space-y-4">
@@ -133,21 +133,20 @@ const Info: React.FC = () => {
 
         {/* CTA */}
         <div className="text-center space-y-4">
-          <Button
-            size="lg"
-            onClick={() => navigate("/game")}
-            className="min-w-[200px]"
-          >
-            Start Playing Now
-          </Button>
-          <div>
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/generation")}
-              className="text-neutral-400 hover:text-neutral-200"
-            >
-              Learn About Board Generation →
+          <Link href="/game">
+            <Button size="lg" className="min-w-[200px]">
+              Start Playing Now
             </Button>
+          </Link>
+          <div>
+            <Link href="/generation">
+              <Button
+                variant="ghost"
+                className="text-neutral-400 hover:text-neutral-200"
+              >
+                Learn About Board Generation →
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

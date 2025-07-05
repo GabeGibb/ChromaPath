@@ -162,7 +162,7 @@ const Game: React.FC = () => {
 
       window.removeEventListener("resize", handleWindowResize);
     };
-  }, [boardSize, gameActionsNotReady, showCompletionSummary]);
+  }, [boardSize, gameActionsNotReady, showCompletionSummary]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleNewLevel = async () => {
     if (gameActionsNotReady && !boardGenerating) return;
@@ -171,7 +171,6 @@ const Game: React.FC = () => {
     setShowCompletionSummary(false);
     setIsReplaying(false);
     setLastStats(null);
-
     const boardRequest = await fetch(`/api/puzzle?size=${boardSize}`);
     const boardData = await boardRequest.json();
     const board = boardData.board;
@@ -191,7 +190,7 @@ const Game: React.FC = () => {
 
     // Store the current stats before hiding the summary (only if we don't already have lastStats)
     if (gameRef.current && !lastStats) {
-      setLastStats({ ...gameRef.current.getState()?.stats! });
+      setLastStats({ ...gameRef.current.getState()?.stats! }); // eslint-disable-line
     }
 
     setShowCompletionSummary(false);
@@ -211,7 +210,7 @@ const Game: React.FC = () => {
 
   useEffect(() => {
     handleNewLevel();
-  }, [boardSize]);
+  }, [boardSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -222,7 +221,7 @@ const Game: React.FC = () => {
     return () => {
       rendererRef.current?.destroy();
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!rendererRef.current) return;
@@ -230,7 +229,7 @@ const Game: React.FC = () => {
     const showNumbers = settings ? settings.show_numbers : false;
     rendererRef.current.showNumbers = showNumbers;
     renderGameState();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initialize sound state
   useEffect(() => {
@@ -239,7 +238,6 @@ const Game: React.FC = () => {
     setSoundEnabled(soundEnabled);
     soundService.setEnabled(soundEnabled);
   }, []);
-  console.log(lastStats);
 
   return (
     <div className="h-[100dvh] bg-gradient-to-br from-base-300 via-base-200 to-base-300 pt-4 pb-4 flex flex-col items-center justify-between gap-2 touch-none select-none">
@@ -281,7 +279,7 @@ const Game: React.FC = () => {
         {showCompletionSummary &&
           (lastStats || gameRef.current?.getState()?.stats) && (
             <CompletionSummary
-              stats={lastStats || gameRef.current?.getState()?.stats!}
+              stats={lastStats || gameRef.current?.getState()?.stats!} // eslint-disable-line
               onContinue={handleNewLevel}
               onReplay={handleReplayLevel}
             />

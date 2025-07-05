@@ -86,19 +86,27 @@ export class LocalStorageService {
     return { mainKey, subPath };
   }
 
-  private static getNestedValue<T>(obj: T, path: string[]): any {
-    return path.reduce((acc, part) => acc && acc[part], obj as any);
+  private static getNestedValue<T>(obj: T, path: string[]): unknown {
+    return path.reduce(
+      (acc, part) => acc && (acc as Record<string, unknown>)[part],
+      obj as unknown
+    );
   }
 
-  private static setNestedValue<T>(obj: T, path: string[], value: any): void {
+  private static setNestedValue<T>(
+    obj: T,
+    path: string[],
+    value: unknown
+  ): void {
     path.reduce((acc, part, index) => {
       if (index === path.length - 1) {
-        acc[part] = value;
+        (acc as Record<string, unknown>)[part] = value;
       } else {
-        acc[part] = acc[part] || {};
+        (acc as Record<string, unknown>)[part] =
+          (acc as Record<string, unknown>)[part] || {};
       }
-      return acc[part];
-    }, obj as any);
+      return (acc as Record<string, unknown>)[part];
+    }, obj as unknown);
   }
 
   static getItem<K extends keyof LocalStorageData>(
@@ -112,8 +120,8 @@ export class LocalStorageService {
 
     const parsedItem = JSON.parse(item);
     return subPath.length
-      ? this.getNestedValue(parsedItem, subPath)
-      : parsedItem;
+      ? (this.getNestedValue(parsedItem, subPath) as LocalStorageData[K])
+      : (parsedItem as LocalStorageData[K]);
   }
 
   static setItem<K extends keyof LocalStorageData>(
@@ -124,7 +132,7 @@ export class LocalStorageService {
 
     const { mainKey, subPath } = this.parseKey(key as string);
     const item = localStorage.getItem(mainKey);
-    const parsedItem = item ? JSON.parse(item) : {};
+    const parsedItem: Record<string, unknown> = item ? JSON.parse(item) : {};
 
     if (subPath.length) {
       this.setNestedValue(parsedItem, subPath, value);

@@ -13,9 +13,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // const boardGenerator = new BoardGenerator(null);
-    // const board = await boardGenerator.generateBoard(size);
-    const board = null;
+    const boardGenerator = new BoardGenerator(null);
+    const board = await boardGenerator.generateBoard(size);
+    // const board = null;
 
     return NextResponse.json({
       board,

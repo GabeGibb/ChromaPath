@@ -1,10 +1,8 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import Link from "next/link";
 import { Button, Card, LoadingSpinner } from "@/components/ui";
 
 const Generation: React.FC = () => {
-  const navigate = useNavigate();
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300 pt-20 pb-8">
       <div className="max-w-4xl mx-auto px-4 space-y-8">
@@ -14,7 +12,7 @@ const Generation: React.FC = () => {
             Board Generation
           </h1>
           <p className="text-xl text-base-content/80 max-w-2xl mx-auto">
-            Discover the algorithms behind ChromaPath's infinite puzzle
+            Discover the algorithms behind ChromaPath&apos;s infinite puzzle
             generation
           </p>
         </div>
@@ -209,21 +207,20 @@ const Generation: React.FC = () => {
 
         {/* CTA */}
         <div className="text-center space-y-4">
-          <Button
-            size="lg"
-            onClick={() => navigate("/game")}
-            className="min-w-[200px]"
-          >
-            Try It Yourself
-          </Button>
-          <div>
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/info")}
-              className="text-neutral-400 hover:text-neutral-200"
-            >
-              ← Back to Game Info
+          <Link href="/game">
+            <Button size="lg" className="min-w-[200px]">
+              Try It Yourself
             </Button>
+          </Link>
+          <div>
+            <Link href="/info">
+              <Button
+                variant="ghost"
+                className="text-neutral-400 hover:text-neutral-200"
+              >
+                ← Back to Game Info
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
