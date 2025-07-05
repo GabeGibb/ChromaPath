@@ -17,7 +17,6 @@ const Game: React.FC = () => {
 
   // Use settings hooks
   const [showNumbers, setShowNumbers] = useSetting("show_numbers");
-  const [soundEnabled, setSoundEnabled] = useSetting("sound_enabled");
   const soundService = useSound();
 
   // Helper function to render game state and update UI
@@ -233,6 +232,11 @@ const Game: React.FC = () => {
     renderGameState();
   }, [showNumbers]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (!gameRef.current) return;
+    gameRef.current.updateSoundService(soundService);
+  }, [soundService]);
+
   return (
     <div className="h-[100dvh] bg-gradient-to-br from-base-300 via-base-200 to-base-300 pt-4 pb-4 flex flex-col items-center justify-between gap-2 touch-none select-none">
       {/* Game Header */}
@@ -328,12 +332,15 @@ const Game: React.FC = () => {
           variant="ghost"
           size="sm"
           onClick={() => {
-            const newSoundState = !soundEnabled;
-            setSoundEnabled(newSoundState);
+            soundService.setSoundEnabled(!soundService.soundEnabled);
           }}
           className="min-w-[40px] p-2"
         >
-          {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+          {soundService.soundEnabled ? (
+            <Volume2 size={14} />
+          ) : (
+            <VolumeX size={14} />
+          )}
         </Button>
 
         <Button

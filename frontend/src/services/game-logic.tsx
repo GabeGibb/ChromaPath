@@ -20,6 +20,10 @@ export class ChromaPathGame {
     this.state = this.initializeState();
   }
 
+  public updateSoundService(soundService: SoundContextType): void {
+    this.soundService = soundService;
+  }
+
   private initializeState(newBoard: Board = []): GameState {
     const endpointGroups = newBoard.reduce((groups, row) => {
       row.forEach((cell) => {

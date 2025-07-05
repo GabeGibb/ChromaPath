@@ -6,6 +6,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
+import { useSetting } from "../localStorage/SettingsContext";
 
 // Sound file paths - using public directory paths
 const SOFT_CLICK = "/mouse-click-low.wav";
@@ -23,7 +24,7 @@ export interface SoundContextType {
 const SoundContext = createContext<SoundContextType | undefined>(undefined);
 
 export const SoundProvider = ({ children }: { children: React.ReactNode }) => {
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useSetting("sound_enabled");
 
   // Use refs to persist audio elements across renders
   const softClickAudio = useRef<HTMLAudioElement | null>(null);

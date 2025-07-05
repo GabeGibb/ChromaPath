@@ -17,12 +17,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`antialiased`}>
-        <SoundProvider>
-          <SettingsProvider>
+        <SettingsProvider>
+          <SoundProvider>
             <Navigation />
             {children}
-          </SettingsProvider>
-        </SoundProvider>
+          </SoundProvider>
+        </SettingsProvider>
       </body>
     </html>
   );
