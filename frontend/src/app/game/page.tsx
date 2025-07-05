@@ -175,6 +175,7 @@ const Game: React.FC = () => {
     setShowCompletionSummary(false);
     setIsReplaying(false);
     setLastStats(null);
+    // TODO: TRY CATCH
     const boardRequest = await fetch(`/api/puzzle?size=${boardSize}`);
     const boardData = await boardRequest.json();
     const board = boardData.board;
