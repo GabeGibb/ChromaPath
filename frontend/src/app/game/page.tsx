@@ -8,6 +8,7 @@ import { useSetting } from "@/services/localStorage/SettingsContext";
 import { Button, LoadingSpinner } from "@/components/ui";
 import { useSound } from "@/services/sound/SoundContext";
 import { GameStats } from "@/shared";
+import { MAX_BOARD_SIZE, MIN_BOARD_SIZE } from "@/shared/consts";
 
 const Game: React.FC = () => {
   const initialSize = 5; // Default size, can be made configurable via URL params or localStorage later
@@ -306,11 +307,14 @@ const Game: React.FC = () => {
           className="select select-bordered select-sm bg-base-200 text-base-content focus:outline-none focus:border-primary transition-colors min-w-[70px]"
           disabled={boardGenerating}
         >
-          {Array.from({ length: 11 }, (_, i) => (
-            <option key={i + 5} value={i + 5}>
-              {i + 5}x{i + 5}
-            </option>
-          ))}
+          {Array.from(
+            { length: MAX_BOARD_SIZE - MIN_BOARD_SIZE + 1 },
+            (_, i) => (
+              <option key={i + MIN_BOARD_SIZE} value={i + MIN_BOARD_SIZE}>
+                {i + MIN_BOARD_SIZE}x{i + MIN_BOARD_SIZE}
+              </option>
+            )
+          )}
         </select>
 
         <label className="flex items-center gap-1 text-base-content">
