@@ -1,14 +1,18 @@
+"use client";
 class SoundService {
   private softClickAudio: HTMLAudioElement | null = null;
   private hardClickAudio: HTMLAudioElement | null = null;
   private successAudio: HTMLAudioElement | null = null;
   private isEnabled: boolean = true;
+  private isInitialized: boolean = false;
 
   constructor() {
-    this.initializeAudio();
+    // Don't initialize audio immediately - wait for first use
   }
 
   private initializeAudio(): void {
+    if (this.isInitialized || typeof window === "undefined") return;
+
     try {
       // Import audio files using Vite's asset handling
       this.softClickAudio = new Audio(
@@ -24,13 +28,21 @@ class SoundService {
       // Preload the audio files
       this.softClickAudio.load();
       this.hardClickAudio.load();
+
+      this.isInitialized = true;
     } catch (error) {
       console.warn("Failed to initialize audio:", error);
     }
   }
 
   public playSoftClick(): void {
-    if (!this.isEnabled || !this.softClickAudio) return;
+    if (!this.isEnabled) return;
+
+    if (!this.isInitialized) {
+      this.initializeAudio();
+    }
+
+    if (!this.softClickAudio) return;
 
     try {
       // Reset the audio to the beginning and play
@@ -44,7 +56,13 @@ class SoundService {
   }
 
   public playHardClick(): void {
-    if (!this.isEnabled || !this.hardClickAudio) return;
+    if (!this.isEnabled) return;
+
+    if (!this.isInitialized) {
+      this.initializeAudio();
+    }
+
+    if (!this.hardClickAudio) return;
 
     try {
       // Reset the audio to the beginning and play
@@ -59,7 +77,13 @@ class SoundService {
   }
 
   public playSuccessSound(): void {
-    if (!this.isEnabled || !this.successAudio) return;
+    if (!this.isEnabled) return;
+
+    if (!this.isInitialized) {
+      this.initializeAudio();
+    }
+
+    if (!this.successAudio) return;
 
     try {
       // Reset the audio to the beginning and play
