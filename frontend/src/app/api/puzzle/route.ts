@@ -6,7 +6,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const size = parseInt(searchParams.get("size") || "5");
 
-    // TODO: VALIDATE BOARD SIZE
+    if (size < 5 || size > 15) {
+      return NextResponse.json(
+        { error: "Invalid board size" },
+        { status: 400 }
+      );
+    }
 
     const boardGenerator = new BoardGenerator(null);
     const board = await boardGenerator.generateBoard(size);

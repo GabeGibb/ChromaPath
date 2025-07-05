@@ -3,7 +3,8 @@ import React, { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Button, Modal, Tooltip } from "../ui";
 
-const Navigation: React.FC = () => {
+// Remove React.FC typing and use regular function declaration
+const Navigation = () => {
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
