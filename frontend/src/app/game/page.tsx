@@ -9,11 +9,8 @@ import { Button, LoadingSpinner } from "@/components/ui";
 import soundService from "@/services/sound";
 import { GameStats } from "@chromapath/shared/src";
 
-interface Props {
-  initialSize?: number;
-}
-
-const Game: React.FC<Props> = ({ initialSize = 5 }) => {
+const Game: React.FC = () => {
+  const initialSize = 5; // Default size, can be made configurable via URL params or localStorage later
   const canvasRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<ChromaPathGame | null>(null);
   const rendererRef = useRef<ChromaPathRenderer | null>(null);
@@ -176,7 +173,8 @@ const Game: React.FC<Props> = ({ initialSize = 5 }) => {
     setLastStats(null);
 
     const boardRequest = await fetch(`/api/puzzle?size=${boardSize}`);
-    const board = (await boardRequest.json()).board;
+    const boardData = await boardRequest.json();
+    const board = boardData.board;
 
     setBoardGenerating(false);
     if (!board) return;
