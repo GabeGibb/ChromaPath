@@ -1,13 +1,7 @@
-
-- settings
-- fix next js jank shit
--- initial load
--- local storage
--- sounds
-
-- phonme sizing
-- clean up pages
-
+- fix elapsed time
+- validate all stats
+- add question mark info blocks for stats
+- 5-15 mode
 
 
 FEATURES

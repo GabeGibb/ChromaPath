@@ -1,11 +1,5 @@
 "use client";
-import React, {
-  createContext,
-  useContext,
-  useRef,
-  useState,
-  useCallback,
-} from "react";
+import React, { createContext, useContext, useRef, useCallback } from "react";
 import { useSetting } from "../localStorage/SettingsContext";
 
 // Sound file paths - using public directory paths
