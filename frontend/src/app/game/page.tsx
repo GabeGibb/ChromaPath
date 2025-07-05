@@ -240,7 +240,7 @@ const Game: React.FC = () => {
   }, [soundService]);
 
   return (
-    <div className="h-[100dvh] bg-gradient-to-br from-base-300 via-base-200 to-base-300 pt-4 pb-4 flex flex-col items-center justify-between gap-2 touch-none select-none">
+    <div className="h-[100dvh] bg-gradient-to-br from-base-300 via-base-200 to-base-300 xl:pt-4 pt-16 pb-4 flex flex-col items-center justify-between gap-2 touch-none select-none">
       {/* Game Header */}
       <div className="flex flex-row justify-between items-center text-center space-y-0 relative px-12">
         {isReplaying && (

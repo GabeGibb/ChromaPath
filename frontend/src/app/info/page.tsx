@@ -4,7 +4,7 @@ import Link from "next/link";
 
 const Info: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300 pt-20 pb-8">
+    <div className="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300 xl:pt-8 pt-20 pb-8">
       <div className="max-w-4xl mx-auto px-4 space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">

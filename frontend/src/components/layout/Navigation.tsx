@@ -39,7 +39,7 @@ const Navigation = () => {
   return (
     <>
       {/* Desktop Side Navigation */}
-      <nav className="hidden xl:flex fixed left-0 top-0 h-full w-64 bg-base-300/95 backdrop-blur-md border-r border-base-300 shadow-lg z-40 flex-col">
+      <nav className="hidden xl:flex h-full w-64 bg-base-300/95 backdrop-blur-md border-r border-base-300 shadow-lg z-40 flex-col">
         {/* Logo */}
         <div className="p-6 border-b border-base-300">
           <Link

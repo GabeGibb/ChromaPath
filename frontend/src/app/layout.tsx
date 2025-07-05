@@ -19,8 +19,10 @@ export default function RootLayout({
       <body className={`antialiased`}>
         <SettingsProvider>
           <SoundProvider>
-            <Navigation />
-            {children}
+            <div className="flex min-h-screen">
+              <Navigation />
+              <main className="flex-1 xl:ml-0">{children}</main>
+            </div>
           </SoundProvider>
         </SettingsProvider>
       </body>
