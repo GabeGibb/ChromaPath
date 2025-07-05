@@ -224,6 +224,7 @@ function generatePuzzle(options: PuzzleOptions): Board {
     // Now assign path indices and populate the board
     let pathIndex = 0;
     for (const [_, cells] of pathGroups) {
+      // eslint-disable-line
       // Add all cells from this path to the board
       for (const [x, y] of cells) {
         const cell = tg.getItem([x, y]);

@@ -1,4 +1,4 @@
-import { ChromaPathRenderer } from "@chromapath/client/src/components/game/renderer";
+import { ChromaPathRenderer } from "@/components/game/renderer";
 import {
   getDirection,
   getEmptyCells,
@@ -19,7 +19,7 @@ export class BoardGenerator {
   private minPathLength = 3;
   private maxPathLength = this.boardSize * this.boardSize;
   private maxNumPaths = 50;
-  private renderer: ChromaPathRenderer | null = null;
+  private renderer: any | null = null;
   private pathStack: Point[][] = [];
   private doRender: boolean = false;
 
