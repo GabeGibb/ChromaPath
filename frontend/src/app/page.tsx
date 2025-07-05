@@ -1,11 +1,8 @@
-"use client";
 import React from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button, Card } from "../components/ui";
 
 const Home: React.FC = () => {
-  const router = useRouter();
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300 flex items-center justify-center p-4">
       <div className="max-w-4xl mx-auto text-center space-y-8">
@@ -56,21 +53,16 @@ const Home: React.FC = () => {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-12">
-          <Button
-            size="lg"
-            onClick={() => router.push("/game")}
-            className="min-w-[200px]"
-          >
-            Start Playing
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => router.push("/info")}
-            className="min-w-[200px]"
-          >
-            Learn More
-          </Button>
+          <Link href="/game">
+            <Button size="lg" className="min-w-[200px]">
+              Start Playing
+            </Button>
+          </Link>
+          <Link href="/info">
+            <Button variant="outline" size="lg" className="min-w-[200px]">
+              Learn More
+            </Button>
+          </Link>
         </div>
 
         {/* Stats */}

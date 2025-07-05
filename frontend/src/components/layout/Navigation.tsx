@@ -1,11 +1,10 @@
 "use client";
 import React, { useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button, Modal, Tooltip } from "../ui";
 
-// Remove React.FC typing and use regular function declaration
 const Navigation = () => {
-  const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -17,11 +16,6 @@ const Navigation = () => {
     { path: "/generation", label: "Generation", icon: "🔧" },
   ];
 
-  const handleNavClick = (path: string) => {
-    router.push(path);
-    setIsMobileMenuOpen(false);
-  };
-
   const howToPlayContent = (
     <div className="space-y-2">
       <p className="font-semibold">How to Play ChromaPath:</p>
@@ -32,12 +26,12 @@ const Navigation = () => {
         <li>• Complete the level to advance</li>
       </ul>
       <div className="pt-2 border-t border-base-content/20">
-        <button
-          onClick={() => router.push("/info")}
+        <Link
+          href="/info"
           className="text-primary hover:text-primary-focus text-xs underline"
         >
           Learn more on Info page →
-        </button>
+        </Link>
       </div>
     </div>
   );
@@ -48,20 +42,20 @@ const Navigation = () => {
       <nav className="hidden lg:flex fixed left-0 top-0 h-full w-64 bg-base-300/95 backdrop-blur-md border-r border-base-300 shadow-lg z-40 flex-col">
         {/* Logo */}
         <div className="p-6 border-b border-base-300">
-          <div
-            className="text-2xl font-bold text-primary cursor-pointer hover:text-primary-focus transition-colors text-center"
-            onClick={() => handleNavClick("/")}
+          <Link
+            href="/"
+            className="text-2xl font-bold text-primary hover:text-primary-focus transition-colors text-center block"
           >
             ChromaPath
-          </div>
+          </Link>
         </div>
 
         {/* Navigation Items */}
         <div className="flex-1 p-4 space-y-2">
           {navItems.map((item) => (
-            <button
+            <Link
               key={item.path}
-              onClick={() => handleNavClick(item.path)}
+              href={item.path}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 hover:scale-105 ${
                 pathname === item.path
                   ? "bg-primary text-primary-content shadow-lg"
@@ -70,24 +64,12 @@ const Navigation = () => {
             >
               <span className="text-lg">{item.icon}</span>
               <span className="font-medium">{item.label}</span>
-            </button>
+            </Link>
           ))}
         </div>
 
         {/* Bottom Actions */}
         <div className="p-4 border-t border-base-300 space-y-2">
-          {/* How to Play Tooltip
-          <Tooltip content={howToPlayContent} position="right">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start gap-3"
-            >
-              <span>❓</span>
-              <span>How to Play</span>
-            </Button>
-          </Tooltip> */}
-
           {/* Settings Button */}
           <Button
             variant="ghost"
@@ -107,12 +89,12 @@ const Navigation = () => {
           <div className="flex items-center justify-between h-16">
             {/* Mobile Logo - Centered */}
             <div className="flex-1 flex justify-center">
-              <div
-                className="text-xl font-bold text-primary cursor-pointer hover:text-primary-focus transition-colors text-left w-full"
-                onClick={() => handleNavClick("/")}
+              <Link
+                href="/"
+                className="text-xl font-bold text-primary hover:text-primary-focus transition-colors text-left w-full"
               >
                 ChromaPath
-              </div>
+              </Link>
             </div>
 
             {/* Mobile Actions */}
@@ -151,9 +133,10 @@ const Navigation = () => {
             <div className="border-t border-base-300 bg-base-300/95 backdrop-blur-md">
               <div className="py-2 space-y-1">
                 {navItems.map((item) => (
-                  <button
+                  <Link
                     key={item.path}
-                    onClick={() => handleNavClick(item.path)}
+                    href={item.path}
+                    onClick={() => setIsMobileMenuOpen(false)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                       pathname === item.path
                         ? "bg-primary text-primary-content"
@@ -162,7 +145,7 @@ const Navigation = () => {
                   >
                     <span className="text-lg">{item.icon}</span>
                     <span className="font-medium">{item.label}</span>
-                  </button>
+                  </Link>
                 ))}
               </div>
             </div>
