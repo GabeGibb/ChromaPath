@@ -1,5 +1,5 @@
 packages:
   - "api"
   - "client"
-  - "shared"
   - "frontend"
+  - "shared"
