@@ -282,6 +282,21 @@ export class ChromaPathGame {
       return;
     }
 
+    // If current path is connected by two endpoints, dont allow any more moves
+    if (this.state.paths[this.state.currentPathIndex].length > 1) {
+      const startPoint = this.state.paths[this.state.currentPathIndex][0];
+      const endPoint =
+        this.state.paths[this.state.currentPathIndex][
+          this.state.paths[this.state.currentPathIndex].length - 1
+        ];
+      if (
+        this.isAtEndpoint(startPoint, this.state.startPoint) &&
+        this.isAtEndpoint(endPoint, this.state.startPoint)
+      ) {
+        return;
+      }
+    }
+
     // Handle pathfinding for non-adjacent moves
     const curPathCopy = [...currentPath];
     for (let i = currentPath.length - 1; i >= 0; i--) {

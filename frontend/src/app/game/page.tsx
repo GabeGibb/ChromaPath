@@ -18,6 +18,7 @@ const Game: React.FC = () => {
 
   // Use settings hooks
   const [showNumbers, setShowNumbers] = useSetting("show_numbers");
+  const [timer, setTimer] = useState<number>(0);
   const soundService = useSound();
 
   // Helper function to render game state and update UI
@@ -29,6 +30,7 @@ const Game: React.FC = () => {
       setNumCurrentPaths(state.numConnectedPaths);
     }
   };
+
   const [boardSize, setBoardSize] = useState(initialSize);
   const [boardGenerating, setBoardGenerating] = useState<boolean>(true);
   const [numPaths, setNumPaths] = useState<number>(0);
@@ -38,6 +40,31 @@ const Game: React.FC = () => {
   const [isReplaying, setIsReplaying] = useState<boolean>(false);
   const [lastStats, setLastStats] = useState<GameStats | null>(null);
 
+  // Helper function to format time with hundredths precision
+  const formatTime = (milliseconds: number): string => {
+    const totalSeconds = milliseconds / 1000;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    const hundredths = Math.floor((totalSeconds % 1) * 100);
+
+    if (minutes > 0) {
+      return `${minutes}m ${seconds.toString().padStart(2, "0")}.${hundredths
+        .toString()
+        .padStart(2, "0")}s`;
+    }
+    return `${seconds}.${hundredths.toString().padStart(2, "0")}s`;
+  };
+
+  // Implement some request animation frame to update the timer
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const gameState = gameRef.current?.getState();
+      if (gameState && !showCompletionSummary) {
+        setTimer(new Date().getTime() - gameState.stats.startTime);
+      }
+    }, 10);
+    return () => clearInterval(interval);
+  }, [showCompletionSummary]);
   const gameActionsNotReady =
     !gameRef.current ||
     !rendererRef.current ||
@@ -257,10 +284,6 @@ const Game: React.FC = () => {
           {isReplaying && (
             <div className="text-xs text-warning mb-1">Replaying Level</div>
           )}
-          Paths:{" "}
-          <span className="font-bold text-primary">
-            {numCurrentPaths}/{numPaths}
-          </span>
         </div>
       </div>
 
@@ -289,6 +312,34 @@ const Game: React.FC = () => {
           className="w-[95dvw] h-[95dvw] md:w-[75dvh] md:h-[75dvh] border-2 border-base-300 rounded-lg shadow-2xl overscroll-none overflow-hidden bg-base-200"
         />
       </div>
+
+      {/* Stats Display */}
+      {!showCompletionSummary && (
+        <div className="flex justify-between items-center py-2 px-4 max-w-2xl mx-auto w-full">
+          {/* Paths Counter - Left */}
+          <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
+            <div className="text-center">
+              <div className="text-xs text-base-content/60 mb-1">Paths</div>
+              <div className="text-lg font-bold text-secondary">
+                {numCurrentPaths}/{numPaths}
+              </div>
+            </div>
+          </div>
+
+          {/* Timer - Center */}
+          <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
+            <div className="text-center">
+              <div className="text-xs text-base-content/60 mb-1">Time</div>
+              <div className="text-xl font-mono font-bold text-primary">
+                {formatTime(timer)}
+              </div>
+            </div>
+          </div>
+
+          {/* Placeholder for balance - Right */}
+          <div className="w-20"></div>
+        </div>
+      )}
 
       {/* Game Controls */}
       <div className="flex flex-row gap-2 justify-center items-center max-w-2xl mx-auto px-2 py-1">

@@ -14,14 +14,17 @@ const CompletionSummary: React.FC<CompletionSummaryProps> = ({
   onReplay,
 }) => {
   const formatTime = (milliseconds: number): string => {
-    const seconds = Math.floor(milliseconds / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
+    const totalSeconds = milliseconds / 1000;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    const hundredths = Math.floor((totalSeconds % 1) * 100);
 
     if (minutes > 0) {
-      return `${minutes}m ${remainingSeconds}s`;
+      return `${minutes}m ${seconds.toString().padStart(2, "0")}.${hundredths
+        .toString()
+        .padStart(2, "0")}s`;
     }
-    return `${remainingSeconds}s`;
+    return `${seconds}.${hundredths.toString().padStart(2, "0")}s`;
   };
 
   const getTimeTaken = (): string => {

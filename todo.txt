@@ -2,7 +2,7 @@
 - validate all stats
 - add question mark info blocks for stats
 - 5-15 mode
-
+- 16 x 16 and 15 x 15 bad boards
 
 FEATURES
 - stats (get the time, xbyx for each, have some sort of better selector or something)
@@ -15,6 +15,24 @@ stats
 FUTURE:
 - customizable colors
 - light mode
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 monetization
 - pay for harder levels (hardest is 15x15) (requires account)
