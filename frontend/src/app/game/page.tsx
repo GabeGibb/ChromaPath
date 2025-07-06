@@ -4,11 +4,13 @@ import React, { useEffect, useRef, useState } from "react";
 import { ChromaPathGame } from "@/services/game-logic";
 import { ChromaPathRenderer } from "@/components/game/renderer";
 import CompletionSummary from "@/components/game/CompletionSummary";
+import BoardGenerationError from "@/components/game/BoardGenerationError";
 import { useSetting } from "@/services/localStorage/SettingsContext";
 import { Button, LoadingSpinner } from "@/components/ui";
 import { useSound } from "@/services/sound/SoundContext";
 import { GameStats } from "@/shared";
 import { MAX_BOARD_SIZE, MIN_BOARD_SIZE } from "@/shared/consts";
+import { BoardService } from "@/services/boardService";
 
 const Game: React.FC = () => {
   const initialSize = 5; // Default size, can be made configurable via URL params or localStorage later
@@ -33,6 +35,8 @@ const Game: React.FC = () => {
 
   const [boardSize, setBoardSize] = useState(initialSize);
   const [boardGenerating, setBoardGenerating] = useState<boolean>(true);
+  const [boardError, setBoardError] = useState<Error | null>(null);
+  const [isRetrying, setIsRetrying] = useState<boolean>(false);
   const [numPaths, setNumPaths] = useState<number>(0);
   const [numCurrentPaths, setNumCurrentPaths] = useState<number>(0);
   const [showCompletionSummary, setShowCompletionSummary] =
@@ -78,7 +82,7 @@ const Game: React.FC = () => {
     const canvas = renderer.getCanvas();
 
     const handlePointerDown = (event: PointerEvent | Touch) => {
-      if (gameActionsNotReady || showCompletionSummary) return;
+      if (gameActionsNotReady || showCompletionSummary || boardError) return;
 
       const rect = canvas.getBoundingClientRect();
       const canvasWidth = rect.width;
@@ -94,7 +98,7 @@ const Game: React.FC = () => {
     };
 
     const handlePointerMove = (event: PointerEvent | Touch) => {
-      if (gameActionsNotReady || showCompletionSummary) return;
+      if (gameActionsNotReady || showCompletionSummary || boardError) return;
 
       const rect = canvas.getBoundingClientRect();
       const canvasWidth = rect.width;
@@ -114,7 +118,7 @@ const Game: React.FC = () => {
     };
 
     const handlePointerUp = () => {
-      if (gameActionsNotReady || showCompletionSummary) return;
+      if (gameActionsNotReady || showCompletionSummary || boardError) return;
 
       const gameComplete = game.endDrag();
       renderGameState();
@@ -193,28 +197,37 @@ const Game: React.FC = () => {
 
       window.removeEventListener("resize", handleWindowResize);
     };
-  }, [boardSize, gameActionsNotReady, showCompletionSummary]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [boardSize, gameActionsNotReady, showCompletionSummary, boardError]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleNewLevel = async () => {
     if (gameActionsNotReady && !boardGenerating) return;
 
     setBoardGenerating(true);
+    setBoardError(null);
     setShowCompletionSummary(false);
     setIsReplaying(false);
     setLastStats(null);
-    // TODO: TRY CATCH
-    const boardRequest = await fetch(`/api/puzzle?size=${boardSize}`);
-    const boardData = await boardRequest.json();
-    const board = boardData.board;
 
-    setBoardGenerating(false);
-    if (!board) return;
+    try {
+      const boardData = await BoardService.generateBoard(boardSize);
+      const board = boardData.board;
 
-    gameRef.current?.reset(board);
-    const state = gameRef.current?.getState();
-    setNumPaths(state?.paths.length ?? 0);
-    setNumCurrentPaths(state?.numConnectedPaths ?? 0);
-    renderGameState();
+      setBoardGenerating(false);
+      if (!board) {
+        throw new Error("Invalid board data received");
+      }
+
+      gameRef.current?.reset(board);
+      const state = gameRef.current?.getState();
+      setNumPaths(state?.paths.length ?? 0);
+      setNumCurrentPaths(state?.numConnectedPaths ?? 0);
+      renderGameState();
+    } catch (error) {
+      setBoardGenerating(false);
+      setBoardError(
+        error instanceof Error ? error : new Error("Unknown error occurred")
+      );
+    }
   };
 
   const handleReplayLevel = async () => {
@@ -299,6 +312,13 @@ const Game: React.FC = () => {
             </div>
           </div>
         )}
+        {boardError && (
+          <BoardGenerationError
+            error={boardError}
+            onRetry={handleNewLevel}
+            isRetrying={isRetrying}
+          />
+        )}
         {showCompletionSummary &&
           (lastStats || gameRef.current?.getState()?.stats) && (
             <CompletionSummary
@@ -314,39 +334,40 @@ const Game: React.FC = () => {
       </div>
 
       {/* Stats Display */}
-      {!showCompletionSummary && (
-        <div className="flex justify-between items-center py-2 px-4 max-w-2xl mx-auto w-full">
-          {/* Paths Counter - Left */}
-          <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
-            <div className="text-center">
-              <div className="text-xs text-base-content/60 mb-1">Paths</div>
-              <div className="text-lg font-bold text-secondary">
-                {numCurrentPaths}/{numPaths}
+      {!showCompletionSummary ||
+        (!boardError && (
+          <div className="flex justify-between items-center py-2 px-4 max-w-2xl mx-auto w-full">
+            {/* Paths Counter - Left */}
+            <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
+              <div className="text-center">
+                <div className="text-xs text-base-content/60 mb-1">Paths</div>
+                <div className="text-lg font-bold text-secondary">
+                  {numCurrentPaths}/{numPaths}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Timer - Center */}
-          <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
-            <div className="text-center">
-              <div className="text-xs text-base-content/60 mb-1">Time</div>
-              <div className="text-xl font-mono font-bold text-primary">
-                {formatTime(timer)}
+            {/* Timer - Center */}
+            <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
+              <div className="text-center">
+                <div className="text-xs text-base-content/60 mb-1">Time</div>
+                <div className="text-xl font-mono font-bold text-primary">
+                  {formatTime(timer)}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Placeholder for balance - Right */}
-          <div className="w-20"></div>
-        </div>
-      )}
+            {/* Placeholder for balance - Right */}
+            <div className="w-20"></div>
+          </div>
+        ))}
 
       {/* Game Controls */}
       <div className="flex flex-row gap-2 justify-center items-center max-w-2xl mx-auto px-2 py-1">
         <Button
           onClick={handleNewLevel}
           loading={boardGenerating}
-          disabled={boardGenerating}
+          disabled={boardGenerating || isRetrying}
           size="sm"
           className="min-w-[80px]"
         >
@@ -357,7 +378,7 @@ const Game: React.FC = () => {
           value={boardSize}
           onChange={(e) => setBoardSize(Number(e.target.value))}
           className="select select-bordered select-sm bg-base-200 text-base-content focus:outline-none focus:border-primary transition-colors min-w-[70px]"
-          disabled={boardGenerating}
+          disabled={boardGenerating || isRetrying}
         >
           {Array.from(
             { length: MAX_BOARD_SIZE - MIN_BOARD_SIZE + 1 },
@@ -407,7 +428,7 @@ const Game: React.FC = () => {
             gameRef.current?.refreshPaths();
             renderGameState();
           }}
-          disabled={boardGenerating}
+          disabled={boardGenerating || isRetrying}
           className="min-w-[40px]"
         >
           <RefreshCcw size={14} />

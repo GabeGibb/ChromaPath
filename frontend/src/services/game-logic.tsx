@@ -532,13 +532,64 @@ export class ChromaPathGame {
   }
 
   private checkCompletion(): boolean {
-    // TODO: BETTER CHECKER!!
-    let total = 0;
-    for (const path in this.state.paths) {
-      total += this.state.paths[path].length;
+    // Check if all squares are filled
+    let filledSquares = 0;
+    for (let y = 0; y < this.boardSize; y++) {
+      for (let x = 0; x < this.boardSize; x++) {
+        if (this.state.board[y][x] !== null) {
+          filledSquares++;
+        }
+      }
     }
 
-    return total === this.boardSize * this.boardSize;
+    // Check if all paths have endpoints
+    const endpointGroups = new Map<number, number>();
+    for (let y = 0; y < this.boardSize; y++) {
+      for (let x = 0; x < this.boardSize; x++) {
+        const cell = this.state.board[y][x];
+        if (cell?.isEndpoint) {
+          const count = endpointGroups.get(cell.pathIndex) || 0;
+          endpointGroups.set(cell.pathIndex, count + 1);
+        }
+      }
+    }
+
+    // Verify each path has exactly 2 endpoints
+    for (const [pathIndex, endpointCount] of endpointGroups) {
+      if (endpointCount !== 2) {
+        return false;
+      }
+    }
+
+    // Check if all paths are connected (no isolated tiles)
+    for (let y = 0; y < this.boardSize; y++) {
+      for (let x = 0; x < this.boardSize; x++) {
+        const cell = this.state.board[y][x];
+        if (cell && !cell.isEndpoint) {
+          const neighbors = getValidNeighbors(
+            this.state.board,
+            { x, y },
+            new Set(),
+            true
+          );
+          let hasConnectedNeighbor = false;
+
+          for (const neighbor of neighbors) {
+            const neighborCell = this.state.board[neighbor.y][neighbor.x];
+            if (neighborCell && neighborCell.pathIndex === cell.pathIndex) {
+              hasConnectedNeighbor = true;
+              break;
+            }
+          }
+
+          if (!hasConnectedNeighbor) {
+            return false;
+          }
+        }
+      }
+    }
+
+    return filledSquares === this.boardSize * this.boardSize;
   }
 
   public getState(): GameState {

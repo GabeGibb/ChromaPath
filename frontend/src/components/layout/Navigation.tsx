@@ -39,7 +39,7 @@ const Navigation = () => {
   return (
     <>
       {/* Desktop Side Navigation */}
-      <nav className="hidden xl:flex h-full w-64 bg-base-300/95 backdrop-blur-md border-r border-base-300 shadow-lg z-40 flex-col">
+      <nav className="hidden xl:flex h-screen w-64 bg-base-300/95 backdrop-blur-md border-r border-base-300 shadow-lg z-40 flex-col">
         {/* Logo */}
         <div className="p-6 border-b border-base-300">
           <Link
@@ -51,7 +51,7 @@ const Navigation = () => {
         </div>
 
         {/* Navigation Items */}
-        <div className="flex-1 p-4 space-y-2">
+        <div className="flex-1 h-full p-4 space-y-2">
           {navItems.map((item) => (
             <Link
               key={item.path}
@@ -69,7 +69,7 @@ const Navigation = () => {
         </div>
 
         {/* Bottom Actions */}
-        <div className="p-4 border-t border-base-300 space-y-2">
+        <div className="p-4 mb-4 border-t border-base-300 space-y-2">
           {/* Settings Button */}
           <Button
             variant="ghost"
