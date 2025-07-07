@@ -39,27 +39,28 @@ export function getValidNeighbors(
 }
 
 export function getDistancedColorArray(): string[] {
-  function maximizePairwiseDistance(numColors: number): string[] {
+  function maximizePairwiseDistance(): string[] {
     const colors: number[][] = [];
 
     // Generate permutations of high and low RGB values
-    const levels = [0, 255, 85, 170]; // High, low, and medium values
+    const levels = [0, 255, 170, 85]; // High, low, and medium values
     // const levels = [100, 105, 110, 115];
+    let counter = 0;
     for (const r of levels) {
       for (const g of levels) {
         for (const b of levels) {
-          if (r === 0 && g === 0 && b === 0) continue; // Skip black
-          if (r === 255 && g === 255 && b === 255) continue; // Skip white
+          counter++;
+          if (counter === 1 || counter === 2 || counter === 11) continue;
           colors.push([r, g, b]);
         }
       }
     }
 
-    // Select `numColors` points, maximizing pairwise distance
+    // Select all available colors, maximizing pairwise distance
     const selectedColors: number[][] = [];
     selectedColors.push(colors[0]); // Start with the first color
 
-    while (selectedColors.length < numColors && colors.length > 0) {
+    while (colors.length > 0) {
       let maxDistance = 0;
       let nextColor: number[] | null = null;
 
@@ -92,7 +93,7 @@ export function getDistancedColorArray(): string[] {
   }
 
   // Generate and assign colors
-  const colors = maximizePairwiseDistance(62); // TODO: 62 is hardcoded because 4 x 4 x 4 = 64, but we skip black and white
+  const colors = maximizePairwiseDistance();
 
   return colors;
 }
