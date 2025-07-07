@@ -4,12 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build:shared": "cd shared && pnpm install && pnpm run build",
-    "build:api": "cd api && pnpm install && pnpm run build",
-    "build:client": "cd client && pnpm install && pnpm run build",
-    "build": "pnpm run build:shared && pnpm run build:api && pnpm run build:client",
-    "start:api": "cd api && pnpm start",
-    "dev:client": "cd client && pnpm run dev"
+    "lint": "cd frontend && pnpm run lint"
   },
   "keywords": [],
   "author": "",
