@@ -36,7 +36,6 @@ const Game: React.FC = () => {
   const [boardSize, setBoardSize] = useState(initialSize);
   const [boardGenerating, setBoardGenerating] = useState<boolean>(true);
   const [boardError, setBoardError] = useState<Error | null>(null);
-  const [isRetrying, setIsRetrying] = useState<boolean>(false);
   const [numPaths, setNumPaths] = useState<number>(0);
   const [numCurrentPaths, setNumCurrentPaths] = useState<number>(0);
   const [showCompletionSummary, setShowCompletionSummary] =
@@ -313,11 +312,7 @@ const Game: React.FC = () => {
           </div>
         )}
         {boardError && (
-          <BoardGenerationError
-            error={boardError}
-            onRetry={handleNewLevel}
-            isRetrying={isRetrying}
-          />
+          <BoardGenerationError error={boardError} onRetry={handleNewLevel} />
         )}
         {showCompletionSummary &&
           (lastStats || gameRef.current?.getState()?.stats) && (
@@ -366,7 +361,7 @@ const Game: React.FC = () => {
         <Button
           onClick={handleNewLevel}
           loading={boardGenerating}
-          disabled={boardGenerating || isRetrying}
+          disabled={boardGenerating}
           size="sm"
           className="min-w-[80px]"
         >
@@ -377,7 +372,7 @@ const Game: React.FC = () => {
           value={boardSize}
           onChange={(e) => setBoardSize(Number(e.target.value))}
           className="select select-bordered select-sm bg-base-200 text-base-content focus:outline-none focus:border-primary transition-colors min-w-[70px]"
-          disabled={boardGenerating || isRetrying}
+          disabled={boardGenerating}
         >
           {Array.from(
             { length: MAX_BOARD_SIZE - MIN_BOARD_SIZE + 1 },
@@ -427,7 +422,7 @@ const Game: React.FC = () => {
             gameRef.current?.refreshPaths();
             renderGameState();
           }}
-          disabled={boardGenerating || isRetrying}
+          disabled={boardGenerating}
           className="min-w-[40px]"
         >
           <RefreshCcw size={14} />

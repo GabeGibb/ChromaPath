@@ -549,7 +549,7 @@ export class ChromaPathGame {
     }
 
     // Verify each path has exactly 2 endpoints
-    for (const [pathIndex, endpointCount] of endpointGroups) {
+    for (const endpointCount of endpointGroups.values()) {
       if (endpointCount !== 2) {
         return false;
       }
