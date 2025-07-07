@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const boardGenerator = new BoardGenerator(null);
     const boards = [];
-    for (let size = 5; size <= 15; size++) {
+    for (let size = 5; size <= 10; size++) {
       const board = await boardGenerator.generateBoard(size);
       boards.push({
         board,

@@ -1,3 +1,30 @@
+# ChromaPath
+
+A puzzle game where you connect colored tiles to create paths and match target patterns.
+
+## Features
+
+- **Classic Mode**: Play individual levels with customizable board sizes
+- **Ladder Mode**: Complete 11 progressively challenging levels in sequence
+- **Countdown Timer**: Exciting 3-2-1 countdown before starting ladder mode
+- **Sound Effects**: Immersive audio feedback for interactions
+- **Responsive Design**: Works on desktop and mobile devices
+
+## Game Modes
+
+### Classic Mode
+
+- Play individual levels
+- Choose board sizes from 3x3 to 8x8
+- Practice and improve your skills
+
+### Ladder Mode
+
+- Complete 11 levels in sequence
+- Increasing difficulty and board sizes
+- Race against the clock for the best time
+- Exciting countdown before each session
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

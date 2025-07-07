@@ -84,10 +84,10 @@ const Game: React.FC = () => {
   }, []);
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       {/* Game Header */}
-      <div className="flex flex-row justify-between items-center text-center space-y-0 relative px-12 pt-4">
-        {isReplaying && (
+      {isReplaying && (
+        <div className="flex flex-row justify-between items-center text-center space-y-0 relative px-12 pt-4">
           <Button
             variant="ghost"
             size="sm"
@@ -96,13 +96,11 @@ const Game: React.FC = () => {
           >
             <ArrowLeft size={16} />
           </Button>
-        )}
-        <div className="text-lg text-base-content/80">
-          {isReplaying && (
+          <div className="text-lg text-base-content/80">
             <div className="text-xs text-warning mb-1">Replaying Level</div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Game Core Component */}
       <GameCore
@@ -119,7 +117,7 @@ const Game: React.FC = () => {
         showBoardSizeSelector={true}
         onBoardSizeChange={handleBoardSizeChange}
       />
-    </>
+    </div>
   );
 };
 

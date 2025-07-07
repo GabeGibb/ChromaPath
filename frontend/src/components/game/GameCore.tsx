@@ -259,13 +259,14 @@ const GameCore: React.FC<GameCoreProps> = ({
 
       window.removeEventListener("resize", handleWindowResize);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     boardSize,
     gameActionsNotReady,
     showCompletionSummary,
     boardError,
     onBoardComplete,
-  ]); // eslint-disable-line react-hooks/exhaustive-deps
+  ]);
 
   return (
     <div className="h-full bg-gradient-to-br from-base-300 via-base-200 to-base-300 xl:pt-4 pt-8 pb-8 flex flex-col items-center justify-center gap-2 touch-none select-none">

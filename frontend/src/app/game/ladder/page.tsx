@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { BoardService, LadderBoard } from "@/services/boardService";
 import GameCore from "@/components/game/GameCore";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, Countdown } from "@/components/ui";
 
 const LadderSummary: React.FC<{
   totalTime: number;
@@ -54,6 +54,7 @@ const LadderGame: React.FC = () => {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [totalTime, setTotalTime] = useState<number | null>(null);
   const [showSummary, setShowSummary] = useState(false);
+  const [showCountdown, setShowCountdown] = useState(false);
 
   // Fetch all boards on mount
   useEffect(() => {
@@ -64,11 +65,12 @@ const LadderGame: React.FC = () => {
     setShowSummary(false);
     setTotalTime(null);
     setStartTime(null);
+    setShowCountdown(false);
     BoardService.generateLadderBoards()
       .then((b) => {
         setBoards(b);
         setLoading(false);
-        setStartTime(Date.now());
+        setShowCountdown(true);
       })
       .catch((e) => {
         setError(e.message || "Failed to load ladder boards");
@@ -88,6 +90,12 @@ const LadderGame: React.FC = () => {
     }
   };
 
+  // Handle countdown completion
+  const handleCountdownComplete = () => {
+    setShowCountdown(false);
+    setStartTime(Date.now());
+  };
+
   // Restart ladder
   const handleRestart = () => {
     setBoards(null);
@@ -95,13 +103,14 @@ const LadderGame: React.FC = () => {
     setShowSummary(false);
     setTotalTime(null);
     setStartTime(null);
+    setShowCountdown(false);
     setLoading(true);
     setError(null);
     BoardService.generateLadderBoards()
       .then((b) => {
         setBoards(b);
         setLoading(false);
-        setStartTime(Date.now());
+        setShowCountdown(true);
       })
       .catch((e) => {
         setError(e.message || "Failed to load ladder boards");
@@ -138,8 +147,8 @@ const LadderGame: React.FC = () => {
 
   const board = boards[current];
   return (
-    <div>
-      <div className="flex flex-row justify-between items-center text-center space-y-0 relative px-12 pt-4">
+    <div className="flex flex-col h-full">
+      <div className="flex flex-row justify-between items-center text-center space-y-0 relative px-12 pt-4 flex-shrink-0">
         <div className="text-lg text-base-content/80">
           <div className="space-y-1">
             <div className="text-xs text-warning">Ladder Mode</div>
@@ -149,19 +158,22 @@ const LadderGame: React.FC = () => {
           </div>
         </div>
       </div>
-      <GameCore
-        boardSize={board.size}
-        board={board.board}
-        boardGenerating={false}
-        boardError={null}
-        showCompletionSummary={false}
-        lastStats={null}
-        onBoardComplete={handleBoardComplete}
-        onNewLevel={() => {}}
-        onReplayLevel={() => {}}
-        onBoardErrorRetry={() => {}}
-        showBoardSizeSelector={false}
-      />
+      {showCountdown && <Countdown onComplete={handleCountdownComplete} />}
+      <div className="flex-1 min-h-0">
+        <GameCore
+          boardSize={board.size}
+          board={board.board}
+          boardGenerating={false}
+          boardError={null}
+          showCompletionSummary={false}
+          lastStats={null}
+          onBoardComplete={handleBoardComplete}
+          onNewLevel={() => {}}
+          onReplayLevel={() => {}}
+          onBoardErrorRetry={() => {}}
+          showBoardSizeSelector={false}
+        />
+      </div>
     </div>
   );
 };

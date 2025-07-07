@@ -11,7 +11,6 @@ const Navigation = () => {
 
   const navItems = [
     { path: "/", label: "Home", icon: "🏠" },
-    { path: "/game", label: "Play", icon: "🎮" },
     { path: "/info", label: "Info", icon: "ℹ️" },
     { path: "/generation", label: "Generation", icon: "🔧" },
   ];
@@ -52,7 +51,53 @@ const Navigation = () => {
 
         {/* Navigation Items */}
         <div className="flex-1 h-full p-4 space-y-2">
-          {navItems.map((item) => (
+          {/* Home */}
+          <Link
+            key="/"
+            href="/"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 hover:scale-105 ${
+              pathname === "/"
+                ? "bg-primary text-primary-content shadow-lg"
+                : "hover:bg-base-200 text-base-content"
+            }`}
+          >
+            <span className="text-lg">🏠</span>
+            <span className="font-medium">Home</span>
+          </Link>
+
+          {/* Play Section */}
+          <div className="mt-2 mb-2">
+            <div className="uppercase text-xs font-bold text-base-content/60 px-4 pb-1 tracking-wider select-none cursor-default">
+              Play
+            </div>
+            <div className="bg-base-200/80 border border-base-300 rounded-xl shadow-inner flex flex-col gap-1 py-2">
+              <Link
+                href="/game"
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 hover:scale-105 ${
+                  pathname === "/game"
+                    ? "bg-primary text-primary-content shadow-lg"
+                    : "hover:bg-base-300 text-base-content"
+                }`}
+              >
+                <span className="text-lg">🎮</span>
+                <span className="font-medium">Classic Mode</span>
+              </Link>
+              <Link
+                href="/game/ladder"
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 hover:scale-105 ${
+                  pathname === "/game/ladder"
+                    ? "bg-primary text-primary-content shadow-lg"
+                    : "hover:bg-base-300 text-base-content"
+                }`}
+              >
+                <span className="text-lg">🏆</span>
+                <span className="font-medium">Ladder Mode</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Other nav items */}
+          {navItems.slice(1).map((item) => (
             <Link
               key={item.path}
               href={item.path}
@@ -147,6 +192,49 @@ const Navigation = () => {
                     <span className="font-medium">{item.label}</span>
                   </Link>
                 ))}
+
+                {/* Game Modes for Mobile */}
+                <div className="border-t border-base-300 pt-2 mt-2">
+                  <div className="px-4 py-2 text-xs font-semibold text-base-content/70 uppercase tracking-wide">
+                    Play
+                  </div>
+                  <div className="bg-base-200/80 border border-base-300 rounded-xl shadow-inner flex flex-col gap-1 py-2">
+                    <Link
+                      href="/game"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                        pathname === "/game"
+                          ? "bg-primary text-primary-content"
+                          : "hover:bg-base-300 text-base-content"
+                      }`}
+                    >
+                      <span className="text-lg">🎮</span>
+                      <div className="flex-1">
+                        <div className="font-medium">Classic Mode</div>
+                        <div className="text-xs text-base-content/70">
+                          Play individual levels
+                        </div>
+                      </div>
+                    </Link>
+                    <Link
+                      href="/game/ladder"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                        pathname === "/game/ladder"
+                          ? "bg-primary text-primary-content"
+                          : "hover:bg-base-300 text-base-content"
+                      }`}
+                    >
+                      <span className="text-lg">🏆</span>
+                      <div className="flex-1">
+                        <div className="font-medium">Ladder Mode</div>
+                        <div className="text-xs text-base-content/70">
+                          Complete 11 levels in sequence
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
               </div>
             </div>
           )}
