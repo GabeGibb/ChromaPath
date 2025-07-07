@@ -19,7 +19,10 @@ export default function RootLayout({
       <body className={`antialiased`}>
         <SettingsProvider>
           <SoundProvider>
-            <div className="flex min-h-screen">
+            <div
+              suppressHydrationWarning // ! LOL
+              className="flex h-full flex-col xl:flex-row"
+            >
               <Navigation />
               <main className="flex-1 xl:ml-0">{children}</main>
             </div>

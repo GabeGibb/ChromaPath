@@ -39,7 +39,7 @@ const Navigation = () => {
   return (
     <>
       {/* Desktop Side Navigation */}
-      <nav className="hidden xl:flex h-screen w-64 bg-base-300/95 backdrop-blur-md border-r border-base-300 shadow-lg z-40 flex-col">
+      <nav className="hidden xl:flex h-screen w-64 bg-base-300/95 backdrop-blur-md border-r border-base-300 shadow-lg z-40 flex-col sticky top-0">
         {/* Logo */}
         <div className="p-6 border-b border-base-300">
           <Link
@@ -84,7 +84,7 @@ const Navigation = () => {
       </nav>
 
       {/* Mobile Top Navigation */}
-      <nav className="xl:hidden fixed top-0 left-0 right-0 z-40 bg-base-300/90 backdrop-blur-md border-b border-base-300 shadow-lg">
+      <nav className="xl:hidden sticky top-0 z-40 bg-base-300/90 backdrop-blur-md border-b border-base-300 shadow-lg">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Mobile Logo - Centered */}

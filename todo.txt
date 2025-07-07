@@ -1,6 +1,4 @@
-- fix elapsed time
-- validate all stats
-- add question mark info blocks for stats
+- validate the moves stat and add ? mark for it
 - 5-15 mode
 - 16 x 16 and 15 x 15 bad boards
 

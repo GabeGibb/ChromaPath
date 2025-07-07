@@ -247,6 +247,7 @@ export class ChromaPathGame {
         this.updateBoardFromPaths();
         // Play soft click sound for backtracking
         this.soundService.playSoftClick();
+        this.incrementMoves();
       }
       return;
     }
@@ -522,13 +523,6 @@ export class ChromaPathGame {
     }
     this.state.board = removeNonEndpoints(this.state.board);
     this.updateBoardFromPaths();
-    this.state.stats = {
-      startTime: Date.now(),
-      endTime: null,
-      totalMoves: 0,
-      pathsCompleted: 0,
-      boardSize: this.boardSize,
-    };
   }
 
   private checkCompletion(): boolean {
@@ -562,32 +556,32 @@ export class ChromaPathGame {
     }
 
     // Check if all paths are connected (no isolated tiles)
-    for (let y = 0; y < this.boardSize; y++) {
-      for (let x = 0; x < this.boardSize; x++) {
-        const cell = this.state.board[y][x];
-        if (cell && !cell.isEndpoint) {
-          const neighbors = getValidNeighbors(
-            this.state.board,
-            { x, y },
-            new Set(),
-            true
-          );
-          let hasConnectedNeighbor = false;
+    // for (let y = 0; y < this.boardSize; y++) {
+    //   for (let x = 0; x < this.boardSize; x++) {
+    //     const cell = this.state.board[y][x];
+    //     if (cell && !cell.isEndpoint) {
+    //       const neighbors = getValidNeighbors(
+    //         this.state.board,
+    //         { x, y },
+    //         new Set(),
+    //         true
+    //       );
+    //       let hasConnectedNeighbor = false;
 
-          for (const neighbor of neighbors) {
-            const neighborCell = this.state.board[neighbor.y][neighbor.x];
-            if (neighborCell && neighborCell.pathIndex === cell.pathIndex) {
-              hasConnectedNeighbor = true;
-              break;
-            }
-          }
+    //       for (const neighbor of neighbors) {
+    //         const neighborCell = this.state.board[neighbor.y][neighbor.x];
+    //         if (neighborCell && neighborCell.pathIndex === cell.pathIndex) {
+    //           hasConnectedNeighbor = true;
+    //           break;
+    //         }
+    //       }
 
-          if (!hasConnectedNeighbor) {
-            return false;
-          }
-        }
-      }
-    }
+    //       if (!hasConnectedNeighbor) {
+    //         return false;
+    //       }
+    //     }
+    //   }
+    // }
 
     return filledSquares === this.boardSize * this.boardSize;
   }

@@ -63,12 +63,12 @@ const Game: React.FC = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       const gameState = gameRef.current?.getState();
-      if (gameState && !showCompletionSummary) {
+      if (gameState && !showCompletionSummary && !boardGenerating) {
         setTimer(new Date().getTime() - gameState.stats.startTime);
       }
     }, 10);
     return () => clearInterval(interval);
-  }, [showCompletionSummary]);
+  }, [showCompletionSummary, boardGenerating]);
   const gameActionsNotReady =
     !gameRef.current ||
     !rendererRef.current ||
@@ -151,7 +151,7 @@ const Game: React.FC = () => {
     const preventSideSwipe = (event: TouchEvent) => {
       // Check if the touch is within the canvas bounds
       if (event.touches[0].clientX !== 0) {
-        event.preventDefault(); // Only prevent default for touches inside canvas
+        event.preventDefault();
       }
     };
 
@@ -280,7 +280,7 @@ const Game: React.FC = () => {
   }, [soundService]);
 
   return (
-    <div className="h-[100dvh] bg-gradient-to-br from-base-300 via-base-200 to-base-300 xl:pt-4 pt-16 pb-4 flex flex-col items-center justify-between gap-2 touch-none select-none">
+    <div className="h-full bg-gradient-to-br from-base-300 via-base-200 to-base-300 xl:pt-4 pt-8 pb-8 flex flex-col items-center justify-center gap-2 touch-none select-none">
       {/* Game Header */}
       <div className="flex flex-row justify-between items-center text-center space-y-0 relative px-12">
         {isReplaying && (
@@ -334,33 +334,32 @@ const Game: React.FC = () => {
       </div>
 
       {/* Stats Display */}
-      {!showCompletionSummary ||
-        (!boardError && (
-          <div className="flex justify-between items-center py-2 px-4 max-w-2xl mx-auto w-full">
-            {/* Paths Counter - Left */}
-            <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
-              <div className="text-center">
-                <div className="text-xs text-base-content/60 mb-1">Paths</div>
-                <div className="text-lg font-bold text-secondary">
-                  {numCurrentPaths}/{numPaths}
-                </div>
+      {!showCompletionSummary && !boardError && (
+        <div className="flex justify-between items-center py-2 px-4 max-w-2xl mx-auto w-full">
+          {/* Paths Counter - Left */}
+          <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
+            <div className="text-center">
+              <div className="text-xs text-base-content/60 mb-1">Paths</div>
+              <div className="text-lg font-bold text-secondary">
+                {numCurrentPaths}/{numPaths}
               </div>
             </div>
-
-            {/* Timer - Center */}
-            <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
-              <div className="text-center">
-                <div className="text-xs text-base-content/60 mb-1">Time</div>
-                <div className="text-xl font-mono font-bold text-primary">
-                  {formatTime(timer)}
-                </div>
-              </div>
-            </div>
-
-            {/* Placeholder for balance - Right */}
-            <div className="w-20"></div>
           </div>
-        ))}
+
+          {/* Timer - Center */}
+          <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
+            <div className="text-center">
+              <div className="text-xs text-base-content/60 mb-1">Time</div>
+              <div className="text-xl font-mono font-bold text-primary">
+                {formatTime(timer)}
+              </div>
+            </div>
+          </div>
+
+          {/* Placeholder for balance - Right */}
+          <div className="w-20"></div>
+        </div>
+      )}
 
       {/* Game Controls */}
       <div className="flex flex-row gap-2 justify-center items-center max-w-2xl mx-auto px-2 py-1">
