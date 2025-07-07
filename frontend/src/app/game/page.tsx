@@ -127,6 +127,12 @@ const Game: React.FC = () => {
         setShowCompletionSummary(true);
         setIsReplaying(false);
         setLastStats(null);
+
+        // Update timer variable since it's not updated in the game state
+        const gameState = game.getState();
+        if (gameState?.stats?.endTime && gameState.stats.startTime) {
+          setTimer(gameState.stats.endTime - gameState.stats.startTime);
+        }
       }
     };
 
@@ -329,32 +335,32 @@ const Game: React.FC = () => {
       </div>
 
       {/* Stats Display */}
-      {!showCompletionSummary && !boardError && (
-        <div className="flex justify-between items-center py-2 px-4 max-w-2xl mx-auto w-full">
-          {/* Paths Counter - Left */}
-          <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
-            <div className="text-center">
-              <div className="text-xs text-base-content/60 mb-1">Paths</div>
-              <div className="text-lg font-bold text-secondary">
-                {numCurrentPaths}/{numPaths}
-              </div>
+      {/* {!showCompletionSummary && !boardError && ( */}
+      <div className="flex justify-between items-center py-2 px-4 max-w-2xl mx-auto w-full">
+        {/* Paths Counter - Left */}
+        <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
+          <div className="text-center">
+            <div className="text-xs text-base-content/60 mb-1">Paths</div>
+            <div className="text-lg font-bold text-secondary">
+              {numCurrentPaths}/{numPaths}
             </div>
           </div>
-
-          {/* Timer - Center */}
-          <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
-            <div className="text-center">
-              <div className="text-xs text-base-content/60 mb-1">Time</div>
-              <div className="text-xl font-mono font-bold text-primary">
-                {formatTime(timer)}
-              </div>
-            </div>
-          </div>
-
-          {/* Placeholder for balance - Right */}
-          <div className="w-20"></div>
         </div>
-      )}
+
+        {/* Timer - Center */}
+        <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
+          <div className="text-center">
+            <div className="text-xs text-base-content/60 mb-1">Time</div>
+            <div className="text-xl font-mono font-bold text-primary">
+              {formatTime(timer)}
+            </div>
+          </div>
+        </div>
+
+        {/* Placeholder for balance - Right */}
+        <div className="w-20"></div>
+      </div>
+      {/* )} */}
 
       {/* Game Controls */}
       <div className="flex flex-row gap-2 justify-center items-center max-w-2xl mx-auto px-2 py-1">
