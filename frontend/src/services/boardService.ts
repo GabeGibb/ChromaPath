@@ -11,6 +11,12 @@ export interface BoardError {
   message?: string;
 }
 
+export type LadderBoard = {
+  board: Board;
+  size: number;
+  generatedAt: string;
+};
+
 export class BoardService {
   static async generateBoard(size: number): Promise<BoardResponse> {
     const response = await fetch(`/api/puzzle?size=${size}`);
@@ -29,5 +35,20 @@ export class BoardService {
     }
 
     return data;
+  }
+
+  static async generateLadderBoards(): Promise<LadderBoard[]> {
+    const response = await fetch(`/api/puzzle/ladder`);
+    if (!response.ok) {
+      const errorData: BoardError = await response.json();
+      throw new Error(
+        errorData.message || `HTTP ${response.status}: ${errorData.error}`
+      );
+    }
+    const data = await response.json();
+    if (!data.boards || !Array.isArray(data.boards)) {
+      throw new Error("Invalid ladder board data received from server");
+    }
+    return data.boards;
   }
 }

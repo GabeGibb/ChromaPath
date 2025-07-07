@@ -517,12 +517,16 @@ export class ChromaPathGame {
     return completed;
   }
 
-  public refreshPaths(): void {
+  public refreshPaths(hardReset: boolean = false): void {
     for (let i = 0; i < this.state.paths.length; i++) {
       this.state.paths[i] = [];
     }
     this.state.board = removeNonEndpoints(this.state.board);
     this.updateBoardFromPaths();
+    if (hardReset) {
+      this.state.stats.startTime = Date.now();
+      this.state.stats.endTime = null;
+    }
   }
 
   private checkCompletion(): boolean {
@@ -534,6 +538,11 @@ export class ChromaPathGame {
           filledSquares++;
         }
       }
+    }
+
+    // First check if board is completely filled
+    if (filledSquares !== this.boardSize * this.boardSize) {
+      return false;
     }
 
     // Check if all paths have endpoints
@@ -555,35 +564,15 @@ export class ChromaPathGame {
       }
     }
 
-    // Check if all paths are connected (no isolated tiles)
-    // for (let y = 0; y < this.boardSize; y++) {
-    //   for (let x = 0; x < this.boardSize; x++) {
-    //     const cell = this.state.board[y][x];
-    //     if (cell && !cell.isEndpoint) {
-    //       const neighbors = getValidNeighbors(
-    //         this.state.board,
-    //         { x, y },
-    //         new Set(),
-    //         true
-    //       );
-    //       let hasConnectedNeighbor = false;
+    // Check that each path in this.state.paths has at least one cell
+    // and that all non-empty paths have endpoints
+    const nonEmptyPaths = this.state.paths.filter((path) => path.length > 0);
+    const pathsWithEndpoints = endpointGroups.size;
+    if (nonEmptyPaths.length !== pathsWithEndpoints) {
+      return false;
+    }
 
-    //       for (const neighbor of neighbors) {
-    //         const neighborCell = this.state.board[neighbor.y][neighbor.x];
-    //         if (neighborCell && neighborCell.pathIndex === cell.pathIndex) {
-    //           hasConnectedNeighbor = true;
-    //           break;
-    //         }
-    //       }
-
-    //       if (!hasConnectedNeighbor) {
-    //         return false;
-    //       }
-    //     }
-    //   }
-    // }
-
-    return filledSquares === this.boardSize * this.boardSize;
+    return true;
   }
 
   public getState(): GameState {
