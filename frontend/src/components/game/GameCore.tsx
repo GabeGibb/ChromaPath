@@ -42,6 +42,9 @@ interface GameCoreProps {
 
   // Optional stats update callback
   onStatsUpdate?: (currentPaths: number, totalPaths: number) => void;
+
+  // Optional disable board interaction
+  disableBoard?: boolean;
 }
 
 const GameCore: React.FC<GameCoreProps> = ({
@@ -61,6 +64,7 @@ const GameCore: React.FC<GameCoreProps> = ({
   countdownOverlay,
   customStatsDisplay,
   onStatsUpdate,
+  disableBoard = false,
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<ChromaPathGame | null>(null);
@@ -167,7 +171,13 @@ const GameCore: React.FC<GameCoreProps> = ({
     const canvas = renderer.getCanvas();
 
     const handlePointerDown = (event: PointerEvent | Touch) => {
-      if (gameActionsNotReady || showCompletionSummary || boardError) return;
+      if (
+        gameActionsNotReady ||
+        showCompletionSummary ||
+        boardError ||
+        disableBoard
+      )
+        return;
 
       const rect = canvas.getBoundingClientRect();
       const canvasWidth = rect.width;
@@ -183,7 +193,13 @@ const GameCore: React.FC<GameCoreProps> = ({
     };
 
     const handlePointerMove = (event: PointerEvent | Touch) => {
-      if (gameActionsNotReady || showCompletionSummary || boardError) return;
+      if (
+        gameActionsNotReady ||
+        showCompletionSummary ||
+        boardError ||
+        disableBoard
+      )
+        return;
 
       const rect = canvas.getBoundingClientRect();
       const canvasWidth = rect.width;
@@ -203,7 +219,13 @@ const GameCore: React.FC<GameCoreProps> = ({
     };
 
     const handlePointerUp = () => {
-      if (gameActionsNotReady || showCompletionSummary || boardError) return;
+      if (
+        gameActionsNotReady ||
+        showCompletionSummary ||
+        boardError ||
+        disableBoard
+      )
+        return;
 
       const gameComplete = game.endDrag();
       renderGameState();
@@ -285,6 +307,7 @@ const GameCore: React.FC<GameCoreProps> = ({
     gameActionsNotReady,
     showCompletionSummary,
     boardError,
+    disableBoard,
     onBoardComplete,
   ]);
 
