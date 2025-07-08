@@ -15,6 +15,10 @@ export class ChromaPathGame {
   private boardSize: number = 0;
   private soundService: SoundContextType;
 
+  // Add a variable to throttle moves after a connection
+  private dragConnectionCooldown: boolean = false;
+  private dragConnectionCooldownTime: number = 200;
+
   constructor(soundService: SoundContextType) {
     this.soundService = soundService;
     this.state = this.initializeState();
@@ -164,18 +168,11 @@ export class ChromaPathGame {
     const startPoint = path[0];
     const endPoint = path[path.length - 1];
 
-    const startCell = this.state.board[startPoint.y][startPoint.x];
-    const endCell = this.state.board[endPoint.y][endPoint.x];
-
-    // Check if both start and end are endpoints of the same color
-    return !!(
-      (
-        startCell?.isEndpoint &&
-        endCell?.isEndpoint &&
-        startCell.pathIndex === pathIndex &&
-        endCell.pathIndex === pathIndex &&
-        (startPoint.x !== endPoint.x || startPoint.y !== endPoint.y)
-      ) // Ensure they're different points
+    // Use the reusable endpoint connection function
+    return (
+      this.isConnectedToEndpoint(startPoint, pathIndex) &&
+      this.isConnectedToEndpoint(endPoint, pathIndex) &&
+      (startPoint.x !== endPoint.x || startPoint.y !== endPoint.y)
     );
   }
 
@@ -190,7 +187,7 @@ export class ChromaPathGame {
   }
 
   private updateConnectedPathsCount(): void {
-    this.state.numConnectedPaths = this.state.paths.filter((path) => {
+    this.state.numConnectedPaths = this.state.paths.filter((path, idx) => {
       if (path.length === 0) return false;
 
       const startPoint = path[0];
@@ -200,16 +197,20 @@ export class ChromaPathGame {
         return false;
       }
 
-      // Check if start and end points are endpoints
-      const startCell = this.state.board[startPoint.y]?.[startPoint.x];
-      const endCell = this.state.board[endPoint.y]?.[endPoint.x];
-
-      return startCell?.isEndpoint && endCell?.isEndpoint;
+      // Use the reusable endpoint connection function
+      return (
+        this.isConnectedToEndpoint(startPoint, idx) &&
+        this.isConnectedToEndpoint(endPoint, idx)
+      );
     }).length;
   }
 
-  public handleDrag(x: number, y: number): void {
-    if (this.state.currentPathIndex === null || !this.state.startPoint) return;
+  public handleDrag(x: number, y: number): boolean {
+    // If in cooldown, disallow moves
+    if (this.dragConnectionCooldown) return false;
+
+    if (this.state.currentPathIndex === null || !this.state.startPoint)
+      return false;
 
     const currentPath = this.state.paths[this.state.currentPathIndex];
     const lastPoint = currentPath[currentPath.length - 1];
@@ -226,7 +227,7 @@ export class ChromaPathGame {
         this.state.currentPathIndex
       );
 
-      if (!closestPoint) return;
+      if (!closestPoint) return false;
 
       // Use the closest valid point
       x = closestPoint.x;
@@ -249,14 +250,33 @@ export class ChromaPathGame {
         this.soundService.playSoftClick();
         this.incrementMoves();
       }
-      return;
+      return false;
     }
 
+    const handleConnection = () => {
+      this.soundService.playSoftClick();
+      this.soundService.playHardClick();
+      this.dragConnectionCooldown = true;
+      setTimeout(() => {
+        this.dragConnectionCooldown = false;
+      }, this.dragConnectionCooldownTime);
+      if (this.checkCompletion()) {
+        this.state.stats.endTime = Date.now();
+        this.soundService.playSuccessSound();
+      }
+      return this.checkCompletion();
+    };
+
     // Check if at non-start endpoint
-    const isAtEndpoint = this.isAtEndpoint(lastPoint, this.state.startPoint);
+    const isAtEndpoint = this.isAtEndpointReusable(
+      lastPoint,
+      this.state.startPoint,
+      this.state.currentPathIndex
+    );
+
     const adjacentBeyond = isAtEndpoint && currentPath.length > 1;
 
-    if (isAtEndpoint && currentPath.length > 1) return;
+    if (isAtEndpoint && currentPath.length > 1) return false;
 
     // Handle adjacent moves
     if (
@@ -271,16 +291,13 @@ export class ChromaPathGame {
       this.incrementMoves();
 
       // Check if this move connects to an endpoint
-      const cell = this.state.board[y][x];
-      if (cell?.isEndpoint && cell.pathIndex === this.state.currentPathIndex) {
-        // Play hard click sound for connection
-        this.soundService.playSoftClick();
-        this.soundService.playHardClick();
+      if (this.isConnectedToEndpoint({ x, y }, this.state.currentPathIndex)) {
+        return handleConnection();
       } else {
         // Play soft click sound for tile placement
         this.soundService.playSoftClick();
       }
-      return;
+      return false;
     }
 
     // If current path is connected by two endpoints, dont allow any more moves
@@ -291,10 +308,18 @@ export class ChromaPathGame {
           this.state.paths[this.state.currentPathIndex].length - 1
         ];
       if (
-        this.isAtEndpoint(startPoint, this.state.startPoint) &&
-        this.isAtEndpoint(endPoint, this.state.startPoint)
+        this.isAtEndpointReusable(
+          startPoint,
+          this.state.startPoint,
+          this.state.currentPathIndex
+        ) &&
+        this.isAtEndpointReusable(
+          endPoint,
+          this.state.startPoint,
+          this.state.currentPathIndex
+        )
       ) {
-        return;
+        return false;
       }
     }
 
@@ -314,21 +339,16 @@ export class ChromaPathGame {
         this.incrementMoves();
 
         // Check if this pathfinding move connects to an endpoint
-        const cell = this.state.board[y][x];
-        if (
-          cell?.isEndpoint &&
-          cell.pathIndex === this.state.currentPathIndex
-        ) {
-          // Play hard click sound for connection
-          this.soundService.playSoftClick();
-          this.soundService.playHardClick();
+        if (this.isConnectedToEndpoint({ x, y }, this.state.currentPathIndex)) {
+          return handleConnection();
         } else {
           // Play soft click sound for pathfinding tile placement
           this.soundService.playSoftClick();
         }
-        return;
+        return false;
       }
     }
+    return false;
   }
 
   private findClosestValidPoint(
@@ -394,13 +414,37 @@ export class ChromaPathGame {
     return null; // No valid point found within search radius
   }
 
-  private isAtEndpoint(point: Point, startPoint: Point): boolean {
+  /**
+   * Reusable function to determine if a point is connected to an endpoint of a given pathIndex.
+   * Optionally, you can pass an excludePoint to avoid considering a specific point (e.g., the start point).
+   */
+  private isConnectedToEndpoint(
+    point: Point,
+    pathIndex: number,
+    excludePoint?: Point
+  ): boolean {
     const cell = this.state.board[point.y]?.[point.x];
-    return !!(
-      cell?.isEndpoint &&
-      cell.pathIndex === this.state.currentPathIndex &&
-      (point.x !== startPoint.x || point.y !== startPoint.y)
-    );
+    if (!cell?.isEndpoint) return false;
+    if (cell.pathIndex !== pathIndex) return false;
+    if (
+      excludePoint &&
+      point.x === excludePoint.x &&
+      point.y === excludePoint.y
+    )
+      return false;
+    return true;
+  }
+
+  /**
+   * Backwards-compatible version of isAtEndpoint, now using isConnectedToEndpoint for reusability.
+   * This is kept for code that expects the old signature.
+   */
+  private isAtEndpointReusable(
+    point: Point,
+    startPoint: Point,
+    pathIndex: number
+  ): boolean {
+    return this.isConnectedToEndpoint(point, pathIndex, startPoint);
   }
 
   private findPathToPoint(
@@ -417,7 +461,7 @@ export class ChromaPathGame {
 
       if (
         path.length > 1 &&
-        this.isAtEndpoint(point, start) &&
+        this.isAtEndpointReusable(point, start, this.state.currentPathIndex!) &&
         target.x !== point.x &&
         target.y !== point.y
       ) {
@@ -427,14 +471,16 @@ export class ChromaPathGame {
       if (this.checkPathCollision(path)) continue; // Prevent infinite loops
       if (
         (point.x === target.x && point.y === target.y) ||
-        this.isAtEndpoint(point, start)
+        this.isAtEndpointReusable(point, start, this.state.currentPathIndex!)
       ) {
         // Found path
         if (this.state.currentPathIndex !== null) {
           this.state.paths[this.state.currentPathIndex] = path;
 
           // Play hard click sound for connection
-          if (this.isAtEndpoint(point, start)) {
+          if (
+            this.isAtEndpointReusable(point, start, this.state.currentPathIndex)
+          ) {
             this.soundService.playHardClick();
           }
         }
@@ -507,14 +553,11 @@ export class ChromaPathGame {
     return false;
   }
 
-  public endDrag(): boolean {
+  public endDrag(): void {
     this.state.currentPathIndex = null;
     this.state.startPoint = null;
-    const completed = this.checkCompletion();
-    if (completed) {
-      this.state.stats.endTime = Date.now();
-    }
-    return completed;
+    // Also clear cooldown on drag end
+    this.dragConnectionCooldown = false;
   }
 
   public refreshPaths(hardReset: boolean = false): void {
@@ -540,12 +583,12 @@ export class ChromaPathGame {
     }
 
     // Iterate through all paths and make sure they have at least 2 values total with last and first being endpoints
-    for (const path of this.state.paths) {
+    for (let i = 0; i < this.state.paths.length; i++) {
+      const path = this.state.paths[i];
       if (
         path.length < 2 ||
-        !this.state.board[path[0].y][path[0].x]?.isEndpoint ||
-        !this.state.board[path[path.length - 1].y][path[path.length - 1].x]
-          ?.isEndpoint
+        !this.isConnectedToEndpoint(path[0], i) ||
+        !this.isConnectedToEndpoint(path[path.length - 1], i)
       ) {
         return false;
       }
@@ -560,5 +603,7 @@ export class ChromaPathGame {
   public reset(newBoard: Board): void {
     this.boardSize = newBoard.length;
     this.state = this.initializeState(newBoard);
+    // Also clear cooldown on reset
+    this.dragConnectionCooldown = false;
   }
 }

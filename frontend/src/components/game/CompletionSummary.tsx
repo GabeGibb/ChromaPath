@@ -1,6 +1,7 @@
 import React from "react";
 import { GameStats } from "@/shared";
 import { Button } from "../ui";
+import { formatGameTime } from "@/shared/utils";
 
 interface CompletionSummaryProps {
   stats: GameStats;
@@ -13,23 +14,9 @@ const CompletionSummary: React.FC<CompletionSummaryProps> = ({
   onContinue,
   onReplay,
 }) => {
-  const formatTime = (milliseconds: number): string => {
-    const totalSeconds = milliseconds / 1000;
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = Math.floor(totalSeconds % 60);
-    const hundredths = Math.floor((totalSeconds % 1) * 100);
-
-    if (minutes > 0) {
-      return `${minutes}m ${seconds.toString().padStart(2, "0")}.${hundredths
-        .toString()
-        .padStart(2, "0")}s`;
-    }
-    return `${seconds}.${hundredths.toString().padStart(2, "0")}s`;
-  };
-
   const getTimeTaken = (): string => {
     if (!stats.endTime) return "0s";
-    return formatTime(stats.endTime - stats.startTime);
+    return formatGameTime(stats.endTime - stats.startTime);
   };
 
   const getEfficiency = (): string => {

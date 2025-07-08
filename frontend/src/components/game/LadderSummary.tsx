@@ -1,3 +1,4 @@
+import { formatGameTime } from "@/shared/utils";
 import { Card, Button } from "../ui";
 
 export const LadderSummary: React.FC<{
@@ -16,19 +17,6 @@ export const LadderSummary: React.FC<{
     averageMovesPerPath: number;
   };
 }> = ({ totalTime, onRestart, onBack, totalLevels, aggregatedStats }) => {
-  const formatTime = (milliseconds: number): string => {
-    const totalSeconds = milliseconds / 1000;
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = Math.floor(totalSeconds % 60);
-    const hundredths = Math.floor((totalSeconds % 1) * 100);
-    if (minutes > 0) {
-      return `${minutes}m ${seconds.toString().padStart(2, "0")}.${hundredths
-        .toString()
-        .padStart(2, "0")}s`;
-    }
-    return `${seconds}.${hundredths.toString().padStart(2, "0")}s`;
-  };
-
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh]">
       <Card className="max-w-2xl w-full mx-4 text-center p-8">
@@ -44,7 +32,7 @@ export const LadderSummary: React.FC<{
         <div className="bg-base-200 rounded-lg p-4 border border-base-300 mb-6">
           <div className="text-sm text-base-content/60 mb-1">Total Time</div>
           <div className="text-4xl font-mono font-bold text-primary">
-            {formatTime(totalTime)}
+            {formatGameTime(totalTime)}
           </div>
         </div>
 
@@ -68,7 +56,7 @@ export const LadderSummary: React.FC<{
 
           <div className="bg-base-300 rounded-lg p-3 text-center">
             <div className="text-2xl font-bold text-info">
-              {formatTime(aggregatedStats.averageTimePerLevel)}
+              {formatGameTime(aggregatedStats.averageTimePerLevel)}
             </div>
             <div className="text-xs text-base-content/70">
               Avg Time per Level

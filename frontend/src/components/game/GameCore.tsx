@@ -11,6 +11,7 @@ import { useSound } from "@/services/sound/SoundContext";
 import { GameStats } from "@/shared";
 import { Board } from "@/shared/types";
 import { MAX_BOARD_SIZE, MIN_BOARD_SIZE } from "@/shared/consts";
+import { formatGameTime } from "@/shared/utils";
 
 interface GameCoreProps {
   // Game configuration
@@ -89,21 +90,6 @@ const GameCore: React.FC<GameCoreProps> = ({
       // Call stats update callback if provided
       onStatsUpdate?.(state.numConnectedPaths, state.paths.length);
     }
-  };
-
-  // Helper function to format time with hundredths precision
-  const formatTime = (milliseconds: number): string => {
-    const totalSeconds = milliseconds / 1000;
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = Math.floor(totalSeconds % 60);
-    const hundredths = Math.floor((totalSeconds % 1) * 100);
-
-    if (minutes > 0) {
-      return `${minutes}m ${seconds.toString().padStart(2, "0")}.${hundredths
-        .toString()
-        .padStart(2, "0")}s`;
-    }
-    return `${seconds}.${hundredths.toString().padStart(2, "0")}s`;
   };
 
   // Timer effect
@@ -212,10 +198,18 @@ const GameCore: React.FC<GameCoreProps> = ({
       const clampedX = Math.max(0, Math.min(x, boardSize - 1));
       const clampedY = Math.max(0, Math.min(y, boardSize - 1));
 
-      game.handleDrag(clampedX, clampedY);
+      const win = game.handleDrag(clampedX, clampedY);
       game.setPreciseMouse(preciseX, preciseY);
       game.handleMouseMove(x, y);
       renderGameState();
+
+      if (win) {
+        const gameState = game.getState();
+        onBoardComplete(gameState.stats);
+        // if (gameState.stats.endTime) {
+        //   setTimer(gameState.stats.endTime - gameState.stats.startTime);
+        // }
+      }
     };
 
     const handlePointerUp = () => {
@@ -227,20 +221,7 @@ const GameCore: React.FC<GameCoreProps> = ({
       )
         return;
 
-      const gameComplete = game.endDrag();
-      renderGameState();
-
-      if (gameComplete) {
-        soundService.playSuccessSound();
-        const gameState = game.getState();
-        if (gameState?.stats) {
-          // ? Update timer since it's kinda janky
-          if (gameState.stats.endTime) {
-            setTimer(gameState.stats.endTime - gameState.stats.startTime);
-          }
-          onBoardComplete(gameState.stats);
-        }
-      }
+      game.endDrag();
     };
 
     const handleTouchMove = (event: TouchEvent) => {
@@ -381,7 +362,7 @@ const GameCore: React.FC<GameCoreProps> = ({
               <div className="text-center">
                 <div className="text-xs text-base-content/60 mb-1">Time</div>
                 <div className="text-xl font-mono font-bold text-primary">
-                  {formatTime(timer)}
+                  {formatGameTime(timer)}
                 </div>
               </div>
             </div>
