@@ -22,12 +22,8 @@ export const LadderCountdown: React.FC<{
       // Play start sound
       playHardClick();
 
-      const timer = setTimeout(() => {
-        setIsVisible(false);
-        onComplete();
-      }, 500);
-
-      return () => clearTimeout(timer);
+      setIsVisible(false);
+      onComplete();
     }
   }, [count, onComplete, playSuccessSound, playHardClick]);
 
@@ -38,11 +34,6 @@ export const LadderCountdown: React.FC<{
       <div className="text-6xl font-bold text-primary animate-pulse">
         {count > 0 ? count : "GO!"}
       </div>
-      {count === 0 && (
-        <div className="text-base-content font-semibold text-sm animate-bounce">
-          Let&apos;s Play!
-        </div>
-      )}
     </div>
   );
 };

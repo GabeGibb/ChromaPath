@@ -261,6 +261,7 @@ const LadderGame: React.FC = () => {
             />
           }
           onStatsUpdate={handleBoardStatsUpdate}
+          disableBoard={showCountdown}
         />
       </div>
     </div>
