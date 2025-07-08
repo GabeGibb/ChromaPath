@@ -90,7 +90,7 @@ export function pathsHaveBetterSolution(
   profiler.start("total");
 
   const boardCopy = board.map((row) => row.map((cell) => cell));
-  const numPathsToRemove = 2;
+  const numPathsToRemove = 2; // TODO: INVESTIGATE
 
   profiler.start("getCombinations");
   const pathCombinations = getCombinationsArray(numPaths, numPathsToRemove);

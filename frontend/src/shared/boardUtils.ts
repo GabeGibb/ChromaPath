@@ -43,15 +43,16 @@ export function getDistancedColorArray(): string[] {
     const colors: number[][] = [];
 
     // Generate permutations of high and low RGB values
-    const levels = [0, 255, 170, 85]; // High, low, and medium values
+    const levels = [0, 255, 170, 85, 127.5]; // High, low, and medium values
     // const levels = [100, 105, 110, 115]; // GRAYSCALE
-    let counter = 0;
     for (const r of levels) {
       for (const g of levels) {
         for (const b of levels) {
-          counter++;
-          if (counter === 1 || counter === 2 || counter === 3 || counter === 11)
-            continue;
+          // If 2 or more values are 0, skip
+          if (r === 0 && g === 0) continue;
+          if (r === 0 && b === 0) continue;
+          if (g === 0 && b === 0) continue;
+
           colors.push([r, g, b]);
         }
       }
