@@ -1,6 +1,7 @@
 - validate the moves stat and add ? mark for it
-- 5-15 mode
 - 16 x 16 and 15 x 15 bad boards
+- better ui for ladder vs classic mode
+
 
 FEATURES
 - stats (get the time, xbyx for each, have some sort of better selector or something)

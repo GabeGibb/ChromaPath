@@ -531,47 +531,25 @@ export class ChromaPathGame {
 
   private checkCompletion(): boolean {
     // Check if all squares are filled
-    let filledSquares = 0;
     for (let y = 0; y < this.boardSize; y++) {
       for (let x = 0; x < this.boardSize; x++) {
-        if (this.state.board[y][x] !== null) {
-          filledSquares++;
+        if (this.state.board[y][x] === null) {
+          return false;
         }
       }
     }
 
-    // First check if board is completely filled
-    if (filledSquares !== this.boardSize * this.boardSize) {
-      return false;
-    }
-
-    // Check if all paths have endpoints
-    const endpointGroups = new Map<number, number>();
-    for (let y = 0; y < this.boardSize; y++) {
-      for (let x = 0; x < this.boardSize; x++) {
-        const cell = this.state.board[y][x];
-        if (cell?.isEndpoint) {
-          const count = endpointGroups.get(cell.pathIndex) || 0;
-          endpointGroups.set(cell.pathIndex, count + 1);
-        }
-      }
-    }
-
-    // Verify each path has exactly 2 endpoints
-    for (const endpointCount of endpointGroups.values()) {
-      if (endpointCount !== 2) {
+    // Iterate through all paths and make sure they have at least 2 values total with last and first being endpoints
+    for (const path of this.state.paths) {
+      if (
+        path.length < 2 ||
+        !this.state.board[path[0].y][path[0].x]?.isEndpoint ||
+        !this.state.board[path[path.length - 1].y][path[path.length - 1].x]
+          ?.isEndpoint
+      ) {
         return false;
       }
     }
-
-    // Check that each path in this.state.paths has at least one cell
-    // and that all non-empty paths have endpoints
-    const nonEmptyPaths = this.state.paths.filter((path) => path.length > 0);
-    const pathsWithEndpoints = endpointGroups.size;
-    if (nonEmptyPaths.length !== pathsWithEndpoints) {
-      return false;
-    }
-
     return true;
   }
 

@@ -32,6 +32,15 @@ interface GameCoreProps {
   customControls?: React.ReactNode;
   showBoardSizeSelector?: boolean;
   onBoardSizeChange?: (size: number) => void;
+
+  // Optional countdown overlay
+  countdownOverlay?: React.ReactNode;
+
+  // Optional custom stats display
+  customStatsDisplay?: React.ReactNode;
+
+  // Optional stats update callback
+  onStatsUpdate?: (currentPaths: number, totalPaths: number) => void;
 }
 
 const GameCore: React.FC<GameCoreProps> = ({
@@ -48,6 +57,9 @@ const GameCore: React.FC<GameCoreProps> = ({
   customControls,
   showBoardSizeSelector = false,
   onBoardSizeChange,
+  countdownOverlay,
+  customStatsDisplay,
+  onStatsUpdate,
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<ChromaPathGame | null>(null);
@@ -69,6 +81,8 @@ const GameCore: React.FC<GameCoreProps> = ({
     if (state) {
       rendererRef.current.render(state, boardSize);
       setNumCurrentPaths(state.numConnectedPaths);
+      // Call stats update callback if provided
+      onStatsUpdate?.(state.numConnectedPaths, state.paths.length);
     }
   };
 
@@ -91,12 +105,17 @@ const GameCore: React.FC<GameCoreProps> = ({
   useEffect(() => {
     const interval = setInterval(() => {
       const gameState = gameRef.current?.getState();
-      if (gameState && !showCompletionSummary && !boardGenerating) {
+      if (
+        gameState &&
+        !showCompletionSummary &&
+        !boardGenerating &&
+        !countdownOverlay
+      ) {
         setTimer(new Date().getTime() - gameState.stats.startTime);
       }
     }, 10);
     return () => clearInterval(interval);
-  }, [showCompletionSummary, boardGenerating]);
+  }, [showCompletionSummary, boardGenerating, countdownOverlay]);
 
   const gameActionsNotReady =
     !gameRef.current ||
@@ -290,6 +309,12 @@ const GameCore: React.FC<GameCoreProps> = ({
           />
         )}
 
+        {countdownOverlay && (
+          <div className="absolute inset-0 bg-base-300/80 backdrop-blur-sm flex items-center justify-center rounded-lg z-10">
+            {countdownOverlay}
+          </div>
+        )}
+
         {showCompletionSummary &&
           (lastStats || gameRef.current?.getState()?.stats) && (
             <CompletionSummary
@@ -315,28 +340,32 @@ const GameCore: React.FC<GameCoreProps> = ({
 
       {/* Stats Display */}
       <div className="flex justify-between items-center py-2 px-4 max-w-2xl mx-auto w-full">
-        {/* Paths Counter - Left */}
-        <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
-          <div className="text-center">
-            <div className="text-xs text-base-content/60 mb-1">Paths</div>
-            <div className="text-lg font-bold text-secondary">
-              {numCurrentPaths}/{numPaths}
+        {customStatsDisplay || (
+          <>
+            {/* Paths Counter - Left */}
+            <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
+              <div className="text-center">
+                <div className="text-xs text-base-content/60 mb-1">Paths</div>
+                <div className="text-lg font-bold text-secondary">
+                  {numCurrentPaths}/{numPaths}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Timer - Center */}
-        <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
-          <div className="text-center">
-            <div className="text-xs text-base-content/60 mb-1">Time</div>
-            <div className="text-xl font-mono font-bold text-primary">
-              {formatTime(timer)}
+            {/* Timer - Center */}
+            <div className="bg-base-200/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-base-300 shadow-lg">
+              <div className="text-center">
+                <div className="text-xs text-base-content/60 mb-1">Time</div>
+                <div className="text-xl font-mono font-bold text-primary">
+                  {formatTime(timer)}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Placeholder for balance - Right */}
-        <div className="w-20"></div>
+            {/* Placeholder for balance - Right */}
+            <div className="w-20"></div>
+          </>
+        )}
       </div>
 
       {/* Game Controls */}
