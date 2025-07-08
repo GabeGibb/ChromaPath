@@ -1,6 +1,7 @@
 import { Button, Card } from "@/components/ui";
 import React from "react";
 import Link from "next/link";
+import { MAX_BOARD_SIZE, MIN_BOARD_SIZE } from "@/shared/consts";
 
 const Info: React.FC = () => {
   return (
@@ -56,8 +57,9 @@ const Info: React.FC = () => {
                   • <strong>New Level:</strong> Generate a new puzzle
                 </li>
                 <li>
-                  • <strong>Board Size:</strong> Choose difficulty (5x5 to
-                  15x15)
+                  • <strong>Board Size:</strong> Choose difficulty (
+                  {MIN_BOARD_SIZE}x{MIN_BOARD_SIZE} to {MAX_BOARD_SIZE}x
+                  {MAX_BOARD_SIZE})
                 </li>
                 <li>
                   • <strong>Show Numbers:</strong> Toggle path numbering

@@ -29,7 +29,7 @@ export class BoardGenerator {
 
   async generateBoard(boardSize: number): Promise<Board> {
     this.boardSize = boardSize;
-    this.maxNumPaths = this.boardSize * 1.15;
+    this.maxNumPaths = this.boardSize * 1.1;
     const start = performance.now();
 
     for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
@@ -233,7 +233,7 @@ export class BoardGenerator {
 
     // Weights favor continuing straight with occasional turns
     const curWeights = {
-      straight: 100 + this.boardSize * 15,
+      straight: 100 + this.boardSize * this.boardSize, // TODO: INVESTIGATE??
       left: 100,
       right: 100,
     };

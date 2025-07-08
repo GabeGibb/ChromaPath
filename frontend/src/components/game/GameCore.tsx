@@ -10,6 +10,7 @@ import { Button, LoadingSpinner } from "@/components/ui";
 import { useSound } from "@/services/sound/SoundContext";
 import { GameStats } from "@/shared";
 import { Board } from "@/shared/types";
+import { MAX_BOARD_SIZE, MIN_BOARD_SIZE } from "@/shared/consts";
 
 interface GameCoreProps {
   // Game configuration
@@ -390,11 +391,14 @@ const GameCore: React.FC<GameCoreProps> = ({
                 className="select select-bordered select-sm bg-base-200 text-base-content focus:outline-none focus:border-primary transition-colors min-w-[70px]"
                 disabled={boardGenerating}
               >
-                {Array.from({ length: 16 - 5 + 1 }, (_, i) => (
-                  <option key={i + 5} value={i + 5}>
-                    {i + 5}x{i + 5}
-                  </option>
-                ))}
+                {Array.from(
+                  { length: MAX_BOARD_SIZE - MIN_BOARD_SIZE + 1 },
+                  (_, i) => (
+                    <option key={i + MIN_BOARD_SIZE} value={i + MIN_BOARD_SIZE}>
+                      {i + MIN_BOARD_SIZE}x{i + MIN_BOARD_SIZE}
+                    </option>
+                  )
+                )}
               </select>
             )}
           </>
