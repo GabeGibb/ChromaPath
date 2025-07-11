@@ -1,6 +1,7 @@
 - validate the moves stat and add ? mark for it
-- 16 x 16 and 15 x 15 bad boards
+- 16 x 16 and 15 x 15 bad boards (multiple solutions that arent full board)
 - better ui for ladder vs classic mode
+- 
 
 
 FEATURES

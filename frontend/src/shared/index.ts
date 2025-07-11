@@ -5,3 +5,4 @@ export * from "./boardGeneration/randomPaths/boardGeneration";
 export * from "./boardGeneration/randomPaths/boardValidatorUtils";
 export * from "./boardUtils";
 export * from "./types";
+export * from "./utils";

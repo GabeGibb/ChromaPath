@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button, Modal, Tooltip } from "../ui";
@@ -66,51 +66,78 @@ const Navigation = () => {
           </Link>
 
           {/* Play Section */}
-          <div className="mt-2 mb-2">
-            <div className="uppercase text-xs font-bold text-base-content/60 px-4 pb-1 tracking-wider select-none cursor-default">
-              Play
-            </div>
-            <div className="bg-base-200/80 border border-base-300 rounded-xl shadow-inner flex flex-col gap-1 py-2">
+          <div className="mt-6 mb-6">
+            <div className="mb-3">
               <Link
-                href="/game"
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 hover:scale-105 ${
-                  pathname === "/game"
-                    ? "bg-primary text-primary-content shadow-lg"
-                    : "hover:bg-base-300 text-base-content"
+                href="/play"
+                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+                  pathname === "/play"
+                    ? "bg-primary text-primary-content shadow-md"
+                    : "bg-base-200 text-base-content/60 hover:bg-base-300 hover:text-base-content"
                 }`}
               >
-                <span className="text-lg">🎮</span>
-                <span className="font-medium">Classic Mode</span>
+                <span>🎯</span>
+                Game Modes
+              </Link>
+            </div>
+            <div className="space-y-2">
+              <Link
+                href="/game"
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:scale-102 ${
+                  pathname === "/game"
+                    ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg"
+                    : "bg-base-200 hover:bg-base-300 text-base-content border border-base-300"
+                }`}
+              >
+                <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">🎮</span>
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold">Classic Mode</div>
+                  <div className="text-xs opacity-70">Individual levels</div>
+                </div>
               </Link>
               <Link
                 href="/game/ladder"
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 hover:scale-105 ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:scale-102 ${
                   pathname === "/game/ladder"
-                    ? "bg-primary text-primary-content shadow-lg"
-                    : "hover:bg-base-300 text-base-content"
+                    ? "bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg"
+                    : "bg-base-200 hover:bg-base-300 text-base-content border border-base-300"
                 }`}
               >
-                <span className="text-lg">🏆</span>
-                <span className="font-medium">Ladder Mode</span>
+                <div className="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">🏆</span>
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold">Ladder Mode</div>
+                  <div className="text-xs opacity-70">11-level challenge</div>
+                </div>
               </Link>
             </div>
           </div>
 
           {/* Other nav items */}
-          {navItems.slice(1).map((item) => (
-            <Link
-              key={item.path}
-              href={item.path}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 hover:scale-105 ${
-                pathname === item.path
-                  ? "bg-primary text-primary-content shadow-lg"
-                  : "hover:bg-base-200 text-base-content"
-              }`}
-            >
-              <span className="text-lg">{item.icon}</span>
-              <span className="font-medium">{item.label}</span>
-            </Link>
-          ))}
+          <div className="mt-6 mb-6">
+            <div className="uppercase text-xs font-bold text-base-content/60 px-4 pb-2 tracking-wider select-none cursor-default">
+              Other
+            </div>
+            <div className="space-y-1">
+              {navItems.slice(1).map((item) => (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 hover:scale-105 ${
+                    pathname === item.path
+                      ? "bg-primary text-primary-content shadow-lg"
+                      : "hover:bg-base-200 text-base-content"
+                  }`}
+                >
+                  <span className="text-lg">{item.icon}</span>
+                  <span className="font-medium">{item.label}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Bottom Actions */}
@@ -124,6 +151,22 @@ const Navigation = () => {
           >
             <span>⚙️</span>
             <span>Settings</span>
+          </Button>
+
+          {/* Feedback Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              window.open(
+                "https://docs.google.com/forms/d/e/1FAIpQLSdqbFd1v1tKiLOomwoXSsVU4mqEr_JG6UFiPn3pbs4woDQZog/viewform?usp=sharing&ouid=105059433297238062198",
+                "_blank"
+              )
+            }
+            className="w-full justify-start gap-3"
+          >
+            <span>💬</span>
+            <span>Feedback</span>
           </Button>
         </div>
       </nav>
@@ -195,45 +238,77 @@ const Navigation = () => {
 
                 {/* Game Modes for Mobile */}
                 <div className="border-t border-base-300 pt-2 mt-2">
-                  <div className="px-4 py-2 text-xs font-semibold text-base-content/70 uppercase tracking-wide">
-                    Play
+                  <div className="mb-3">
+                    <Link
+                      href="/play"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+                        pathname === "/play"
+                          ? "bg-primary text-primary-content shadow-md"
+                          : "bg-base-200 text-base-content/60 hover:bg-base-300 hover:text-base-content"
+                      }`}
+                    >
+                      <span>🎯</span>
+                      Game Modes
+                    </Link>
                   </div>
-                  <div className="bg-base-200/80 border border-base-300 rounded-xl shadow-inner flex flex-col gap-1 py-2">
+                  <div className="space-y-2">
                     <Link
                       href="/game"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:scale-102 ${
                         pathname === "/game"
-                          ? "bg-primary text-primary-content"
-                          : "hover:bg-base-300 text-base-content"
+                          ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg"
+                          : "bg-base-200 hover:bg-base-300 text-base-content border border-base-300"
                       }`}
                     >
-                      <span className="text-lg">🎮</span>
+                      <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                        <span className="text-lg">🎮</span>
+                      </div>
                       <div className="flex-1">
-                        <div className="font-medium">Classic Mode</div>
-                        <div className="text-xs text-base-content/70">
-                          Play individual levels
+                        <div className="font-semibold">Classic Mode</div>
+                        <div className="text-xs opacity-70">
+                          Individual levels
                         </div>
                       </div>
                     </Link>
                     <Link
                       href="/game/ladder"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:scale-102 ${
                         pathname === "/game/ladder"
-                          ? "bg-primary text-primary-content"
-                          : "hover:bg-base-300 text-base-content"
+                          ? "bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg"
+                          : "bg-base-200 hover:bg-base-300 text-base-content border border-base-300"
                       }`}
                     >
-                      <span className="text-lg">🏆</span>
+                      <div className="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                        <span className="text-lg">🏆</span>
+                      </div>
                       <div className="flex-1">
-                        <div className="font-medium">Ladder Mode</div>
-                        <div className="text-xs text-base-content/70">
-                          Complete 11 levels in sequence
+                        <div className="font-semibold">Ladder Mode</div>
+                        <div className="text-xs opacity-70">
+                          11-level challenge
                         </div>
                       </div>
                     </Link>
                   </div>
+                </div>
+
+                {/* Feedback for Mobile */}
+                <div className="border-t border-base-300 pt-2 mt-2">
+                  <button
+                    onClick={() => {
+                      window.open(
+                        "https://docs.google.com/forms/d/e/1FAIpQLSdqbFd1v1tKiLOomwoXSsVU4mqEr_JG6UFiPn3pbs4woDQZog/viewform?usp=sharing&ouid=105059433297238062198",
+                        "_blank"
+                      );
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-base-200 text-base-content"
+                  >
+                    <span className="text-lg">💬</span>
+                    <span className="font-medium">Feedback</span>
+                  </button>
                 </div>
               </div>
             </div>
