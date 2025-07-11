@@ -87,7 +87,7 @@ const Game: React.FC = () => {
     <div className="flex flex-col h-full">
       {/* Game Header */}
       {isReplaying && (
-        <div className="flex flex-row justify-between items-center text-center space-y-0 relative px-12 pt-4">
+        <div className="flex flex-row justify-between items-center text-center space-y-0 relative px-12 pt-2">
           <Button
             variant="ghost"
             size="sm"
