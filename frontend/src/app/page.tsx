@@ -38,18 +38,10 @@ const Home: React.FC = () => {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
+          <div className="grid grid-cols-1 gap-4 max-w-md mx-auto">
             <div className="text-center p-4 bg-base-100/50 rounded-xl backdrop-blur-sm">
               <div className="text-2xl font-bold text-primary">∞</div>
               <div className="text-sm text-base-content/70">Unique Puzzles</div>
-            </div>
-            <div className="text-center p-4 bg-base-100/50 rounded-xl backdrop-blur-sm">
-              <div className="text-2xl font-bold text-secondary">5-12</div>
-              <div className="text-sm text-base-content/70">Board Sizes</div>
-            </div>
-            <div className="text-center p-4 bg-base-100/50 rounded-xl backdrop-blur-sm">
-              <div className="text-2xl font-bold text-accent">2</div>
-              <div className="text-sm text-base-content/70">Game Modes</div>
             </div>
           </div>
 
@@ -88,7 +80,7 @@ const Home: React.FC = () => {
         </div>
 
         {/* Features Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16">
+        {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16">
           <div className="text-center space-y-2">
             <div className="text-3xl">🎯</div>
             <div className="font-semibold text-sm">Intuitive Controls</div>
@@ -105,7 +97,7 @@ const Home: React.FC = () => {
             <div className="text-3xl">📱</div>
             <div className="font-semibold text-sm">Cross-Platform</div>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

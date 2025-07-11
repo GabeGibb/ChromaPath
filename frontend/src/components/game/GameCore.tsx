@@ -75,6 +75,7 @@ const GameCore: React.FC<GameCoreProps> = ({
   const [showNumbers, setShowNumbers] = useSetting("show_numbers");
   const [timer, setTimer] = useState<number>(0);
   const soundService = useSound();
+  const [debug, setDebug] = useState("test");
 
   // Game state
   const [numPaths, setNumPaths] = useState<number>(0);
@@ -224,15 +225,15 @@ const GameCore: React.FC<GameCoreProps> = ({
       game.endDrag();
     };
 
-    const handleTouchMove = (event: TouchEvent) => {
-      const touch = event.touches[0];
-      handlePointerMove(touch);
-    };
+    // const handleTouchMove = (event: TouchEvent) => {
+    //   const touch = event.touches[0];
+    //   handlePointerMove(touch);
+    // };
 
-    const handleTouchStart = (event: TouchEvent) => {
-      const touch = event.touches[0];
-      handlePointerDown(touch);
-    };
+    // const handleTouchStart = (event: TouchEvent) => {
+    //   const touch = event.touches[0];
+    //   handlePointerDown(touch);
+    // };
 
     const handleWindowResize = () => {
       if (gameActionsNotReady || !canvasRef.current) return;
@@ -240,30 +241,33 @@ const GameCore: React.FC<GameCoreProps> = ({
       renderGameState();
     };
 
-    const preventSideSwipe = (event: TouchEvent) => {
-      if (event.touches[0].clientX !== 0) {
-        event.preventDefault();
-      }
-    };
+    // const preventSideSwipe = (event: TouchEvent) => {
+    //   if (event.touches[0].clientX !== 0) {
+    //     event.preventDefault();
+    //   }
+    // };
 
     // Feature detection for different input types
     const supportsPointerEvents = window.PointerEvent !== undefined;
-    const supportsTouchEvents =
-      "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    // const supportsTouchEvents =
+    //   "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
     // Add event listeners
     if (supportsPointerEvents) {
       document.addEventListener("pointerdown", handlePointerDown);
       document.addEventListener("pointermove", handlePointerMove);
       document.addEventListener("pointerup", handlePointerUp);
-    } else if (supportsTouchEvents) {
-      canvas.addEventListener("touchstart", handleTouchStart);
-      canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
-      document.addEventListener("touchend", handlePointerUp);
-      document.addEventListener("touchmove", preventSideSwipe, {
-        passive: false,
-      });
+      setDebug("test3");
     }
+    // else if (supportsTouchEvents) {
+    //   canvas.addEventListener("touchstart", handleTouchStart);
+    //   canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+    //   document.addEventListener("touchend", handlePointerUp);
+    //   // document.addEventListener("touchmove", preventSideSwipe, {
+    //   //   passive: false,
+    //   // });
+    //   setDebug("test4");
+    // }
 
     window.addEventListener("resize", handleWindowResize);
 
@@ -273,12 +277,13 @@ const GameCore: React.FC<GameCoreProps> = ({
         document.removeEventListener("pointerdown", handlePointerDown);
         document.removeEventListener("pointermove", handlePointerMove);
         document.removeEventListener("pointerup", handlePointerUp);
-      } else if (supportsTouchEvents) {
-        canvas.removeEventListener("touchstart", handleTouchStart);
-        canvas.removeEventListener("touchmove", handleTouchMove);
-        document.removeEventListener("touchend", handlePointerUp);
-        document.removeEventListener("touchmove", preventSideSwipe);
       }
+      // else if (supportsTouchEvents) {
+      //   canvas.removeEventListener("touchstart", handleTouchStart);
+      //   canvas.removeEventListener("touchmove", handleTouchMove);
+      //   document.removeEventListener("touchend", handlePointerUp);
+      //   // document.removeEventListener("touchmove", preventSideSwipe);
+      // }
 
       window.removeEventListener("resize", handleWindowResize);
     };
@@ -345,6 +350,7 @@ const GameCore: React.FC<GameCoreProps> = ({
           className="w-[95dvw] h-[95dvw] md:w-[75dvh] md:h-[75dvh] border-2 border-base-300 rounded-lg shadow-2xl overscroll-none overflow-hidden bg-base-200"
         />
       </div>
+      <div className="text-xs text-base-content/60">{debug}</div>
 
       {/* Stats Display */}
       <div className="flex justify-between items-center py-1 md:py-2 px-2 md:px-4 max-w-2xl mx-auto w-full">
