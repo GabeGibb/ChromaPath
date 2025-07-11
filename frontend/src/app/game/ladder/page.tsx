@@ -222,11 +222,11 @@ const LadderGame: React.FC = () => {
   const board = boards[current];
   return (
     <div className="flex flex-col h-full">
-      <div className="flex flex-row justify-between items-center text-center space-y-0 relative px-12 pt-4 flex-shrink-0">
-        <div className="text-lg text-base-content/80">
-          <div className="space-y-1">
+      <div className="flex flex-row justify-between items-center text-center space-y-0 relative px-4 md:px-12 pt-2 md:pt-4 flex-shrink-0">
+        <div className="text-base md:text-lg text-base-content/80">
+          <div className="space-y-0.5 md:space-y-1">
             <div className="text-xs text-warning">Ladder Mode</div>
-            <div className="text-sm font-semibold">
+            <div className="text-xs md:text-sm font-semibold">
               Level {current + 1}/{boards.length} ({board.size}x{board.size})
             </div>
           </div>

@@ -293,7 +293,7 @@ const GameCore: React.FC<GameCoreProps> = ({
   ]);
 
   return (
-    <div className="h-full bg-gradient-to-br from-base-300 via-base-200 to-base-300 xl:pt-4 pt-8 pb-8 flex flex-col items-center justify-center gap-2 touch-none select-none">
+    <div className="h-full bg-gradient-to-br from-base-300 via-base-200 to-base-300 xl:pt-2 pb-4 md:pb-8 flex flex-col items-center justify-center gap-1 md:gap-2 touch-none select-none">
       {/* Game Canvas */}
       <div className="relative flex-1 flex items-center justify-center">
         {boardGenerating && (
@@ -332,7 +332,10 @@ const GameCore: React.FC<GameCoreProps> = ({
                 const state = gameRef.current?.getState();
                 setNumPaths(state?.paths.length ?? 0);
                 setNumCurrentPaths(state?.numConnectedPaths ?? 0);
-                renderGameState();
+                // ! TODO: RM? REPLAY? THIS SUCKS ALSO!
+                setTimeout(() => {
+                  renderGameState();
+                }, 100);
               }}
             />
           )}
@@ -344,7 +347,7 @@ const GameCore: React.FC<GameCoreProps> = ({
       </div>
 
       {/* Stats Display */}
-      <div className="flex justify-between items-center py-2 px-4 max-w-2xl mx-auto w-full">
+      <div className="flex justify-between items-center py-1 md:py-2 px-2 md:px-4 max-w-2xl mx-auto w-full">
         {customStatsDisplay || (
           <>
             {/* Paths Counter - Left */}
@@ -374,7 +377,7 @@ const GameCore: React.FC<GameCoreProps> = ({
       </div>
 
       {/* Game Controls */}
-      <div className="flex flex-row gap-2 justify-center items-center max-w-2xl mx-auto px-2 py-1">
+      <div className="flex flex-row gap-1 md:gap-2 justify-center items-center max-w-2xl mx-auto px-2 py-1">
         {/* Custom controls or default controls */}
         {customControls || (
           <>

@@ -218,7 +218,10 @@ const Navigation = () => {
 
           {/* Mobile Menu */}
           {isMobileMenuOpen && (
-            <div className="border-t border-base-300 bg-base-300/95 backdrop-blur-md">
+            <div
+              className="border-t border-base-300 bg-base-300/95 backdrop-blur-md fixed left-0 right-0 top-16 z-50 shadow-lg"
+              style={{ maxWidth: "100vw" }}
+            >
               <div className="py-2 space-y-1">
                 {navItems.map((item) => (
                   <Link
