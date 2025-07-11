@@ -18,13 +18,53 @@ const Info: React.FC = () => {
           </p>
         </div>
 
+        {/* What are Numberlink Puzzles */}
+        <Card variant="elevated" className="space-y-6">
+          <h2 className="text-2xl font-bold text-primary">
+            What are Numberlink Puzzles?
+          </h2>
+          <div className="space-y-4">
+            <p className="text-neutral-300 leading-relaxed">
+              ChromaPath is based on Numberlink puzzles, a classic logic puzzle
+              where you connect pairs of identical numbers or symbols with paths
+              that fill the entire grid. In our version, we use colored
+              endpoints instead of numbers, but the core concept remains the
+              same.
+            </p>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-neutral-200">
+                  Key Rules:
+                </h3>
+                <ul className="space-y-2 text-neutral-400 text-sm">
+                  <li>• Connect each pair of colored endpoints</li>
+                  <li>• Paths cannot cross each other</li>
+                  <li>• Every cell must be filled with a path</li>
+                  <li>• Each path must be continuous</li>
+                </ul>
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-neutral-200">
+                  Puzzle Origins:
+                </h3>
+                <p className="text-neutral-400 text-sm">
+                  Numberlink puzzles originated in Japan and are popular in
+                  puzzle magazines and newspapers worldwide. They&apos;re known
+                  for their elegant simplicity and satisfying solutions.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
         {/* Game Rules */}
         <Card variant="elevated" className="space-y-6">
           <h2 className="text-2xl font-bold text-primary">Objective</h2>
           <p className="text-neutral-300 leading-relaxed">
             Connect all colored endpoints on the board by drawing paths between
             them. Each color must connect to its matching endpoint, and paths
-            cannot cross each other.
+            cannot cross each other. The goal is to fill the entire grid with
+            connected paths.
           </p>
         </Card>
 
@@ -87,6 +127,7 @@ const Info: React.FC = () => {
                   • Use the &quot;Show Numbers&quot; feature to track paths
                 </li>
                 <li>• Don&apos;t be afraid to use the refresh button</li>
+                <li>• Remember: every cell must be filled</li>
               </ul>
             </div>
             <div className="space-y-4">
@@ -98,6 +139,7 @@ const Info: React.FC = () => {
                 <li>• Look for paths that must go through specific areas</li>
                 <li>• Use the board edges to your advantage</li>
                 <li>• Work from the outside in on larger boards</li>
+                <li>• Identify cells that can only be reached by one path</li>
               </ul>
             </div>
           </div>

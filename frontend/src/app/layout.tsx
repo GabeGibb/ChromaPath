@@ -37,7 +37,7 @@ export default function RootLayout({
           <SoundProvider>
             <div
               suppressHydrationWarning // ! LOL
-              className="flex h-screen flex-col xl:flex-row"
+              className="flex h-screen max-h-[100dvh] flex-col xl:flex-row overflow-y-hidden"
             >
               <Navigation />
               <main className="flex-1 xl:ml-0 overflow-auto">{children}</main>

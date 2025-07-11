@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Card } from "@/components/ui";
+import { GameModeCard } from "@/components/ui";
 
 const PlayPage = () => {
   const gameModes = [
@@ -49,54 +49,16 @@ const PlayPage = () => {
         {/* Game Mode Cards */}
         <div className="grid md:grid-cols-2 gap-8 mb-12">
           {gameModes.map((mode, index) => (
-            <Card key={index} className="transition-all duration-300">
-              <Link href={mode.href} className="block h-full">
-                <div className="p-8 h-full flex flex-col">
-                  {/* Icon and Title */}
-                  <div className="text-center mb-6">
-                    <div
-                      className={`text-6xl mb-4 bg-gradient-to-r ${mode.color} bg-clip-text text-transparent`}
-                    >
-                      {mode.icon}
-                    </div>
-                    <h2 className="text-2xl font-bold text-base-content mb-2">
-                      {mode.title}
-                    </h2>
-                    <p className="text-base-content/70">{mode.description}</p>
-                  </div>
-
-                  {/* Features */}
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-base-content mb-3">
-                      Features:
-                    </h3>
-                    <ul className="space-y-2">
-                      {mode.features.map((feature, featureIndex) => (
-                        <li
-                          key={featureIndex}
-                          className="flex items-center gap-2 text-sm text-base-content/80"
-                        >
-                          <span className="text-primary">✓</span>
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* CTA Button */}
-                  <div className="mt-6 text-center">
-                    <div
-                      className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r ${mode.color} text-white font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300`}
-                    >
-                      <span>Play Now</span>
-                      <span className="hover:translate-x-1 transition-transform">
-                        →
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            </Card>
+            <GameModeCard
+              key={index}
+              title={mode.title}
+              description={mode.description}
+              icon={mode.icon}
+              href={mode.href}
+              features={mode.features}
+              color={mode.color}
+              variant="full"
+            />
           ))}
         </div>
 

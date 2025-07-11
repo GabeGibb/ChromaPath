@@ -12,8 +12,8 @@ const Generation: React.FC = () => {
             Board Generation
           </h1>
           <p className="text-xl text-base-content/80 max-w-2xl mx-auto">
-            Discover the algorithms behind ChromaPath&apos;s infinite puzzle
-            generation
+            Discover how ChromaPath creates infinite unique puzzles with exactly
+            one solution
           </p>
         </div>
 
@@ -21,11 +21,11 @@ const Generation: React.FC = () => {
         <Card variant="elevated" className="space-y-6">
           <h2 className="text-2xl font-bold text-primary">How It Works</h2>
           <p className="text-neutral-300 leading-relaxed">
-            ChromaPath uses advanced procedural generation algorithms to create
-            unique, solvable puzzles. Each board is generated using a
-            combination of path-finding algorithms, constraint satisfaction, and
-            validation techniques to ensure every puzzle has exactly one
-            solution.
+            ChromaPath generates puzzles by creating a grid, placing colored
+            endpoints, generating paths between them, and ensuring the final
+            puzzle has exactly one solution. The process becomes more
+            computationally intensive as board size increases due to the
+            exponential growth in possible path combinations.
           </p>
         </Card>
 
@@ -41,13 +41,14 @@ const Generation: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-neutral-200 mb-2">
-                  Grid Initialization
+                  Grid Creation
                 </h3>
                 <p className="text-neutral-400">
-                  A blank grid of the specified size is created. The algorithm
-                  then strategically places colored endpoints on the grid,
-                  ensuring they are positioned to allow for valid path
-                  connections.
+                  We start with a blank grid of the specified size (5x5 to
+                  12x12). The grid serves as the canvas where we&apos;ll place
+                  endpoints and generate paths. Larger grids provide more space
+                  for complex puzzles but require significantly more
+                  computation.
                 </p>
               </div>
             </div>
@@ -61,10 +62,12 @@ const Generation: React.FC = () => {
                   Path Generation
                 </h3>
                 <p className="text-neutral-400">
-                  For each pair of matching endpoints, the algorithm generates a
-                  valid path using advanced pathfinding techniques. Paths are
-                  created to avoid conflicts while maintaining puzzle
-                  solvability.
+                  For each pair of matching endpoints, we generate a valid path
+                  that connects them. Paths must be continuous, avoid crossing
+                  other paths, and respect the constraint that every cell must
+                  eventually be filled. We use weighted random walks that favor
+                  straight paths with occasional turns to create natural-looking
+                  solutions.
                 </p>
               </div>
             </div>
@@ -78,9 +81,12 @@ const Generation: React.FC = () => {
                   Constraint Validation
                 </h3>
                 <p className="text-neutral-400">
-                  The generated board is validated to ensure it meets all puzzle
-                  requirements: exactly one solution, no impossible
-                  configurations, and balanced difficulty based on board size.
+                  After placing each path, we validate that the board still has
+                  potential for a complete solution. This includes checking that
+                  remaining empty regions are large enough for additional paths,
+                  that no cells become isolated, and that the total number of
+                  paths needed doesn&apos;t exceed what can fit in the remaining
+                  space.
                 </p>
               </div>
             </div>
@@ -94,64 +100,108 @@ const Generation: React.FC = () => {
                   Solution Verification
                 </h3>
                 <p className="text-neutral-400">
-                  The final step verifies that the puzzle has exactly one valid
-                  solution using backtracking algorithms. If multiple solutions
-                  exist, the board is regenerated.
+                  Once the grid is fully filled, we verify that the puzzle has
+                  exactly one solution. This involves checking if removing any
+                  combination of paths would allow for alternative solutions. If
+                  multiple solutions exist, the board is rejected and we start
+                  over. This step is the most computationally expensive,
+                  especially for larger boards.
                 </p>
               </div>
             </div>
           </div>
         </Card>
 
-        {/* Technical Details */}
+        {/* Path Constraints */}
         <Card variant="elevated" className="space-y-6">
           <h2 className="text-2xl font-bold text-accent">
-            Technical Implementation
+            Path Constraints & Requirements
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-neutral-200">
-                Algorithms Used
+                Grid Filling Requirements
               </h3>
               <ul className="space-y-2 text-neutral-400">
                 <li>
-                  • <strong>A* Pathfinding:</strong> For efficient path
-                  generation
+                  • <strong>Complete Coverage:</strong> Every cell must be
+                  filled with a path
                 </li>
                 <li>
-                  • <strong>Backtracking:</strong> For solution validation
+                  • <strong>No Crossings:</strong> Paths cannot intersect or
+                  overlap
                 </li>
                 <li>
-                  • <strong>Constraint Satisfaction:</strong> For puzzle
-                  balancing
+                  • <strong>Continuous Paths:</strong> Each path must be a
+                  single connected line
                 </li>
                 <li>
-                  • <strong>Random Walk:</strong> For endpoint placement
+                  • <strong>Endpoint Pairs:</strong> Each color must have
+                  exactly two endpoints
                 </li>
               </ul>
             </div>
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-neutral-200">
-                Optimization Features
+                Validation Checks
               </h3>
               <ul className="space-y-2 text-neutral-400">
                 <li>
-                  • <strong>Parallel Processing:</strong> Multiple boards
-                  generated simultaneously
+                  • <strong>Region Analysis:</strong> Check that empty regions
+                  can accommodate remaining paths
                 </li>
                 <li>
-                  • <strong>Caching:</strong> Pre-generated boards for instant
-                  play
+                  • <strong>Isolation Prevention:</strong> Ensure no cells
+                  become unreachable
                 </li>
                 <li>
-                  • <strong>Difficulty Scaling:</strong> Adjusts complexity with
-                  board size
+                  • <strong>Path Length Validation:</strong> Verify minimum and
+                  maximum path lengths
                 </li>
                 <li>
-                  • <strong>Memory Management:</strong> Efficient resource usage
+                  • <strong>Solution Uniqueness:</strong> Confirm exactly one
+                  valid solution exists
                 </li>
               </ul>
             </div>
+          </div>
+        </Card>
+
+        {/* Computational Complexity */}
+        <Card variant="elevated" className="space-y-6">
+          <h2 className="text-2xl font-bold text-warning">
+            Computational Complexity
+          </h2>
+          <div className="space-y-4">
+            <p className="text-neutral-300 leading-relaxed">
+              The generation process becomes exponentially more complex as board
+              size increases. This is due to the combinatorial explosion of
+              possible path arrangements and the need to verify solution
+              uniqueness.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-base-100/50 rounded-xl">
+                <div className="text-2xl font-bold text-primary">5×5</div>
+                <div className="text-sm text-neutral-400">~50ms</div>
+              </div>
+              <div className="text-center p-4 bg-base-100/50 rounded-xl">
+                <div className="text-2xl font-bold text-secondary">8×8</div>
+                <div className="text-sm text-neutral-400">~200ms</div>
+              </div>
+              <div className="text-center p-4 bg-base-100/50 rounded-xl">
+                <div className="text-2xl font-bold text-accent">10×10</div>
+                <div className="text-sm text-neutral-400">~800ms</div>
+              </div>
+              <div className="text-center p-4 bg-base-100/50 rounded-xl">
+                <div className="text-2xl font-bold text-info">12×12</div>
+                <div className="text-sm text-neutral-400">~2-5s</div>
+              </div>
+            </div>
+            <p className="text-neutral-400 text-sm">
+              Generation times vary based on complexity and solution
+              verification requirements. Larger boards require more attempts to
+              find valid configurations.
+            </p>
           </div>
         </Card>
 
@@ -170,8 +220,8 @@ const Generation: React.FC = () => {
             </div>
             <p className="text-neutral-400 text-sm">
               In the actual game, boards are generated server-side and cached
-              for instant delivery. The generation process typically takes
-              50-200ms depending on board size and complexity.
+              for instant delivery. The generation process typically takes 50ms
+              to 5 seconds depending on board size and complexity.
             </p>
           </div>
         </Card>
@@ -183,24 +233,22 @@ const Generation: React.FC = () => {
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary">~50ms</div>
-              <div className="text-sm text-neutral-400">
-                Average Generation Time
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-secondary">99.9%</div>
+              <div className="text-3xl font-bold text-primary">99.9%</div>
               <div className="text-sm text-neutral-400">Success Rate</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-accent">∞</div>
+              <div className="text-3xl font-bold text-secondary">∞</div>
               <div className="text-sm text-neutral-400">
                 Unique Combinations
               </div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-info">1</div>
+              <div className="text-3xl font-bold text-accent">1</div>
               <div className="text-sm text-neutral-400">Solution Per Board</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-info">100K</div>
+              <div className="text-sm text-neutral-400">Max Attempts</div>
             </div>
           </div>
         </Card>

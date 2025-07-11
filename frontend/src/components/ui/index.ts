@@ -1,5 +1,7 @@
 export { default as Button } from "./Button";
 export { default as Card } from "./Card";
+export { default as GameModeCard } from "./GameModeCard";
+export { default as GamePreview } from "./GamePreview";
 export { default as LoadingSpinner } from "./LoadingSpinner";
 export { default as Modal } from "./Modal";
 export { default as Tooltip } from "./Tooltip";
