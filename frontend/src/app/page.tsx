@@ -15,7 +15,7 @@ const Home: React.FC = () => {
     {
       title: "Ladder Mode",
       description:
-        "11-level challenge with increasing difficulty. Can you complete the entire ladder?",
+        "Multi-level challenge with increasing difficulty. Can you complete the entire ladder?",
       icon: "🏆",
       href: "/game/ladder",
       color: "from-orange-500 to-red-600",

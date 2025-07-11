@@ -110,7 +110,9 @@ const Navigation = () => {
                 </div>
                 <div className="flex-1">
                   <div className="font-semibold">Ladder Mode</div>
-                  <div className="text-xs opacity-70">11-level challenge</div>
+                  <div className="text-xs opacity-70">
+                    Multi-level challenge
+                  </div>
                 </div>
               </Link>
             </div>

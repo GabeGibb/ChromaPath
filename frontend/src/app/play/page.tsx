@@ -19,7 +19,7 @@ const PlayPage = () => {
     },
     {
       title: "Ladder Mode",
-      description: "Complete 11 levels in sequence",
+      description: "Complete multiple levels in sequence",
       icon: "🏆",
       href: "/game/ladder",
       features: [
