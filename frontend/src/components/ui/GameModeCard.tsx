@@ -25,14 +25,14 @@ const GameModeCard: React.FC<GameModeCardProps> = ({
     return (
       <Card
         variant="elevated"
-        className="p-8 text-center hover:scale-105 transition-transform duration-300"
+        className="p-8 text-center hover:shadow-xl hover:bg-base-50 transition-all duration-300"
       >
         <div className="text-6xl mb-6">{icon}</div>
         <h3 className="text-2xl font-bold text-primary mb-4">{title}</h3>
         <p className="text-base-content/70 mb-6">{description}</p>
         <Link href={href}>
           <div
-            className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r ${color} text-white font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300`}
+            className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r ${color} text-white font-semibold hover:shadow-lg hover:brightness-110 transition-all duration-300`}
           >
             <span>Play Now</span>
             <span className="hover:translate-x-1 transition-transform">→</span>
@@ -82,7 +82,7 @@ const GameModeCard: React.FC<GameModeCardProps> = ({
           {/* CTA Button */}
           <div className="mt-6 text-center">
             <div
-              className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r ${color} text-white font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300`}
+              className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r ${color} text-white font-semibold hover:shadow-lg hover:brightness-110 transition-all duration-300`}
             >
               <span>Play Now</span>
               <span className="hover:translate-x-1 transition-transform">

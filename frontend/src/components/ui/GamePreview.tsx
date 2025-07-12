@@ -7,7 +7,6 @@ interface GamePreviewProps {
 
 const GamePreview: React.FC<GamePreviewProps> = ({ className = "" }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [isAnimating] = useState(false);
 
   // Sample board data for preview
   const previewBoard = [
@@ -93,7 +92,6 @@ const GamePreview: React.FC<GamePreviewProps> = ({ className = "" }) => {
                 className={`
                   aspect-square rounded-md transition-all duration-500 ease-out
                   ${getCellColor(cell)}
-                  ${isAnimating ? "scale-95" : "scale-100"}
                   ${currentStep >= 1 && cell ? "animate-pulse" : ""}
                 `}
               >

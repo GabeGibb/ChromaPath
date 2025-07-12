@@ -55,7 +55,7 @@ const Navigation = () => {
           <Link
             key="/"
             href="/"
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 hover:scale-105 ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-100 hover:shadow-md ${
               pathname === "/"
                 ? "bg-primary text-primary-content shadow-lg"
                 : "hover:bg-base-200 text-base-content"
@@ -70,7 +70,7 @@ const Navigation = () => {
             <div className="mb-3">
               <Link
                 href="/play"
-                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-100 ${
                   pathname === "/play"
                     ? "bg-primary text-primary-content shadow-md"
                     : "bg-base-200 text-base-content/60 hover:bg-base-300 hover:text-base-content"
@@ -83,7 +83,7 @@ const Navigation = () => {
             <div className="space-y-2">
               <Link
                 href="/game"
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:scale-102 ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-100 hover:shadow-md ${
                   pathname === "/game"
                     ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg"
                     : "bg-base-200 hover:bg-base-300 text-base-content border border-base-300"
@@ -99,7 +99,7 @@ const Navigation = () => {
               </Link>
               <Link
                 href="/game/ladder"
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:scale-102 ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-100 hover:shadow-md ${
                   pathname === "/game/ladder"
                     ? "bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg"
                     : "bg-base-200 hover:bg-base-300 text-base-content border border-base-300"
@@ -128,7 +128,7 @@ const Navigation = () => {
                 <Link
                   key={item.path}
                   href={item.path}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 hover:scale-105 ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-100 hover:shadow-md ${
                     pathname === item.path
                       ? "bg-primary text-primary-content shadow-lg"
                       : "hover:bg-base-200 text-base-content"
@@ -247,7 +247,7 @@ const Navigation = () => {
                     <Link
                       href="/play"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-100 ${
                         pathname === "/play"
                           ? "bg-primary text-primary-content shadow-md"
                           : "bg-base-200 text-base-content/60 hover:bg-base-300 hover:text-base-content"
@@ -261,7 +261,7 @@ const Navigation = () => {
                     <Link
                       href="/game"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:scale-102 ${
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-100 hover:shadow-md ${
                         pathname === "/game"
                           ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg"
                           : "bg-base-200 hover:bg-base-300 text-base-content border border-base-300"
@@ -280,7 +280,7 @@ const Navigation = () => {
                     <Link
                       href="/game/ladder"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:scale-102 ${
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-100 hover:shadow-md ${
                         pathname === "/game/ladder"
                           ? "bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg"
                           : "bg-base-200 hover:bg-base-300 text-base-content border border-base-300"
@@ -325,7 +325,7 @@ const Navigation = () => {
       <Modal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        title="Settings"
+        title="Settings todo"
         size="sm"
       >
         <div className="space-y-4">

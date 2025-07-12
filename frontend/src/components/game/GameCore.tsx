@@ -75,7 +75,6 @@ const GameCore: React.FC<GameCoreProps> = ({
   const [showNumbers, setShowNumbers] = useSetting("show_numbers");
   const [timer, setTimer] = useState<number>(0);
   const soundService = useSound();
-  const [debug, setDebug] = useState("test");
 
   // Game state
   const [numPaths, setNumPaths] = useState<number>(0);
@@ -257,7 +256,6 @@ const GameCore: React.FC<GameCoreProps> = ({
       document.addEventListener("pointerdown", handlePointerDown);
       document.addEventListener("pointermove", handlePointerMove);
       document.addEventListener("pointerup", handlePointerUp);
-      setDebug("test3");
     }
     // else if (supportsTouchEvents) {
     //   canvas.addEventListener("touchstart", handleTouchStart);
@@ -266,7 +264,6 @@ const GameCore: React.FC<GameCoreProps> = ({
     //   // document.addEventListener("touchmove", preventSideSwipe, {
     //   //   passive: false,
     //   // });
-    //   setDebug("test4");
     // }
 
     window.addEventListener("resize", handleWindowResize);
@@ -296,6 +293,13 @@ const GameCore: React.FC<GameCoreProps> = ({
     disableBoard,
     onBoardComplete,
   ]);
+
+  // Throw some use effects to help determine what re renders for every variable
+  useEffect(() => {
+    console.log("hi");
+  }, [showCompletionSummary]);
+
+  useEffect(() => {}, [boardError]);
 
   return (
     <div className="h-full bg-gradient-to-br from-base-300 via-base-200 to-base-300 xl:pt-2 pb-4 md:pb-8 flex flex-col items-center justify-center gap-1 md:gap-2 touch-none select-none">
@@ -350,7 +354,6 @@ const GameCore: React.FC<GameCoreProps> = ({
           className="w-[95dvw] h-[95dvw] md:w-[75dvh] md:h-[75dvh] border-2 border-base-300 rounded-lg shadow-2xl overscroll-none overflow-hidden bg-base-200"
         />
       </div>
-      <div className="text-xs text-base-content/60">{debug}</div>
 
       {/* Stats Display */}
       <div className="flex justify-between items-center py-1 md:py-2 px-2 md:px-4 max-w-2xl mx-auto w-full">

@@ -18,7 +18,7 @@ export const LadderSummary: React.FC<{
   };
 }> = ({ totalTime, onRestart, onBack, totalLevels, aggregatedStats }) => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh]">
+    <div className="flex flex-col items-center justify-center min-h-[60vh] h-full bg-base-200 ">
       <Card className="max-w-2xl w-full mx-4 text-center p-8">
         <div className="text-6xl mb-4">🏆</div>
         <h2 className="text-2xl font-bold text-success mb-2">

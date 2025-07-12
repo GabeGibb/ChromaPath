@@ -36,7 +36,7 @@ const Button: React.FC<ButtonProps> = ({
     <button
       onClick={onClick}
       disabled={disabled || loading}
-      className={`btn ${variantMap[variant]} ${sizeMap[size]} font-bold transition-all duration-200 hover:scale-105 active:scale-95 ${className}`}
+      className={`btn ${variantMap[variant]} ${sizeMap[size]} font-bold transition-all duration-100 hover:shadow-lg hover:brightness-110 active:brightness-95 ${className}`}
     >
       {loading ? (
         <div className="flex items-center gap-2">
