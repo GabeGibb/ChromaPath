@@ -29,7 +29,7 @@ export class BoardGenerator {
 
   async generateBoard(boardSize: number): Promise<Board> {
     this.boardSize = boardSize;
-    this.maxNumPaths = this.boardSize * 1.25;
+    this.maxNumPaths = this.boardSize * 1.35;
     const start = performance.now();
 
     for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
