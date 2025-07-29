@@ -44,7 +44,7 @@ const CompletionSummary: React.FC<CompletionSummaryProps> = ({
             <div className="text-4xl">🎉</div>
             <h2 className="text-2xl font-bold text-primary">Level Complete!</h2>
             <p className="text-base-content/70 text-sm">
-              {stats.boardSize}x{stats.boardSize} Puzzle Solved
+              {stats.boardWidth}x{stats.boardHeight} Puzzle Solved
             </p>
           </div>
 
