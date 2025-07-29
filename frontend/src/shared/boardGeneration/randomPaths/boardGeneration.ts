@@ -15,7 +15,7 @@ export class BoardGenerator {
   private boardWidth: number = 5;
   private boardHeight: number = 5;
   private board: Board = [];
-  private readonly maxAttempts = 100000;
+  private readonly maxAttempts = 500000;
   private curColorIndex = 0;
   private minPathLength = 3;
   private maxPathLength = this.boardWidth * this.boardHeight;
