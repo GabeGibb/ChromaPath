@@ -1,25 +1,39 @@
 import { BoardGenerator } from "@/shared";
-import { MAX_BOARD_SIZE, MIN_BOARD_SIZE } from "@/shared/consts";
+import {
+  MAX_BOARD_WIDTH,
+  MAX_BOARD_HEIGHT,
+  MIN_BOARD_WIDTH,
+  MIN_BOARD_HEIGHT,
+} from "@/shared/consts";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const size = parseInt(searchParams.get("size") || "5");
+    const width = parseInt(searchParams.get("width") || "5");
+    const height = parseInt(searchParams.get("height") || "5");
 
-    if (size < MIN_BOARD_SIZE || size > MAX_BOARD_SIZE) {
+    if (width < MIN_BOARD_WIDTH || width > MAX_BOARD_WIDTH) {
       return NextResponse.json(
-        { error: "Invalid board size" },
+        { error: "Invalid board width" },
+        { status: 400 }
+      );
+    }
+
+    if (height < MIN_BOARD_HEIGHT || height > MAX_BOARD_HEIGHT) {
+      return NextResponse.json(
+        { error: "Invalid board height" },
         { status: 400 }
       );
     }
 
     const boardGenerator = new BoardGenerator(null);
-    const board = await boardGenerator.generateBoard(size);
+    const board = await boardGenerator.generateBoard(width, height);
 
     return NextResponse.json({
       board,
-      size,
+      width,
+      height,
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {

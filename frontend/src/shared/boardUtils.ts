@@ -21,7 +21,8 @@ export function getValidNeighbors(
     { dx: 0, dy: 1 },
     { dx: -1, dy: 0 },
   ];
-  const boardSize = board.length;
+  const boardHeight = board.length;
+  const boardWidth = board.length > 0 ? board[0].length : 0;
   return directions
     .map(({ dx, dy }) => ({
       x: point.x + dx,
@@ -30,9 +31,9 @@ export function getValidNeighbors(
     .filter(
       ({ x, y }) =>
         x >= 0 &&
-        x < boardSize &&
+        x < boardWidth &&
         y >= 0 &&
-        y < boardSize &&
+        y < boardHeight &&
         (!board[y][x] || (includeEndpoint && board[y][x]?.isEndpoint)) &&
         !visited.has(`${x},${y}`)
     );

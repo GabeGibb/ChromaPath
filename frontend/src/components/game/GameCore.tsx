@@ -10,12 +10,18 @@ import { Button, LoadingSpinner } from "@/components/ui";
 import { useSound } from "@/services/sound/SoundContext";
 import { GameStats } from "@/shared";
 import { Board } from "@/shared/types";
-import { MAX_BOARD_SIZE, MIN_BOARD_SIZE } from "@/shared/consts";
+import {
+  MAX_BOARD_HEIGHT,
+  MAX_BOARD_WIDTH,
+  MIN_BOARD_HEIGHT,
+  MIN_BOARD_WIDTH,
+} from "@/shared/consts";
 import { formatGameTime } from "@/shared/utils";
 
 interface GameCoreProps {
   // Game configuration
-  boardSize: number;
+  boardWidth: number;
+  boardHeight: number;
   board: Board | null;
   boardGenerating: boolean;
   boardError: Error | null;
@@ -33,7 +39,7 @@ interface GameCoreProps {
   // Optional custom controls
   customControls?: React.ReactNode;
   showBoardSizeSelector?: boolean;
-  onBoardSizeChange?: (size: number) => void;
+  onBoardSizeChange?: (width: number, height: number) => void;
 
   // Optional countdown overlay
   countdownOverlay?: React.ReactNode;
@@ -49,7 +55,8 @@ interface GameCoreProps {
 }
 
 const GameCore: React.FC<GameCoreProps> = ({
-  boardSize,
+  boardWidth,
+  boardHeight,
   board,
   boardGenerating,
   boardError,
@@ -85,7 +92,7 @@ const GameCore: React.FC<GameCoreProps> = ({
     if (!gameRef.current || !rendererRef.current) return;
     const state = gameRef.current.getState();
     if (state) {
-      rendererRef.current.render(state, boardSize);
+      rendererRef.current.render(state, boardWidth, boardHeight);
       setNumCurrentPaths(state.numConnectedPaths);
       // Call stats update callback if provided
       onStatsUpdate?.(state.numConnectedPaths, state.paths.length);
@@ -167,12 +174,12 @@ const GameCore: React.FC<GameCoreProps> = ({
 
       const rect = canvas.getBoundingClientRect();
       const canvasWidth = rect.width;
-      const cellSize = canvasWidth / boardSize;
+      const cellSize = canvasWidth / boardWidth;
 
       const x = Math.floor((event.clientX - rect.left) / cellSize);
       const y = Math.floor((event.clientY - rect.top) / cellSize);
-      const clampedX = Math.max(0, Math.min(x, boardSize - 1));
-      const clampedY = Math.max(0, Math.min(y, boardSize - 1));
+      const clampedX = Math.max(0, Math.min(x, boardWidth - 1));
+      const clampedY = Math.max(0, Math.min(y, boardHeight - 1));
 
       game.handleCellClick(clampedX, clampedY);
       renderGameState();
@@ -189,14 +196,14 @@ const GameCore: React.FC<GameCoreProps> = ({
 
       const rect = canvas.getBoundingClientRect();
       const canvasWidth = rect.width;
-      const cellSize = canvasWidth / boardSize;
+      const cellSize = canvasWidth / boardWidth;
 
       const preciseX = (event.clientX - rect.left) / cellSize;
       const preciseY = (event.clientY - rect.top) / cellSize;
       const x = Math.floor(preciseX);
       const y = Math.floor(preciseY);
-      const clampedX = Math.max(0, Math.min(x, boardSize - 1));
-      const clampedY = Math.max(0, Math.min(y, boardSize - 1));
+      const clampedX = Math.max(0, Math.min(x, boardWidth - 1));
+      const clampedY = Math.max(0, Math.min(y, boardHeight - 1));
 
       const win = game.handleDrag(clampedX, clampedY);
       game.setPreciseMouse(preciseX, preciseY);
@@ -286,7 +293,8 @@ const GameCore: React.FC<GameCoreProps> = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    boardSize,
+    boardWidth,
+    boardHeight,
     gameActionsNotReady,
     showCompletionSummary,
     boardError,
@@ -294,10 +302,11 @@ const GameCore: React.FC<GameCoreProps> = ({
     onBoardComplete,
   ]);
 
-  // Throw some use effects to help determine what re renders for every variable
   useEffect(() => {
-    console.log("hi");
-  }, [showCompletionSummary]);
+    if (!boardGenerating) {
+      rendererRef.current?.resize(canvasRef.current!);
+    }
+  }, [boardGenerating]);
 
   useEffect(() => {}, [boardError]);
 
@@ -334,7 +343,9 @@ const GameCore: React.FC<GameCoreProps> = ({
             <CompletionSummary
               // eslint-disable-next-line
               stats={lastStats || gameRef.current?.getState()?.stats!}
-              onContinue={onNewLevel}
+              onContinue={() => {
+                onNewLevel();
+              }}
               onReplay={() => {
                 onReplayLevel();
                 gameRef.current?.refreshPaths(true);
@@ -351,7 +362,10 @@ const GameCore: React.FC<GameCoreProps> = ({
 
         <div
           ref={canvasRef}
-          className="w-[95dvw] h-[95dvw] md:w-[75dvh] md:h-[75dvh] border-2 border-base-300 rounded-lg shadow-2xl overscroll-none overflow-hidden bg-base-200"
+          className="h-[95dvw] w-[75dvw] max-w-[75dvw] md:h-[75dvh] max-w-[75dvh] overscroll-none overflow-hidden flex items-center justify-center" // bg-base-200 border-2 border-base-300 rounded-lg shadow-2xl
+          style={{
+            aspectRatio: `${boardWidth} / ${boardHeight}`,
+          }}
         />
       </div>
 
@@ -401,21 +415,49 @@ const GameCore: React.FC<GameCoreProps> = ({
             </Button>
 
             {showBoardSizeSelector && onBoardSizeChange && (
-              <select
-                value={boardSize}
-                onChange={(e) => onBoardSizeChange(Number(e.target.value))}
-                className="select select-bordered select-sm bg-base-200 text-base-content focus:outline-none focus:border-primary transition-colors min-w-[70px]"
-                disabled={boardGenerating}
-              >
-                {Array.from(
-                  { length: MAX_BOARD_SIZE - MIN_BOARD_SIZE + 1 },
-                  (_, i) => (
-                    <option key={i + MIN_BOARD_SIZE} value={i + MIN_BOARD_SIZE}>
-                      {i + MIN_BOARD_SIZE}x{i + MIN_BOARD_SIZE}
-                    </option>
-                  )
-                )}
-              </select>
+              <div className="flex gap-1">
+                <select
+                  value={boardWidth}
+                  onChange={(e) =>
+                    onBoardSizeChange(Number(e.target.value), boardHeight)
+                  }
+                  className="select select-bordered select-sm bg-base-200 text-base-content focus:outline-none focus:border-primary transition-colors min-w-[70px]"
+                  disabled={boardGenerating}
+                >
+                  {Array.from(
+                    { length: MAX_BOARD_WIDTH - MIN_BOARD_WIDTH + 1 },
+                    (_, i) => (
+                      <option
+                        key={i + MIN_BOARD_WIDTH}
+                        value={i + MIN_BOARD_WIDTH}
+                      >
+                        {i + MIN_BOARD_WIDTH}
+                      </option>
+                    )
+                  )}
+                </select>
+                <span className="text-base-content text-sm">×</span>
+                <select
+                  value={boardHeight}
+                  onChange={(e) =>
+                    onBoardSizeChange(boardWidth, Number(e.target.value))
+                  }
+                  className="select select-bordered select-sm bg-base-200 text-base-content focus:outline-none focus:border-primary transition-colors min-w-[70px]"
+                  disabled={boardGenerating}
+                >
+                  {Array.from(
+                    { length: MAX_BOARD_HEIGHT - MIN_BOARD_HEIGHT + 1 },
+                    (_, i) => (
+                      <option
+                        key={i + MIN_BOARD_HEIGHT}
+                        value={i + MIN_BOARD_HEIGHT}
+                      >
+                        {i + MIN_BOARD_HEIGHT}
+                      </option>
+                    )
+                  )}
+                </select>
+              </div>
             )}
           </>
         )}

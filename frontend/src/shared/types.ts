@@ -12,12 +12,18 @@ export type Board = Cell[][];
 
 export type Paths = Point[][];
 
+export type BoardDimensions = {
+  width: number;
+  height: number;
+};
+
 export type GameStats = {
   startTime: number;
   endTime: number | null;
   totalMoves: number;
   pathsCompleted: number;
-  boardSize: number;
+  boardWidth: number;
+  boardHeight: number;
 };
 
 export type GameState = {

@@ -12,12 +12,13 @@ import { Board, GameState, Point } from "../../types";
 import { pathsHaveBetterSolution } from "./boardValidatorUtils";
 
 export class BoardGenerator {
-  private boardSize: number = 5;
+  private boardWidth: number = 5;
+  private boardHeight: number = 5;
   private board: Board = [];
   private readonly maxAttempts = 100000;
   private curColorIndex = 0;
   private minPathLength = 3;
-  private maxPathLength = this.boardSize * this.boardSize;
+  private maxPathLength = this.boardWidth * this.boardHeight;
   private maxNumPaths = 50;
   private renderer: ChromaPathRenderer | null = null;
   private pathStack: Point[][] = [];
@@ -27,9 +28,10 @@ export class BoardGenerator {
     if (this.doRender) this.renderer = renderer;
   }
 
-  async generateBoard(boardSize: number): Promise<Board> {
-    this.boardSize = boardSize;
-    this.maxNumPaths = this.boardSize * 1.35;
+  async generateBoard(width: number, height: number): Promise<Board> {
+    this.boardWidth = width;
+    this.boardHeight = height;
+    this.maxNumPaths = Math.max(width, height) * 1.35;
     const start = performance.now();
 
     for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
@@ -40,7 +42,7 @@ export class BoardGenerator {
           "time for generation",
           (performance.now() - start) / 1000,
           "for board size",
-          this.boardSize
+          `${this.boardWidth}x${this.boardHeight}`
         );
         return removeNonEndpoints(this.board);
       }
@@ -50,9 +52,9 @@ export class BoardGenerator {
   }
 
   private initializeEmptyBoard(): Board {
-    return Array(this.boardSize)
+    return Array(this.boardHeight)
       .fill(null)
-      .map(() => Array(this.boardSize).fill(null));
+      .map(() => Array(this.boardWidth).fill(null));
   }
 
   private async debugBoard(
@@ -75,11 +77,12 @@ export class BoardGenerator {
         endTime: null,
         totalMoves: 0,
         pathsCompleted: 0,
-        boardSize: this.boardSize,
+        boardWidth: this.boardWidth,
+        boardHeight: this.boardHeight,
       },
       numConnectedPaths: 0,
     };
-    this.renderer.render(gameState, this.boardSize);
+    this.renderer.render(gameState, this.boardWidth, this.boardHeight);
     await new Promise((resolve) => setTimeout(resolve, timeout));
   }
 
@@ -202,8 +205,8 @@ export class BoardGenerator {
   private findBlockedPaths(): Point[] {
     const blockedPaths: Point[] = [];
 
-    for (let y = 0; y < this.boardSize; y++) {
-      for (let x = 0; x < this.boardSize; x++) {
+    for (let y = 0; y < this.boardHeight; y++) {
+      for (let x = 0; x < this.boardWidth; x++) {
         const cell = this.board[y][x];
         if (!cell) {
           const neighbors = getValidNeighbors(
@@ -233,7 +236,7 @@ export class BoardGenerator {
 
     // Weights favor continuing straight with occasional turns
     const curWeights = {
-      straight: 100 + this.boardSize * this.boardSize, // TODO: INVESTIGATE??
+      straight: 100 + this.boardWidth * this.boardHeight, // TODO: INVESTIGATE??
       left: 100,
       right: 100,
     };
@@ -302,7 +305,8 @@ export class BoardGenerator {
     // Check if there are too many empty cells
     if (
       totalEmptyCells >
-      (this.maxNumPaths - this.curColorIndex) * this.boardSize
+      (this.maxNumPaths - this.curColorIndex) *
+        Math.max(this.boardWidth, this.boardHeight)
     ) {
       return false;
     }

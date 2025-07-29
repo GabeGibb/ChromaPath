@@ -26,38 +26,22 @@ const Home: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300 flex items-center justify-center p-4">
       <div className="max-w-4xl mx-auto text-center space-y-12">
         {/* Hero Section */}
-        <div className="space-y-8">
-          <div className="space-y-6">
-            <h1 className="text-5xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-primary">
-              ChromaPath
-            </h1>
-            <p className="text-lg md:text-xl text-base-content/80 max-w-2xl mx-auto leading-relaxed">
-              Connect colored paths through a grid. Challenge your mind with
-              procedurally generated puzzles that are never the same twice.
-            </p>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 gap-4 max-w-md mx-auto">
-            <div className="text-center p-4 bg-base-100/50 rounded-xl backdrop-blur-sm">
-              <div className="text-2xl font-bold text-primary">∞</div>
-              <div className="text-sm text-base-content/70">Unique Puzzles</div>
-            </div>
-          </div>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="text-center space-y-6">
+          <h1 className="text-5xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+            ChromaPath
+          </h1>
+          <p className="text-xl md:text-2xl text-base-content/80 max-w-3xl mx-auto">
+            Connect colored paths in this elegant puzzle game. Now with
+            rectangular boards!
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link href="/game">
-              <Button size="lg" className="min-w-[180px] text-lg">
+              <Button size="lg" className="text-lg px-8 py-4">
                 Start Playing
               </Button>
             </Link>
             <Link href="/info">
-              <Button
-                variant="outline"
-                size="lg"
-                className="min-w-[180px] text-lg"
-              >
+              <Button variant="outline" size="lg" className="text-lg px-8 py-4">
                 Learn More
               </Button>
             </Link>

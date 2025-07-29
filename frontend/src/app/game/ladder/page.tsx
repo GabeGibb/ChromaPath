@@ -227,14 +227,15 @@ const LadderGame: React.FC = () => {
           <div className="space-y-0.5 md:space-y-1">
             <div className="text-xs text-warning">Ladder Mode</div>
             <div className="text-xs md:text-sm font-semibold">
-              Level {current + 1}/{boards.length} ({board.size}x{board.size})
+              Level {current + 1}/{boards.length} ({board.width}×{board.height})
             </div>
           </div>
         </div>
       </div>
       <div className="flex-1 min-h-0">
         <GameCore
-          boardSize={board.size}
+          boardWidth={board.width}
+          boardHeight={board.height}
           board={board.board}
           boardGenerating={loading}
           boardError={null}

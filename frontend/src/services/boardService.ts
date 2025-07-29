@@ -2,7 +2,8 @@ import { Board } from "@/shared/types";
 
 export interface BoardResponse {
   board: Board;
-  size: number;
+  width: number;
+  height: number;
   generatedAt: string;
 }
 
@@ -13,13 +14,17 @@ export interface BoardError {
 
 export type LadderBoard = {
   board: Board;
-  size: number;
+  width: number;
+  height: number;
   generatedAt: string;
 };
 
 export class BoardService {
-  static async generateBoard(size: number): Promise<BoardResponse> {
-    const response = await fetch(`/api/puzzle?size=${size}`);
+  static async generateBoard(
+    width: number,
+    height: number
+  ): Promise<BoardResponse> {
+    const response = await fetch(`/api/puzzle?width=${width}&height=${height}`);
 
     if (!response.ok) {
       const errorData: BoardError = await response.json();

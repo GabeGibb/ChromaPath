@@ -1,7 +1,12 @@
 import { Button, Card } from "@/components/ui";
 import React from "react";
 import Link from "next/link";
-import { MAX_BOARD_SIZE, MIN_BOARD_SIZE } from "@/shared/consts";
+import {
+  MAX_BOARD_WIDTH,
+  MAX_BOARD_HEIGHT,
+  MIN_BOARD_WIDTH,
+  MIN_BOARD_HEIGHT,
+} from "@/shared/consts";
 
 const Info: React.FC = () => {
   return (
@@ -98,8 +103,8 @@ const Info: React.FC = () => {
                 </li>
                 <li>
                   • <strong>Board Size:</strong> Choose difficulty (
-                  {MIN_BOARD_SIZE}x{MIN_BOARD_SIZE} to {MAX_BOARD_SIZE}x
-                  {MAX_BOARD_SIZE})
+                  {MIN_BOARD_WIDTH}×{MIN_BOARD_HEIGHT} to {MAX_BOARD_WIDTH}×
+                  {MAX_BOARD_HEIGHT})
                 </li>
                 <li>
                   • <strong>Show Numbers:</strong> Toggle path numbering

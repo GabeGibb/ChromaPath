@@ -19,15 +19,15 @@ export class ChromaPathRenderer {
     this.canvas = document.createElement("canvas");
     this.pixelRatio = window.devicePixelRatio || 1;
 
-    // Set display size (CSS pixels)
+    // Set initial display size (CSS pixels) - will be adjusted in render()
     const displayWidth = container.clientWidth;
     const displayHeight = container.clientHeight;
 
-    // Set actual canvas size (device pixels)
+    // Set initial canvas size (device pixels)
     this.canvas.width = displayWidth * this.pixelRatio;
     this.canvas.height = displayHeight * this.pixelRatio;
 
-    // Scale canvas back down using CSS
+    // Set initial display size (CSS pixels)
     this.canvas.style.width = displayWidth + "px";
     this.canvas.style.height = displayHeight + "px";
 
@@ -36,7 +36,7 @@ export class ChromaPathRenderer {
     // Scale the drawing context so everything draws at the correct size
     this.ctx.scale(this.pixelRatio, this.pixelRatio);
 
-    this.cellSize = displayWidth / 5;
+    this.cellSize = displayWidth / 5; // Default for 5x5 board
     this.ctx.imageSmoothingEnabled = true;
     this.ctx.imageSmoothingQuality = "high";
 
@@ -45,7 +45,11 @@ export class ChromaPathRenderer {
     this.colorsArray = getDistancedColorArray();
   }
 
-  public render(state: GameState, boardSize: number): void {
+  public render(
+    state: GameState,
+    boardWidth: number,
+    boardHeight: number
+  ): void {
     if (!this.initialized) return;
 
     // Use display width for calculations
@@ -54,14 +58,40 @@ export class ChromaPathRenderer {
     const displayHeight =
       this.canvas.clientHeight || this.canvas.height / this.pixelRatio;
 
-    this.cellSize = displayWidth / boardSize;
+    // Calculate the maximum size that fits within the container while maintaining aspect ratio
+    const containerAspectRatio = displayWidth / displayHeight;
+    const boardAspectRatio = boardWidth / boardHeight;
 
-    // Clear using display dimensions
-    this.ctx.clearRect(0, 0, displayWidth, displayHeight);
+    let canvasWidth, canvasHeight;
+
+    if (boardAspectRatio > containerAspectRatio) {
+      // Board is wider than container - fit to width
+      canvasWidth = displayWidth;
+      canvasHeight = displayWidth / boardAspectRatio;
+    } else {
+      // Board is taller than container - fit to height
+      canvasHeight = displayHeight;
+      canvasWidth = displayHeight * boardAspectRatio;
+    }
+
+    // Update canvas size to match board aspect ratio
+    this.canvas.style.width = canvasWidth + "px";
+    this.canvas.style.height = canvasHeight + "px";
+    this.canvas.width = canvasWidth * this.pixelRatio;
+    this.canvas.height = canvasHeight * this.pixelRatio;
+
+    // Re-scale the context after resize
+    this.ctx.scale(this.pixelRatio, this.pixelRatio);
+
+    // Calculate cell size based on the board dimensions
+    this.cellSize = canvasWidth / boardWidth;
+
+    // Clear using canvas dimensions
+    this.ctx.clearRect(0, 0, canvasWidth, canvasHeight);
     this.ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-    this.ctx.fillRect(0, 0, displayWidth, displayHeight);
+    this.ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    this.drawGrid(boardSize, displayWidth, displayHeight);
+    this.drawGrid(boardWidth, boardHeight);
     this.drawHover(state);
     this.drawPaths(state);
     this.drawBoard(state.board);
@@ -73,6 +103,7 @@ export class ChromaPathRenderer {
     const displayWidth = container.clientWidth;
     const displayHeight = container.clientHeight;
 
+    // For resize, we'll use the container dimensions and let render() handle the aspect ratio
     this.canvas.width = displayWidth * this.pixelRatio;
     this.canvas.height = displayHeight * this.pixelRatio;
 
@@ -83,20 +114,23 @@ export class ChromaPathRenderer {
     this.ctx.scale(this.pixelRatio, this.pixelRatio);
   }
 
-  private drawGrid(
-    boardSize: number,
-    displayWidth: number,
-    displayHeight: number
-  ): void {
+  private drawGrid(boardWidth: number, boardHeight: number): void {
     this.ctx.strokeStyle = "#ffffff";
     this.ctx.lineWidth = 1;
 
-    for (let i = 0; i <= boardSize; i++) {
+    // Draw vertical lines
+    for (let i = 0; i <= boardWidth; i++) {
       this.ctx.beginPath();
       this.ctx.moveTo(i * this.cellSize, 0);
-      this.ctx.lineTo(i * this.cellSize, displayHeight);
+      this.ctx.lineTo(i * this.cellSize, boardHeight * this.cellSize);
+      this.ctx.stroke();
+    }
+
+    // Draw horizontal lines
+    for (let i = 0; i <= boardHeight; i++) {
+      this.ctx.beginPath();
       this.ctx.moveTo(0, i * this.cellSize);
-      this.ctx.lineTo(displayWidth, i * this.cellSize);
+      this.ctx.lineTo(boardWidth * this.cellSize, i * this.cellSize);
       this.ctx.stroke();
     }
   }

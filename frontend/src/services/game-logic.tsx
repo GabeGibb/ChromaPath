@@ -12,7 +12,8 @@ import type { SoundContextType } from "./sound/SoundContext";
 
 export class ChromaPathGame {
   private state: GameState;
-  private boardSize: number = 0;
+  private boardWidth: number = 0;
+  private boardHeight: number = 0;
   private soundService: SoundContextType;
 
   // Add a variable to throttle moves after a connection
@@ -48,7 +49,8 @@ export class ChromaPathGame {
       endTime: null,
       totalMoves: 0,
       pathsCompleted: 0,
-      boardSize: newBoard.length,
+      boardWidth: newBoard.length > 0 ? newBoard[0].length : 0,
+      boardHeight: newBoard.length,
     };
 
     // Play success sound
@@ -127,8 +129,8 @@ export class ChromaPathGame {
 
   private updateBoardFromPaths(): void {
     // Clear all non-endpoint cells first
-    for (let y = 0; y < this.boardSize; y++) {
-      for (let x = 0; x < this.boardSize; x++) {
+    for (let y = 0; y < this.boardHeight; y++) {
+      for (let x = 0; x < this.boardWidth; x++) {
         const cell = this.state.board[y][x];
         if (cell && !cell.isEndpoint) {
           this.state.board[y][x] = null;
@@ -216,8 +218,8 @@ export class ChromaPathGame {
     const lastPoint = currentPath[currentPath.length - 1];
 
     // Clamp coordinates to board bounds first
-    const clampedX = Math.max(0, Math.min(x, this.boardSize - 1));
-    const clampedY = Math.max(0, Math.min(y, this.boardSize - 1));
+    const clampedX = Math.max(0, Math.min(x, this.boardWidth - 1));
+    const clampedY = Math.max(0, Math.min(y, this.boardHeight - 1));
 
     // If the clamped position is not valid, find the closest valid point
     if (!this.isValidMove(clampedX, clampedY, this.state.currentPathIndex)) {
@@ -382,9 +384,9 @@ export class ChromaPathGame {
             // Check bounds
             if (
               candidateX >= 0 &&
-              candidateX < this.boardSize &&
+              candidateX < this.boardWidth &&
               candidateY >= 0 &&
-              candidateY < this.boardSize
+              candidateY < this.boardHeight
             ) {
               candidates.push({ x: candidateX, y: candidateY });
             }
@@ -533,8 +535,8 @@ export class ChromaPathGame {
     const currentPathIndex = this.state.currentPathIndex;
     const currentPathEnd = currentPath[currentPath.length - 1];
     const currentPathStart = currentPath[0];
-    for (let y = 0; y < this.boardSize; y++) {
-      for (let x = 0; x < this.boardSize; x++) {
+    for (let y = 0; y < this.boardHeight; y++) {
+      for (let x = 0; x < this.boardWidth; x++) {
         const cell = this.state.board[y][x];
         if (cell?.isEndpoint && cell.pathIndex !== currentPathIndex) {
           if (currentPath.some((p) => p.x === x && p.y === y)) {
@@ -574,8 +576,8 @@ export class ChromaPathGame {
 
   private checkCompletion(): boolean {
     // Check if all squares are filled
-    for (let y = 0; y < this.boardSize; y++) {
-      for (let x = 0; x < this.boardSize; x++) {
+    for (let y = 0; y < this.boardHeight; y++) {
+      for (let x = 0; x < this.boardWidth; x++) {
         if (this.state.board[y][x] === null) {
           return false;
         }
@@ -601,7 +603,8 @@ export class ChromaPathGame {
   }
 
   public reset(newBoard: Board): void {
-    this.boardSize = newBoard.length;
+    this.boardWidth = newBoard.length > 0 ? newBoard[0].length : 0;
+    this.boardHeight = newBoard.length;
     this.state = this.initializeState(newBoard);
     // Also clear cooldown on reset
     this.dragConnectionCooldown = false;

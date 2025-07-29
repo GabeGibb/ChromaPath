@@ -8,10 +8,12 @@ import GameCore from "@/components/game/GameCore";
 import { Board } from "@/shared/types";
 
 const Game: React.FC = () => {
-  const initialSize = 5;
+  const initialWidth = 5;
+  const initialHeight = 5;
 
   // Game state
-  const [boardSize, setBoardSize] = useState(initialSize);
+  const [boardWidth, setBoardWidth] = useState(initialWidth);
+  const [boardHeight, setBoardHeight] = useState(initialHeight);
   const [board, setBoard] = useState<Board | null>(null);
   const [boardGenerating, setBoardGenerating] = useState<boolean>(true);
   const [boardError, setBoardError] = useState<Error | null>(null);
@@ -21,7 +23,7 @@ const Game: React.FC = () => {
   const [lastStats, setLastStats] = useState<GameStats | null>(null);
 
   // Helper function to generate a new board
-  const generateBoard = async (size: number) => {
+  const generateBoard = async (width: number, height: number) => {
     setBoardGenerating(true);
     setBoardError(null);
     setShowCompletionSummary(false);
@@ -29,7 +31,7 @@ const Game: React.FC = () => {
     setLastStats(null);
 
     try {
-      const boardData = await BoardService.generateBoard(size);
+      const boardData = await BoardService.generateBoard(width, height);
       setBoard(boardData.board);
       setBoardGenerating(false);
     } catch (error) {
@@ -41,9 +43,10 @@ const Game: React.FC = () => {
   };
 
   // Handle board size change
-  const handleBoardSizeChange = (newSize: number) => {
-    setBoardSize(newSize);
-    generateBoard(newSize);
+  const handleBoardSizeChange = (width: number, height: number) => {
+    setBoardWidth(width);
+    setBoardHeight(height);
+    generateBoard(width, height);
   };
 
   // Handle board completion
@@ -55,7 +58,7 @@ const Game: React.FC = () => {
 
   // Handle new level request
   const handleNewLevel = () => {
-    generateBoard(boardSize);
+    generateBoard(boardWidth, boardHeight);
   };
 
   // Handle replay level request
@@ -75,12 +78,12 @@ const Game: React.FC = () => {
 
   // Handle board error retry
   const handleBoardErrorRetry = () => {
-    generateBoard(boardSize);
+    generateBoard(boardWidth, boardHeight);
   };
 
   // Initialize with first board
   useEffect(() => {
-    generateBoard(initialSize);
+    generateBoard(initialWidth, initialHeight);
   }, []);
 
   return (
@@ -104,7 +107,8 @@ const Game: React.FC = () => {
 
       {/* Game Core Component */}
       <GameCore
-        boardSize={boardSize}
+        boardWidth={boardWidth}
+        boardHeight={boardHeight}
         board={board}
         boardGenerating={boardGenerating}
         boardError={boardError}
