@@ -2,31 +2,52 @@ import {
   Board,
   GameState,
   GameStats,
-  getValidNeighbors,
   Point,
+  SoundService,
+  HapticService,
+  getValidNeighbors,
   removeNonEndpoints,
-} from "@/shared";
+} from "@chromapath/shared-types";
 
-// Import the sound context type
-import type { SoundContextType } from "./sound/SoundContext";
+// Noop implementations for platforms without sound/haptics
+const noopSoundService: SoundService = {
+  soundEnabled: false,
+  playSoftClick: () => {},
+  playHardClick: () => {},
+  playSuccessSound: () => {},
+};
+
+const noopHapticService: HapticService = {
+  lightTap: () => {},
+  mediumTap: () => {},
+  heavyTap: () => {},
+  success: () => {},
+};
+
+export interface GameServices {
+  sound?: SoundService;
+  haptics?: HapticService;
+}
 
 export class ChromaPathGame {
   private state: GameState;
   private boardWidth: number = 0;
   private boardHeight: number = 0;
-  private soundService: SoundContextType;
+  private soundService: SoundService;
+  private hapticService: HapticService;
 
-  // Add a variable to throttle moves after a connection
   private dragConnectionCooldown: boolean = false;
   private dragConnectionCooldownTime: number = 200;
 
-  constructor(soundService: SoundContextType) {
-    this.soundService = soundService;
+  constructor(services?: GameServices) {
+    this.soundService = services?.sound ?? noopSoundService;
+    this.hapticService = services?.haptics ?? noopHapticService;
     this.state = this.initializeState();
   }
 
-  public updateSoundService(soundService: SoundContextType): void {
-    this.soundService = soundService;
+  public updateServices(services: GameServices): void {
+    if (services.sound) this.soundService = services.sound;
+    if (services.haptics) this.hapticService = services.haptics;
   }
 
   private initializeState(newBoard: Board = []): GameState {
@@ -53,8 +74,8 @@ export class ChromaPathGame {
       boardHeight: newBoard.length,
     };
 
-    // Play success sound
     this.soundService.playSuccessSound();
+    this.hapticService.success();
 
     return {
       board: newBoard,
@@ -74,7 +95,6 @@ export class ChromaPathGame {
   private isValidMove(x: number, y: number, pathIndex: number): boolean {
     const cell = this.state.board[y][x];
 
-    // Check if position is already part of another path
     for (let i = 0; i < this.state.paths.length; i++) {
       const path = this.state.paths[i];
       if (i !== pathIndex && path.some((p) => p.x === x && p.y === y)) {
@@ -82,7 +102,6 @@ export class ChromaPathGame {
       }
     }
 
-    // Check if the cell is part of the same color or is empty
     if (cell && cell.pathIndex !== pathIndex) {
       return false;
     }
@@ -92,24 +111,20 @@ export class ChromaPathGame {
 
   public handleCellClick(x: number, y: number): void {
     const cell = this.state.board[y][x];
-    // Handle endpoint clicks
     if (cell?.isEndpoint) {
       this.state.currentPathIndex = cell.pathIndex;
       this.state.startPoint = { x, y };
       this.state.paths[cell.pathIndex] = [{ x, y }];
       this.updateBoardFromPaths();
     }
-    // Check if clicked on any existing path
     for (let i = 0; i < this.state.paths.length; i++) {
       const path = this.state.paths[i];
 
-      // Find the index of the clicked point in this path
       const clickedIndex = path.findIndex((p) => p.x === x && p.y === y);
 
       if (clickedIndex !== -1) {
         this.state.currentPathIndex = i;
         this.state.startPoint = path[0];
-        // Slice up to the clicked point's position + 1, not the path index
         this.state.paths[i] = path.slice(0, clickedIndex + 1);
         this.updateBoardFromPaths();
         return;
@@ -128,7 +143,6 @@ export class ChromaPathGame {
   }
 
   private updateBoardFromPaths(): void {
-    // Clear all non-endpoint cells first
     for (let y = 0; y < this.boardHeight; y++) {
       for (let x = 0; x < this.boardWidth; x++) {
         const cell = this.state.board[y][x];
@@ -138,11 +152,9 @@ export class ChromaPathGame {
       }
     }
 
-    // Update board with current paths
     for (let pathIndex = 0; pathIndex < this.state.paths.length; pathIndex++) {
       const path = this.state.paths[pathIndex];
       for (const point of path) {
-        // Don't overwrite endpoints
         const existingCell = this.state.board[point.y][point.x];
         if (!existingCell?.isEndpoint) {
           this.state.board[point.y][point.x] = {
@@ -153,9 +165,7 @@ export class ChromaPathGame {
       }
     }
 
-    // Update path completion count
     this.updatePathCompletionCount();
-    // Update connected paths count
     this.updateConnectedPathsCount();
   }
 
@@ -170,7 +180,6 @@ export class ChromaPathGame {
     const startPoint = path[0];
     const endPoint = path[path.length - 1];
 
-    // Use the reusable endpoint connection function
     return (
       this.isConnectedToEndpoint(startPoint, pathIndex) &&
       this.isConnectedToEndpoint(endPoint, pathIndex) &&
@@ -199,7 +208,6 @@ export class ChromaPathGame {
         return false;
       }
 
-      // Use the reusable endpoint connection function
       return (
         this.isConnectedToEndpoint(startPoint, idx) &&
         this.isConnectedToEndpoint(endPoint, idx)
@@ -208,7 +216,6 @@ export class ChromaPathGame {
   }
 
   public handleDrag(x: number, y: number): boolean {
-    // If in cooldown, disallow moves
     if (this.dragConnectionCooldown) return false;
 
     if (this.state.currentPathIndex === null || !this.state.startPoint)
@@ -217,11 +224,9 @@ export class ChromaPathGame {
     const currentPath = this.state.paths[this.state.currentPathIndex];
     const lastPoint = currentPath[currentPath.length - 1];
 
-    // Clamp coordinates to board bounds first
     const clampedX = Math.max(0, Math.min(x, this.boardWidth - 1));
     const clampedY = Math.max(0, Math.min(y, this.boardHeight - 1));
 
-    // If the clamped position is not valid, find the closest valid point
     if (!this.isValidMove(clampedX, clampedY, this.state.currentPathIndex)) {
       const closestPoint = this.findClosestValidPoint(
         clampedX,
@@ -231,25 +236,21 @@ export class ChromaPathGame {
 
       if (!closestPoint) return false;
 
-      // Use the closest valid point
       x = closestPoint.x;
       y = closestPoint.y;
     } else {
-      // Use the clamped coordinates
       x = clampedX;
       y = clampedY;
     }
 
-    // Handle backtracking
     const backtrackIndex = currentPath.findIndex((p) => p.x === x && p.y === y);
     if (backtrackIndex !== -1) {
       const newPath = currentPath.slice(0, backtrackIndex + 1);
-      // Only update and play sound if the path actually changed
       if (newPath.length !== currentPath.length) {
         this.state.paths[this.state.currentPathIndex] = newPath;
         this.updateBoardFromPaths();
-        // Play soft click sound for backtracking
         this.soundService.playSoftClick();
+        this.hapticService.lightTap();
         this.incrementMoves();
       }
       return false;
@@ -258,6 +259,7 @@ export class ChromaPathGame {
     const handleConnection = () => {
       this.soundService.playSoftClick();
       this.soundService.playHardClick();
+      this.hapticService.mediumTap();
       this.dragConnectionCooldown = true;
       setTimeout(() => {
         this.dragConnectionCooldown = false;
@@ -265,11 +267,11 @@ export class ChromaPathGame {
       if (this.checkCompletion()) {
         this.state.stats.endTime = Date.now();
         this.soundService.playSuccessSound();
+        this.hapticService.success();
       }
       return this.checkCompletion();
     };
 
-    // Check if at non-start endpoint
     const isAtEndpoint = this.isAtEndpointReusable(
       lastPoint,
       this.state.startPoint,
@@ -280,7 +282,6 @@ export class ChromaPathGame {
 
     if (isAtEndpoint && currentPath.length > 1) return false;
 
-    // Handle adjacent moves
     if (
       Math.abs(x - lastPoint.x) + Math.abs(y - lastPoint.y) === 1 &&
       !adjacentBeyond
@@ -292,17 +293,15 @@ export class ChromaPathGame {
       this.updateBoardFromPaths();
       this.incrementMoves();
 
-      // Check if this move connects to an endpoint
       if (this.isConnectedToEndpoint({ x, y }, this.state.currentPathIndex)) {
         return handleConnection();
       } else {
-        // Play soft click sound for tile placement
         this.soundService.playSoftClick();
+        this.hapticService.lightTap();
       }
       return false;
     }
 
-    // If current path is connected by two endpoints, dont allow any more moves
     if (this.state.paths[this.state.currentPathIndex].length > 1) {
       const startPoint = this.state.paths[this.state.currentPathIndex][0];
       const endPoint =
@@ -325,7 +324,6 @@ export class ChromaPathGame {
       }
     }
 
-    // Handle pathfinding for non-adjacent moves
     const curPathCopy = [...currentPath];
     for (let i = currentPath.length - 1; i >= 0; i--) {
       const visited = new Set<string>();
@@ -340,12 +338,11 @@ export class ChromaPathGame {
         this.updateBoardFromPaths();
         this.incrementMoves();
 
-        // Check if this pathfinding move connects to an endpoint
         if (this.isConnectedToEndpoint({ x, y }, this.state.currentPathIndex)) {
           return handleConnection();
         } else {
-          // Play soft click sound for pathfinding tile placement
           this.soundService.playSoftClick();
+          this.hapticService.lightTap();
         }
         return false;
       }
@@ -358,30 +355,24 @@ export class ChromaPathGame {
     y: number,
     pathIndex: number
   ): Point | null {
-    // First check if the target point itself is valid
     if (this.isValidMove(x, y, pathIndex)) {
       return { x, y };
     }
 
-    // Get the last point of the current path to sort by distance to it
     const currentPath = this.state.paths[pathIndex];
     const lastPathPoint = currentPath[currentPath.length - 1];
 
-    // Search in expanding circles around the target point
-    const maxSearchRadius = 2; // Limit search radius for performance
+    const maxSearchRadius = 2;
 
     for (let radius = 1; radius <= maxSearchRadius; radius++) {
       const candidates: Point[] = [];
 
-      // Generate all points at this radius
       for (let dx = -radius; dx <= radius; dx++) {
         for (let dy = -radius; dy <= radius; dy++) {
-          // Only include points at exactly this radius (Manhattan distance)
           if (Math.abs(dx) + Math.abs(dy) === radius) {
             const candidateX = x + dx;
             const candidateY = y + dy;
 
-            // Check bounds
             if (
               candidateX >= 0 &&
               candidateX < this.boardWidth &&
@@ -394,7 +385,6 @@ export class ChromaPathGame {
         }
       }
 
-      // Sort candidates by distance to the last path point (Euclidean distance for smoother feel)
       candidates.sort((a, b) => {
         const distA = Math.sqrt(
           (a.x - lastPathPoint.x) ** 2 + (a.y - lastPathPoint.y) ** 2
@@ -405,7 +395,6 @@ export class ChromaPathGame {
         return distA - distB;
       });
 
-      // Check each candidate
       for (const candidate of candidates) {
         if (this.isValidMove(candidate.x, candidate.y, pathIndex)) {
           return candidate;
@@ -413,13 +402,9 @@ export class ChromaPathGame {
       }
     }
 
-    return null; // No valid point found within search radius
+    return null;
   }
 
-  /**
-   * Reusable function to determine if a point is connected to an endpoint of a given pathIndex.
-   * Optionally, you can pass an excludePoint to avoid considering a specific point (e.g., the start point).
-   */
   private isConnectedToEndpoint(
     point: Point,
     pathIndex: number,
@@ -437,10 +422,6 @@ export class ChromaPathGame {
     return true;
   }
 
-  /**
-   * Backwards-compatible version of isAtEndpoint, now using isConnectedToEndpoint for reusability.
-   * This is kept for code that expects the old signature.
-   */
   private isAtEndpointReusable(
     point: Point,
     startPoint: Point,
@@ -454,12 +435,10 @@ export class ChromaPathGame {
     target: Point,
     visited = new Set<string>()
   ): boolean {
-    // const visited = new Set<string>();
     const queue = [{ point: start, path: [start] }];
 
     while (queue.length > 0) {
       const { point, path } = queue.shift()!;
-      // Check if point is at endpoint
 
       if (
         path.length > 1 &&
@@ -470,20 +449,19 @@ export class ChromaPathGame {
         continue;
       }
 
-      if (this.checkPathCollision(path)) continue; // Prevent infinite loops
+      if (this.checkPathCollision(path)) continue;
       if (
         (point.x === target.x && point.y === target.y) ||
         this.isAtEndpointReusable(point, start, this.state.currentPathIndex!)
       ) {
-        // Found path
         if (this.state.currentPathIndex !== null) {
           this.state.paths[this.state.currentPathIndex] = path;
 
-          // Play hard click sound for connection
           if (
             this.isAtEndpointReusable(point, start, this.state.currentPathIndex)
           ) {
             this.soundService.playHardClick();
+            this.hapticService.mediumTap();
           }
         }
         return true;
@@ -491,7 +469,6 @@ export class ChromaPathGame {
 
       visited.add(`${point.x},${point.y}`);
 
-      // Get valid neighbors that are not in path, visited, or queue
       const neighbors = getValidNeighbors(
         this.state.board,
         point,
@@ -512,15 +489,11 @@ export class ChromaPathGame {
   }
 
   private checkPathCollision(currentPath: Point[]): boolean {
-    // Skip if no current path
     if (!currentPath.length) return false;
 
-    // Check collision with other paths
     for (const [pathIndex, path] of this.state.paths.entries()) {
-      // Skip checking against current color's path
       if (pathIndex === this.state.currentPathIndex) continue;
 
-      // Check if any point in current path intersects with other paths
       const hasCollision = currentPath.some((currentPoint) =>
         path.some(
           (pathPoint) =>
@@ -531,7 +504,6 @@ export class ChromaPathGame {
       if (hasCollision) return true;
     }
 
-    // For currentPath make sure it does not intersect with any endpoint not of same color
     const currentPathIndex = this.state.currentPathIndex;
     const currentPathEnd = currentPath[currentPath.length - 1];
     const currentPathStart = currentPath[0];
@@ -558,7 +530,6 @@ export class ChromaPathGame {
   public endDrag(): void {
     this.state.currentPathIndex = null;
     this.state.startPoint = null;
-    // Also clear cooldown on drag end
     this.dragConnectionCooldown = false;
   }
 
@@ -575,7 +546,6 @@ export class ChromaPathGame {
   }
 
   private checkCompletion(): boolean {
-    // Check if all squares are filled
     for (let y = 0; y < this.boardHeight; y++) {
       for (let x = 0; x < this.boardWidth; x++) {
         if (this.state.board[y][x] === null) {
@@ -584,7 +554,6 @@ export class ChromaPathGame {
       }
     }
 
-    // Iterate through all paths and make sure they have at least 2 values total with last and first being endpoints
     for (let i = 0; i < this.state.paths.length; i++) {
       const path = this.state.paths[i];
       if (
@@ -606,7 +575,6 @@ export class ChromaPathGame {
     this.boardWidth = newBoard.length > 0 ? newBoard[0].length : 0;
     this.boardHeight = newBoard.length;
     this.state = this.initializeState(newBoard);
-    // Also clear cooldown on reset
     this.dragConnectionCooldown = false;
   }
 }

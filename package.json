@@ -1,10 +1,12 @@
 {
-  "name": "ChromaPath",
+  "name": "chromapath",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-    "lint": "cd frontend && pnpm run lint"
+    "dev": "pnpm --filter @chromapath/web dev",
+    "dev:mobile": "pnpm --filter @chromapath/mobile start",
+    "build": "pnpm --filter @chromapath/web build",
+    "lint": "pnpm -r lint"
   },
   "keywords": [],
   "author": "",
