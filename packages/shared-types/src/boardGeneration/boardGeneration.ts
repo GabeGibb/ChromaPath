@@ -35,7 +35,7 @@ export class BoardGenerator {
   async generateBoard(width: number, height: number): Promise<Board> {
     this.boardWidth = width;
     this.boardHeight = height;
-    this.maxNumPaths = Math.max(width, height) * 1.35;
+    this.maxNumPaths = Math.max(width, height) * 1.0;
     const start = performance.now();
 
     for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
@@ -203,6 +203,26 @@ export class BoardGenerator {
   }
 
   private findRandomValidPathFromStart(start: Point): Point[] | null {
+    // Try multiple candidates and pick the longest valid path
+    const candidates: Point[][] = [];
+    const numCandidates = 3;
+
+    for (let i = 0; i < numCandidates; i++) {
+      const path = this.exploreSinglePath(start);
+      if (path && path.length >= this.minPathLength) {
+        candidates.push(path);
+      }
+    }
+
+    if (candidates.length === 0) return null;
+
+    // Return the longest path
+    return candidates.reduce((longest, current) =>
+      current.length > longest.length ? current : longest
+    );
+  }
+
+  private exploreSinglePath(start: Point): Point[] | null {
     const visited = new Set<string>();
     const queue: { point: Point; path: Point[] }[] = [
       {
@@ -212,10 +232,15 @@ export class BoardGenerator {
     ];
 
     const curWeights = {
-      straight: 100 + this.boardWidth * this.boardHeight,
-      left: 100,
-      right: 100,
+      straight: 100 + this.boardWidth * this.boardHeight * 1.5,
+      left: 80,
+      right: 80,
     };
+
+    // Preferred minimum path length - aim for longer paths
+    const preferredMin = Math.floor(
+      (this.boardWidth * this.boardHeight) / (this.maxNumPaths * 0.8)
+    );
 
     while (queue.length > 0) {
       const weights = {
@@ -235,9 +260,12 @@ export class BoardGenerator {
         false
       ).filter((neighbor) => isValidPath(this.board, [...path, neighbor]));
 
+      // Delayed termination: only stop early if we've reached preferred length
       if (
         path.length >= this.minPathLength &&
-        (path.length == this.maxPathLength || neighbors.length === 0)
+        (path.length >= this.maxPathLength ||
+          neighbors.length === 0 ||
+          path.length >= preferredMin)
       ) {
         return path;
       }
@@ -251,8 +279,14 @@ export class BoardGenerator {
         const directionA = getDirection(prevPoint, point, a);
         const directionB = getDirection(prevPoint, point, b);
 
-        const weightA = weights[directionA] || 0;
-        const weightB = weights[directionB] || 0;
+        let weightA = weights[directionA] || 0;
+        let weightB = weights[directionB] || 0;
+
+        // Exploration bonus: prefer neighbors with more open neighbors
+        const neighborsOfA = getValidNeighbors(this.board, a, visited, false).length;
+        const neighborsOfB = getValidNeighbors(this.board, b, visited, false).length;
+        weightA += neighborsOfA * 25;
+        weightB += neighborsOfB * 25;
 
         return weightB - weightA;
       });

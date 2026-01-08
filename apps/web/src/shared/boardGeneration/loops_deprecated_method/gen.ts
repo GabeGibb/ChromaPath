@@ -1,5 +1,4 @@
-import { Board } from "../../types";
-import { pathsHaveBetterSolution } from "../randomPaths/boardValidatorUtils";
+import { Board, pathsHaveBetterSolution } from "@chromapath/shared-types";
 import { Grid, UnionFind } from "./grid";
 import { Mitm } from "./mitm";
 

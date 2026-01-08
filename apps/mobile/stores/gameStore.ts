@@ -2,10 +2,9 @@ import { create } from 'zustand';
 import {
   Board,
   GameState,
-  GameStats,
   BoardGenerator,
 } from '@chromapath/shared-types';
-import { ChromaPathGame, GameServices } from '@chromapath/game-logic';
+import { ChromaPathGame } from '@chromapath/game-logic';
 import * as Haptics from 'expo-haptics';
 
 interface GameStore {
@@ -17,30 +16,41 @@ interface GameStore {
   timer: number;
   numConnectedPaths: number;
   totalPaths: number;
+  boardWidth: number;
+  boardHeight: number;
+  showNumbers: boolean;
 
   // Internal
   game: ChromaPathGame | null;
-  timerInterval: NodeJS.Timeout | null;
+  timerInterval: ReturnType<typeof setInterval> | null;
 
   // Actions
   generateBoard: (width: number, height: number) => Promise<void>;
   handleCellClick: (x: number, y: number) => void;
   handleDrag: (x: number, y: number) => boolean;
   handleMouseMove: (x: number, y: number) => void;
-  setPreciseMouse: (x: number, y: number) => void;
   endDrag: () => void;
   refreshPaths: (hardReset?: boolean) => void;
   updateFromGameState: () => void;
   startTimer: () => void;
   stopTimer: () => void;
+  setShowNumbers: (show: boolean) => void;
 }
 
-// Haptic feedback service for mobile
+// Non-blocking haptic feedback service - uses setImmediate to not block JS thread
 const hapticService = {
-  lightTap: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
-  mediumTap: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
-  heavyTap: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy),
-  success: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
+  lightTap: () => {
+    setImmediate(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+  },
+  mediumTap: () => {
+    setImmediate(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+  },
+  heavyTap: () => {
+    setImmediate(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
+  },
+  success: () => {
+    setImmediate(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
+  },
 };
 
 // Sound service (placeholder - can be implemented with expo-av later)
@@ -60,11 +70,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
   timer: 0,
   numConnectedPaths: 0,
   totalPaths: 0,
+  boardWidth: 5,
+  boardHeight: 5,
+  showNumbers: false,
   game: null,
   timerInterval: null,
 
   generateBoard: async (width: number, height: number) => {
-    set({ isGenerating: true, isCompleted: false });
+    set({ isGenerating: true, isCompleted: false, boardWidth: width, boardHeight: height });
     get().stopTimer();
 
     try {
@@ -120,18 +133,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return completed;
   },
 
+  // Only update the game's internal state, don't trigger React re-render
   handleMouseMove: (x: number, y: number) => {
     const { game } = get();
     if (!game) return;
-
     game.handleMouseMove(x, y);
-  },
-
-  setPreciseMouse: (x: number, y: number) => {
-    const { game } = get();
-    if (!game) return;
-
-    game.setPreciseMouse(x, y);
+    // Don't call updateFromGameState here - it will be called by handleDrag
   },
 
   endDrag: () => {
@@ -139,6 +146,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!game) return;
 
     game.endDrag();
+    get().updateFromGameState();
   },
 
   refreshPaths: (hardReset = false) => {
@@ -186,5 +194,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       clearInterval(timerInterval);
       set({ timerInterval: null });
     }
+  },
+
+  setShowNumbers: (show: boolean) => {
+    set({ showNumbers: show });
   },
 }));

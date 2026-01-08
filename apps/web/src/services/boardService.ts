@@ -1,4 +1,4 @@
-import { Board } from "@/shared/types";
+import { Board } from "@/shared";
 
 export interface BoardResponse {
   board: Board;

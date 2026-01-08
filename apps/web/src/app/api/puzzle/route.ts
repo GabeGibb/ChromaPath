@@ -1,10 +1,10 @@
-import { BoardGenerator } from "@/shared";
 import {
+  BoardGenerator,
   MAX_BOARD_WIDTH,
   MAX_BOARD_HEIGHT,
   MIN_BOARD_WIDTH,
   MIN_BOARD_HEIGHT,
-} from "@/shared/consts";
+} from "@/shared";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {

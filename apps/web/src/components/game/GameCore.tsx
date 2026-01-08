@@ -8,14 +8,14 @@ import BoardGenerationError from "@/components/game/BoardGenerationError";
 import { useSetting } from "@/services/localStorage/SettingsContext";
 import { Button, LoadingSpinner } from "@/components/ui";
 import { useSound } from "@/services/sound/SoundContext";
-import { GameStats } from "@/shared";
-import { Board } from "@/shared/types";
 import {
+  GameStats,
+  Board,
   MAX_BOARD_HEIGHT,
   MAX_BOARD_WIDTH,
   MIN_BOARD_HEIGHT,
   MIN_BOARD_WIDTH,
-} from "@/shared/consts";
+} from "@/shared";
 import { formatGameTime } from "@/shared/utils";
 
 interface GameCoreProps {

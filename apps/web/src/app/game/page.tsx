@@ -2,10 +2,9 @@
 import { ArrowLeft } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui";
-import { GameStats } from "@/shared";
+import { GameStats, Board } from "@/shared";
 import { BoardService } from "@/services/boardService";
 import GameCore from "@/components/game/GameCore";
-import { Board } from "@/shared/types";
 
 const Game: React.FC = () => {
   const initialWidth = 5;

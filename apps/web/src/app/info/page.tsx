@@ -6,7 +6,7 @@ import {
   MAX_BOARD_HEIGHT,
   MIN_BOARD_WIDTH,
   MIN_BOARD_HEIGHT,
-} from "@/shared/consts";
+} from "@/shared";
 
 const Info: React.FC = () => {
   return (
