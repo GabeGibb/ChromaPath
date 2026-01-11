@@ -204,12 +204,8 @@ export class BoardGenerator {
 
   private findRandomValidPathFromStart(start: Point): Point[] | null {
     const visited = new Set<string>();
-    const queue: { point: Point; path: Point[] }[] = [
-      {
-        point: start,
-        path: [start],
-      },
-    ];
+    const path: Point[] = [start];
+    let point = start;
 
     const curWeights = {
       straight: 100 + this.boardWidth * this.boardHeight,
@@ -217,37 +213,40 @@ export class BoardGenerator {
       right: 100,
     };
 
-    while (queue.length > 0) {
+    while (true) {
       const weights = {
         straight: Math.random() * curWeights.straight,
         left: Math.random() * curWeights.left,
         right: Math.random() * curWeights.right,
       };
-      const { point, path } = queue.shift()!;
       const key = `${point.x},${point.y}`;
-      if (visited.has(key)) continue;
+      if (visited.has(key)) break;
       visited.add(key);
 
-      const neighbors = getValidNeighbors(
-        this.board,
-        point,
-        visited,
-        false
-      ).filter((neighbor) => isValidPath(this.board, [...path, neighbor]));
+      // Filter valid neighbors using mutable path (push/pop pattern)
+      const neighbors = getValidNeighbors(this.board, point, visited, false);
+      const validNeighbors: Point[] = [];
+      for (const neighbor of neighbors) {
+        path.push(neighbor);
+        if (isValidPath(this.board, path)) {
+          validNeighbors.push(neighbor);
+        }
+        path.pop();
+      }
 
       if (
         path.length >= this.minPathLength &&
-        (path.length == this.maxPathLength || neighbors.length === 0)
+        (path.length == this.maxPathLength || validNeighbors.length === 0)
       ) {
         return path;
       }
-      if (neighbors.length === 0) {
+      if (validNeighbors.length === 0) {
         return null;
       }
 
       const prevPoint = path.length >= 2 ? path[path.length - 2] : null;
 
-      const weightedNeighbors = neighbors.sort((a, b) => {
+      const weightedNeighbors = validNeighbors.sort((a, b) => {
         const directionA = getDirection(prevPoint, point, a);
         const directionB = getDirection(prevPoint, point, b);
 
@@ -258,10 +257,8 @@ export class BoardGenerator {
       });
 
       const neighbor = weightedNeighbors[0];
-      queue.push({
-        point: neighbor,
-        path: [...path, neighbor],
-      });
+      path.push(neighbor);
+      point = neighbor;
     }
 
     return null;

@@ -1,5 +1,9 @@
 import { Board, Point } from "./types";
 
+// Pre-defined direction offsets (avoid recreating on every call)
+const NEIGHBOR_DX = [0, 1, 0, -1];
+const NEIGHBOR_DY = [-1, 0, 1, 0];
+
 export function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -15,28 +19,27 @@ export function getValidNeighbors(
   visited: Set<string>,
   includeEndpoint: boolean = false
 ): Point[] {
-  const directions = [
-    { dx: 0, dy: -1 },
-    { dx: 1, dy: 0 },
-    { dx: 0, dy: 1 },
-    { dx: -1, dy: 0 },
-  ];
   const boardHeight = board.length;
-  const boardWidth = board.length > 0 ? board[0].length : 0;
-  return directions
-    .map(({ dx, dy }) => ({
-      x: point.x + dx,
-      y: point.y + dy,
-    }))
-    .filter(
-      ({ x, y }) =>
-        x >= 0 &&
-        x < boardWidth &&
-        y >= 0 &&
-        y < boardHeight &&
-        (!board[y][x] || (includeEndpoint && board[y][x]?.isEndpoint)) &&
-        !visited.has(`${x},${y}`)
-    );
+  const boardWidth = boardHeight > 0 ? board[0].length : 0;
+  const result: Point[] = [];
+
+  for (let i = 0; i < 4; i++) {
+    const x = point.x + NEIGHBOR_DX[i];
+    const y = point.y + NEIGHBOR_DY[i];
+
+    if (
+      x >= 0 &&
+      x < boardWidth &&
+      y >= 0 &&
+      y < boardHeight &&
+      (!board[y][x] || (includeEndpoint && board[y][x]?.isEndpoint)) &&
+      !visited.has(`${x},${y}`)
+    ) {
+      result.push({ x, y });
+    }
+  }
+
+  return result;
 }
 
 export function getDistancedColorArray(): string[] {
@@ -153,10 +156,13 @@ export function findAllPossiblePaths(
       endPoint.y === end.y
   );
 
+  // Use single visited set with backtracking (add before, delete after)
+  const visited = new Set<string>();
+  visited.add(`${start.x},${start.y}`);
+
   function findPathsRecursive(
     currentPoint: Point,
-    currentPath: Point[],
-    visited: Set<string>
+    currentPath: Point[]
   ) {
     if (
       currentPoint.x === end.x &&
@@ -171,30 +177,31 @@ export function findAllPossiblePaths(
     const neighbors = getValidNeighbors(board, currentPoint, visited, true);
 
     for (const neighbor of neighbors) {
-      if (isValidPath(board, [...currentPath, neighbor])) {
+      // Build extended path for checks
+      currentPath.push(neighbor);
+
+      if (isValidPath(board, currentPath)) {
         if (
-          wouldBlockOtherPaths(
+          !wouldBlockOtherPaths(
             board,
-            [...currentPath, neighbor],
+            currentPath,
             endpointPairs,
             endpointIndex
           )
         ) {
-          continue;
+          // Backtracking: add to visited, recurse, then remove
+          const neighborKey = `${neighbor.x},${neighbor.y}`;
+          visited.add(neighborKey);
+          findPathsRecursive(neighbor, currentPath);
+          visited.delete(neighborKey);
         }
-
-        const newVisited = new Set(visited);
-        newVisited.add(`${neighbor.x},${neighbor.y}`);
-
-        currentPath.push(neighbor);
-        findPathsRecursive(neighbor, currentPath, newVisited);
-        currentPath.pop();
       }
+
+      currentPath.pop();
     }
   }
 
-  const initialVisited = new Set([`${start.x},${start.y}`]);
-  findPathsRecursive(start, [start], initialVisited);
+  findPathsRecursive(start, [start]);
 
   return paths;
 }
@@ -205,23 +212,31 @@ function wouldBlockOtherPaths(
   endpointPairs: Array<[Point, Point, number]>,
   currentPairIndex: number
 ): boolean {
-  const tempBoard = board.map((row) => row.map((cell) => cell));
-
+  // Save original values and apply path (avoid full board copy)
+  const originalValues: Array<{ point: Point; value: Board[0][0] }> = [];
   for (const point of proposedPath) {
-    tempBoard[point.y][point.x] = { pathIndex: -1, isEndpoint: false };
+    originalValues.push({ point, value: board[point.y][point.x] });
+    board[point.y][point.x] = { pathIndex: -1, isEndpoint: false };
   }
 
+  let wouldBlock = false;
   for (let i = 0; i < endpointPairs.length; i++) {
     if (i === currentPairIndex) continue;
 
     const [start, end] = endpointPairs[i];
 
-    if (!findPathToPoint(tempBoard, start, end)) {
-      return true;
+    if (!findPathToPoint(board, start, end)) {
+      wouldBlock = true;
+      break;
     }
   }
 
-  return false;
+  // Restore original values
+  for (const { point, value } of originalValues) {
+    board[point.y][point.x] = value;
+  }
+
+  return wouldBlock;
 }
 
 function findPathToPoint(
@@ -230,12 +245,14 @@ function findPathToPoint(
   target: Point,
   visited = new Set<string>()
 ): boolean {
-  const queue = [{ point: start, path: [start] }];
+  // BFS using index instead of shift() - O(1) instead of O(n)
+  const queue: { point: Point; depth: number }[] = [{ point: start, depth: 0 }];
+  let queueIndex = 0;
 
-  while (queue.length > 0) {
-    const { point, path } = queue.shift()!;
+  while (queueIndex < queue.length) {
+    const { point, depth } = queue[queueIndex++];
 
-    if (path.length > 1 && point.x === target.x && point.y === target.y) {
+    if (depth > 0 && point.x === target.x && point.y === target.y) {
       return true;
     }
 
@@ -248,7 +265,7 @@ function findPathToPoint(
     for (const neighbor of neighbors) {
       const neighborKey = `${neighbor.x},${neighbor.y}`;
       if (!visited.has(neighborKey)) {
-        queue.push({ point: neighbor, path: [...path, neighbor] });
+        queue.push({ point: neighbor, depth: depth + 1 });
       }
     }
   }
@@ -263,7 +280,7 @@ const adjacentDirections = [
   { x: 0, y: 1 },
 ];
 
-// O(1) lookup version using pre-built Set
+// O(1) lookup version using pre-built Set (string keys - for compatibility)
 export function countAdjacentWithSet(pathSet: Set<string>, point: Point): number {
   let adjacentCount = 0;
   for (const dir of adjacentDirections) {
@@ -273,6 +290,16 @@ export function countAdjacentWithSet(pathSet: Set<string>, point: Point): number
     }
   }
   return adjacentCount;
+}
+
+// Fast numeric version - avoids string allocation
+function countAdjacentNumeric(pathSet: Set<number>, x: number, y: number, width: number): number {
+  let count = 0;
+  for (const dir of adjacentDirections) {
+    const key = (y + dir.y) * width + (x + dir.x);
+    if (pathSet.has(key)) count++;
+  }
+  return count;
 }
 
 // Legacy O(n) version - kept for compatibility
@@ -288,17 +315,22 @@ export function countAdjacent(path: Point[], point: Point): number {
   return adjacentCount;
 }
 
-// Optimized O(n) version - builds Set once, then O(1) lookups
+// Optimized version - uses numeric keys instead of string keys
 export function isValidPath(board: Board, path: Point[]): boolean {
-  // Build set once - O(n)
-  const pathSet = new Set(path.map(p => `${p.x},${p.y}`));
+  const boardWidth = board[0]?.length || 0;
+
+  // Build numeric set once - O(n), but faster than string version
+  const pathSet = new Set<number>();
+  for (const p of path) {
+    pathSet.add(p.y * boardWidth + p.x);
+  }
 
   for (let i = 0; i < path.length; i++) {
     const point = path[i];
     const isEndpoint = board[point.y][point.x]?.isEndpoint;
 
-    // O(1) lookup instead of O(n)
-    const adjacentCount = countAdjacentWithSet(pathSet, point);
+    // O(1) lookup with numeric keys
+    const adjacentCount = countAdjacentNumeric(pathSet, point.x, point.y, boardWidth);
 
     if (isEndpoint) {
       if (adjacentCount !== 1) {
