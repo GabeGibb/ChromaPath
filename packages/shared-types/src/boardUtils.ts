@@ -256,33 +256,49 @@ function findPathToPoint(
   return false;
 }
 
-export function countAdjacent(path: Point[], point: Point): number {
-  const directions = [
-    { x: -1, y: 0 },
-    { x: 1, y: 0 },
-    { x: 0, y: -1 },
-    { x: 0, y: 1 },
-  ];
-  let adjacentCount = 0;
+const adjacentDirections = [
+  { x: -1, y: 0 },
+  { x: 1, y: 0 },
+  { x: 0, y: -1 },
+  { x: 0, y: 1 },
+];
 
-  for (const dir of directions) {
+// O(1) lookup version using pre-built Set
+export function countAdjacentWithSet(pathSet: Set<string>, point: Point): number {
+  let adjacentCount = 0;
+  for (const dir of adjacentDirections) {
+    const key = `${point.x + dir.x},${point.y + dir.y}`;
+    if (pathSet.has(key)) {
+      adjacentCount++;
+    }
+  }
+  return adjacentCount;
+}
+
+// Legacy O(n) version - kept for compatibility
+export function countAdjacent(path: Point[], point: Point): number {
+  let adjacentCount = 0;
+  for (const dir of adjacentDirections) {
     const checkX = point.x + dir.x;
     const checkY = point.y + dir.y;
-
     if (path.some((p) => p.x === checkX && p.y === checkY)) {
       adjacentCount++;
     }
   }
-
   return adjacentCount;
 }
 
+// Optimized O(n) version - builds Set once, then O(1) lookups
 export function isValidPath(board: Board, path: Point[]): boolean {
+  // Build set once - O(n)
+  const pathSet = new Set(path.map(p => `${p.x},${p.y}`));
+
   for (let i = 0; i < path.length; i++) {
     const point = path[i];
     const isEndpoint = board[point.y][point.x]?.isEndpoint;
 
-    const adjacentCount = countAdjacent(path, point);
+    // O(1) lookup instead of O(n)
+    const adjacentCount = countAdjacentWithSet(pathSet, point);
 
     if (isEndpoint) {
       if (adjacentCount !== 1) {
@@ -368,6 +384,175 @@ export function findEndpointsForPath(
     }
   }
   return endpoints.length === 2 ? [endpoints[0], endpoints[1]] : null;
+}
+
+// Fast check: would adding a point to the path create isolated cells?
+// An isolated cell is an empty cell with 0 empty neighbors after the path blocks it
+// Pass pathSet as parameter to avoid recreating it for each neighbor
+export function wouldCreateIsolatedCells(
+  board: Board,
+  pathSet: Set<string>,
+  newPoint: Point
+): boolean {
+  const boardHeight = board.length;
+  const boardWidth = board[0]?.length || 0;
+
+  const newPointKey = `${newPoint.x},${newPoint.y}`;
+
+  // Check all neighbors of the new point - they might become isolated
+  for (const dir of adjacentDirections) {
+    const nx = newPoint.x + dir.x;
+    const ny = newPoint.y + dir.y;
+
+    // Skip if out of bounds, occupied, or part of path (including new point)
+    if (nx < 0 || nx >= boardWidth || ny < 0 || ny >= boardHeight) continue;
+    if (board[ny][nx]) continue; // Already occupied
+    const neighborKey = `${nx},${ny}`;
+    if (pathSet.has(neighborKey) || neighborKey === newPointKey) continue; // Part of our path
+
+    // Count empty neighbors of this cell (excluding the path AND the new point)
+    let emptyNeighborCount = 0;
+    for (const dir2 of adjacentDirections) {
+      const nnx = nx + dir2.x;
+      const nny = ny + dir2.y;
+      if (nnx < 0 || nnx >= boardWidth || nny < 0 || nny >= boardHeight) continue;
+      if (board[nny][nnx]) continue; // Occupied
+      const nnKey = `${nnx},${nny}`;
+      if (pathSet.has(nnKey) || nnKey === newPointKey) continue; // Part of path or new point
+      emptyNeighborCount++;
+    }
+
+    // If this cell would have 0 empty neighbors, it's isolated
+    if (emptyNeighborCount === 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// Count how many cells would become "bottlenecked" (only 1 empty neighbor)
+// if we add newPoint to the path
+// Pass pathSet as parameter to avoid recreating it for each neighbor
+export function countBottleneckedCells(
+  board: Board,
+  pathSet: Set<string>,
+  newPoint: Point
+): number {
+  const boardHeight = board.length;
+  const boardWidth = board[0]?.length || 0;
+  const newPointKey = `${newPoint.x},${newPoint.y}`;
+
+  let bottlenecked = 0;
+
+  // Check all neighbors of the new point
+  for (const dir of adjacentDirections) {
+    const nx = newPoint.x + dir.x;
+    const ny = newPoint.y + dir.y;
+
+    if (nx < 0 || nx >= boardWidth || ny < 0 || ny >= boardHeight) continue;
+    if (board[ny][nx]) continue;
+    const neighborKey = `${nx},${ny}`;
+    if (pathSet.has(neighborKey) || neighborKey === newPointKey) continue; // Include newPoint
+
+    let emptyNeighborCount = 0;
+    for (const dir2 of adjacentDirections) {
+      const nnx = nx + dir2.x;
+      const nny = ny + dir2.y;
+      if (nnx < 0 || nnx >= boardWidth || nny < 0 || nny >= boardHeight) continue;
+      if (board[nny][nnx]) continue;
+      const nnKey = `${nnx},${nny}`;
+      if (pathSet.has(nnKey) || nnKey === newPointKey) continue;
+      emptyNeighborCount++;
+    }
+
+    if (emptyNeighborCount === 1) {
+      bottlenecked++;
+    }
+  }
+
+  return bottlenecked;
+}
+
+/**
+ * Measure region size up to a limit using BFS.
+ * Returns the actual size if < limit, or 0 if >= limit (meaning "big enough").
+ * This is used for quick dead-end detection without fully exploring large regions.
+ */
+export function measureRegionSize(
+  board: Board,
+  start: Point,
+  blocked: Set<string>,
+  limit: number
+): number {
+  const boardHeight = board.length;
+  const boardWidth = board[0]?.length || 0;
+  const visited = new Set<string>();
+  const queue: Point[] = [start];
+  let size = 0;
+
+  while (queue.length > 0 && size < limit) {
+    const point = queue.shift()!;
+    const key = `${point.x},${point.y}`;
+
+    if (visited.has(key)) continue;
+    visited.add(key);
+    size++;
+
+    for (const dir of adjacentDirections) {
+      const nx = point.x + dir.x;
+      const ny = point.y + dir.y;
+
+      if (nx < 0 || nx >= boardWidth || ny < 0 || ny >= boardHeight) continue;
+      if (board[ny][nx]) continue; // Occupied cell
+      const neighborKey = `${nx},${ny}`;
+      if (blocked.has(neighborKey) || visited.has(neighborKey)) continue;
+
+      queue.push({ x: nx, y: ny });
+    }
+  }
+
+  return size >= limit ? 0 : size; // 0 means "at least limit"
+}
+
+/**
+ * Check if adding a point would create an unsolvable board state.
+ * Uses constraint propagation to detect:
+ * 1. Isolated cells (0 empty neighbors)
+ * 2. Regions too small to fit minimum path length (3)
+ */
+export function wouldCreateDeadEnd(
+  board: Board,
+  pathSet: Set<string>,
+  newPoint: Point,
+  minPathLength: number = 3
+): boolean {
+  // Check 1: Would create isolated cells?
+  if (wouldCreateIsolatedCells(board, pathSet, newPoint)) {
+    return true;
+  }
+
+  // Check 2: Would create too-small regions? (disabled for now - may be too slow)
+  // TODO: Re-enable after optimizing measureRegionSize
+  // const boardHeight = board.length;
+  // const boardWidth = board[0]?.length || 0;
+  // const newPointKey = `${newPoint.x},${newPoint.y}`;
+  // const blocked = new Set(pathSet);
+  // blocked.add(newPointKey);
+  // for (const dir of adjacentDirections) {
+  //   const nx = newPoint.x + dir.x;
+  //   const ny = newPoint.y + dir.y;
+  //   if (nx < 0 || nx >= boardWidth || ny < 0 || ny >= boardHeight) continue;
+  //   if (board[ny][nx]) continue;
+  //   const neighborKey = `${nx},${ny}`;
+  //   if (blocked.has(neighborKey)) continue;
+  //   const regionSize = measureRegionSize(board, { x: nx, y: ny }, blocked, minPathLength);
+  //   if (regionSize > 0 && regionSize < minPathLength) {
+  //     return true;
+  //   }
+  // }
+
+  return false;
 }
 
 export function getEmptyRegions(board: Board): Point[][] {
