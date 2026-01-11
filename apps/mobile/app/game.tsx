@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { YStack, XStack, Text, Button, Spinner, Switch } from 'tamagui';
-import { Home, RefreshCw, Hash } from '@tamagui/lucide-icons';
+import { Home, RefreshCw, Hash, Vibrate } from '@tamagui/lucide-icons';
 
 import { GameBoard } from '@/components/game/GameBoard';
 import { useGameStore } from '@/stores/gameStore';
@@ -21,9 +21,11 @@ export default function GameScreen() {
     boardWidth,
     boardHeight,
     showNumbers,
+    hapticsEnabled,
     generateBoard,
     refreshPaths,
     setShowNumbers,
+    setHapticsEnabled,
   } = useGameStore();
 
   // If no board, go back to home
@@ -62,28 +64,37 @@ export default function GameScreen() {
         <Button
           size="$3"
           circular
-          backgroundColor="$backgroundHover"
+          backgroundColor="transparent"
           onPress={handleGoHome}
-          icon={<Home size={20} color="$color" />}
+          icon={<Home size={22} color="$colorSubtle" />}
         />
-        <Text fontSize="$6" fontWeight="bold" color="$color" fontFamily="$heading">
+        <Text fontSize="$5" fontWeight="500" color="$colorSubtle" fontFamily="$heading">
           ChromaPath
         </Text>
-        <Button
-          size="$3"
-          circular
-          backgroundColor={showNumbers ? '$primary' : '$backgroundHover'}
-          onPress={() => setShowNumbers(!showNumbers)}
-          icon={<Hash size={20} color={showNumbers ? 'white' : '$color'} />}
-        />
+        <XStack gap="$2">
+          <Button
+            size="$3"
+            circular
+            backgroundColor={hapticsEnabled ? '$primary' : 'transparent'}
+            onPress={() => setHapticsEnabled(!hapticsEnabled)}
+            icon={<Vibrate size={20} color={hapticsEnabled ? 'white' : '$colorSubtle'} />}
+          />
+          <Button
+            size="$3"
+            circular
+            backgroundColor={showNumbers ? '$primary' : 'transparent'}
+            onPress={() => setShowNumbers(!showNumbers)}
+            icon={<Hash size={20} color={showNumbers ? 'white' : '$colorSubtle'} />}
+          />
+        </XStack>
       </XStack>
 
       {/* Game Board */}
-      <YStack flex={1} alignItems="center" justifyContent="center" paddingHorizontal="$4">
+      <YStack flex={1} alignItems="center" justifyContent="center" paddingHorizontal="$2">
         {isGenerating ? (
           <YStack alignItems="center" gap="$3">
             <Spinner size="large" color="$primary" />
-            <Text color="$color">Generating puzzle...</Text>
+            <Text color="$colorSubtle" fontSize="$3">Generating...</Text>
           </YStack>
         ) : board ? (
           <GameBoard />
@@ -97,21 +108,21 @@ export default function GameScreen() {
             left={0}
             right={0}
             bottom={0}
-            backgroundColor="rgba(0,0,0,0.8)"
+            backgroundColor="rgba(26, 26, 46, 0.95)"
             alignItems="center"
             justifyContent="center"
-            gap="$4"
-            padding="$6"
+            gap="$3"
+            padding="$4"
           >
-            <Text fontSize="$9" fontWeight="bold" color="$primary">
-              Complete!
+            <Text fontSize="$8" fontWeight="600" color="$primary">
+              Complete
             </Text>
-            <Text fontSize="$6" color="white">
-              Time: {formatGameTime(timer)}
+            <Text fontSize="$5" color="$colorSubtle" fontFamily="$mono">
+              {formatGameTime(timer)}
             </Text>
-            <XStack gap="$3" marginTop="$4">
+            <XStack gap="$3" marginTop="$3">
               <Button
-                size="$5"
+                size="$4"
                 backgroundColor="$primary"
                 color="white"
                 onPress={handleNewGame}
@@ -119,22 +130,22 @@ export default function GameScreen() {
                 New Game
               </Button>
               <Button
-                size="$5"
-                backgroundColor="$secondary"
-                color="white"
+                size="$4"
+                backgroundColor="transparent"
+                borderWidth={1}
+                borderColor="$colorSubtle"
+                color="$color"
                 onPress={handleRefresh}
               >
                 Replay
               </Button>
             </XStack>
             <Button
-              size="$4"
+              size="$3"
               backgroundColor="transparent"
-              borderWidth={1}
-              borderColor="$color"
-              color="$color"
+              color="$colorSubtle"
               onPress={handleGoHome}
-              marginTop="$2"
+              marginTop="$1"
             >
               Change Size
             </Button>
@@ -142,87 +153,43 @@ export default function GameScreen() {
         )}
       </YStack>
 
-      {/* Stats Bar */}
+      {/* Footer - Stats & Controls inline */}
       <XStack
-        justifyContent="space-around"
+        justifyContent="space-between"
         alignItems="center"
-        paddingVertical="$3"
-        paddingHorizontal="$4"
+        paddingVertical="$2"
+        paddingHorizontal="$3"
       >
-        {/* Paths Counter */}
-        <YStack
-          backgroundColor="$backgroundHover"
-          paddingHorizontal="$4"
-          paddingVertical="$2"
-          borderRadius="$4"
-          alignItems="center"
-          minWidth={80}
-        >
-          <Text fontSize="$2" color="$placeholderColor">
-            Paths
-          </Text>
-          <Text fontSize="$5" fontWeight="bold" color="$secondary">
+        {/* Stats */}
+        <XStack gap="$4" alignItems="center">
+          <Text fontSize="$4" color="$colorSubtle">
             {numConnectedPaths}/{totalPaths}
           </Text>
-        </YStack>
-
-        {/* Board Size */}
-        <YStack
-          backgroundColor="$backgroundHover"
-          paddingHorizontal="$4"
-          paddingVertical="$2"
-          borderRadius="$4"
-          alignItems="center"
-          minWidth={80}
-        >
-          <Text fontSize="$2" color="$placeholderColor">
-            Size
-          </Text>
-          <Text fontSize="$5" fontWeight="bold" color="$color">
-            {boardWidth}×{boardHeight}
-          </Text>
-        </YStack>
-
-        {/* Timer */}
-        <YStack
-          backgroundColor="$backgroundHover"
-          paddingHorizontal="$4"
-          paddingVertical="$2"
-          borderRadius="$4"
-          alignItems="center"
-          minWidth={100}
-        >
-          <Text fontSize="$2" color="$placeholderColor">
-            Time
-          </Text>
-          <Text fontSize="$5" fontWeight="bold" color="$primary" fontFamily="$mono">
+          <Text fontSize="$4" color="$primary" fontFamily="$mono">
             {formatGameTime(timer)}
           </Text>
-        </YStack>
-      </XStack>
+        </XStack>
 
-      {/* Controls */}
-      <XStack justifyContent="center" gap="$3" paddingBottom="$4" paddingHorizontal="$4">
-        <Button
-          flex={1}
-          size="$4"
-          backgroundColor="$primary"
-          color="white"
-          onPress={handleNewGame}
-          disabled={isGenerating}
-        >
-          New Game
-        </Button>
-        <Button
-          size="$4"
-          backgroundColor="$secondary"
-          color="white"
-          onPress={handleRefresh}
-          disabled={isGenerating}
-          icon={<RefreshCw size={18} color="white" />}
-        >
-          Reset
-        </Button>
+        {/* Controls */}
+        <XStack gap="$2" alignItems="center">
+          <Button
+            size="$3"
+            backgroundColor="$primary"
+            color="white"
+            onPress={handleNewGame}
+            disabled={isGenerating}
+          >
+            New
+          </Button>
+          <Button
+            size="$3"
+            circular
+            backgroundColor="transparent"
+            onPress={handleRefresh}
+            disabled={isGenerating}
+            icon={<RefreshCw size={20} color="$colorSubtle" />}
+          />
+        </XStack>
       </XStack>
     </YStack>
   );

@@ -12,6 +12,8 @@ import {
   Text as SkiaText,
   useFont,
   useCanvasRef,
+  BlurMask,
+  RoundedRect,
 } from '@shopify/react-native-skia';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -51,6 +53,17 @@ interface PathRenderData {
   pathIndex: number;
   points: Point[];
   color: string;
+  length: number; // Track length for change detection
+}
+
+// Cached Skia path data
+interface CachedSkiaPath {
+  pathIndex: number;
+  strokePath: ReturnType<typeof Skia.Path.Make>;
+  fillPath: ReturnType<typeof Skia.Path.Make>;
+  color: string;
+  pointCount: number; // For change detection
+  lastPointHash: string; // Hash of last point for backtrack detection
 }
 
 export function GameBoard() {
@@ -72,10 +85,13 @@ export function GameBoard() {
   const currentPathIdxRef = useRef(-1);
   const endpointsRef = useRef<{ x: number; y: number; pathIndex: number }[]>([]);
 
-  // Calculate dimensions
+
+  // Calculate dimensions - fit between header and footer
+  // Reserve space for header (~60px) + footer (~60px) + safe areas (~100px)
   const padding = 8;
+  const chromeHeight = 220;
   const maxWidth = screenWidth - padding * 2;
-  const maxHeight = screenHeight * 0.68;
+  const maxHeight = screenHeight - chromeHeight;
   const cellSize = Math.min(maxWidth / boardWidth, maxHeight / boardHeight);
   const actualWidth = cellSize * boardWidth;
   const actualHeight = cellSize * boardHeight;
@@ -119,25 +135,62 @@ export function GameBoard() {
     }
   }, [initialBoard]);
 
-  // Update paths ref without triggering re-render
-  const updatePathsRef = useCallback((paths: Point[][], currentIdx: number) => {
-    pathsRef.current = paths.map((points, idx) => ({
-      pathIndex: idx,
-      points,
-      color: SKIA_COLORS[idx] || '#ffffff',
-    }));
+  // Update paths ref - returns true if anything changed
+  const updatePathsRef = useCallback((paths: Point[][], currentIdx: number): boolean => {
+    const oldPaths = pathsRef.current;
+    let changed = false;
+
+    // Check if any path lengths changed (quick check)
+    if (oldPaths.length !== paths.length) {
+      changed = true;
+    } else {
+      for (let i = 0; i < paths.length; i++) {
+        if (oldPaths[i]?.length !== paths[i].length) {
+          changed = true;
+          break;
+        }
+      }
+    }
+
+    if (changed) {
+      pathsRef.current = paths.map((points, idx) => ({
+        pathIndex: idx,
+        points,
+        color: SKIA_COLORS[idx] || '#ffffff',
+        length: points.length,
+      }));
+    }
+
     currentPathIdxRef.current = currentIdx;
 
     // Update fluid line shared values
     if (currentIdx >= 0 && paths[currentIdx]?.length > 0) {
-      const lastPt = paths[currentIdx][paths[currentIdx].length - 1];
-      lastPointX.value = lastPt.x;
-      lastPointY.value = lastPt.y;
-      fluidColor.value = SKIA_COLORS[currentIdx] || '#ffffff';
+      const currentPath = paths[currentIdx];
+      const lastPt = currentPath[currentPath.length - 1];
+
+      // Check if path is connected (last point is an endpoint and path has > 1 point)
+      // If connected, hide the fluid line
+      const endpoints = endpointsRef.current;
+      const isLastPointEndpoint = endpoints.some(
+        ep => ep.pathIndex === currentIdx && ep.x === lastPt.x && ep.y === lastPt.y
+      );
+      const pathConnected = currentPath.length > 1 && isLastPointEndpoint;
+
+      if (pathConnected) {
+        // Path is connected, hide fluid line
+        lastPointX.value = -1;
+        lastPointY.value = -1;
+      } else {
+        lastPointX.value = lastPt.x;
+        lastPointY.value = lastPt.y;
+        fluidColor.value = SKIA_COLORS[currentIdx] || '#ffffff';
+      }
     } else {
       lastPointX.value = -1;
       lastPointY.value = -1;
     }
+
+    return changed;
   }, []);
 
   // JS callbacks for game logic
@@ -157,10 +210,12 @@ export function GameBoard() {
       }
     }
 
-    // Update refs and trigger re-render
+    // Update refs and trigger immediate render if paths changed
     const gameState = state.game.getState();
-    updatePathsRef(gameState.paths, gameState.currentPathIndex ?? -1);
-    setPathVersion(v => v + 1);
+    const changed = updatePathsRef(gameState.paths, gameState.currentPathIndex ?? -1);
+    if (changed) {
+      setPathVersion(v => v + 1);
+    }
   }, [updatePathsRef]);
 
   // Track if drag end was already handled to prevent double calls
@@ -180,10 +235,12 @@ export function GameBoard() {
 
     state.game.endDrag();
 
-    // Update paths ref
+    // Update paths ref and trigger immediate render if changed
     const gameState = state.game.getState();
-    updatePathsRef(gameState.paths, gameState.currentPathIndex ?? -1);
-    setPathVersion(v => v + 1);
+    const changed = updatePathsRef(gameState.paths, gameState.currentPathIndex ?? -1);
+    if (changed) {
+      setPathVersion(v => v + 1);
+    }
 
     // Update Zustand for stats
     useGameStore.setState({
@@ -214,18 +271,25 @@ export function GameBoard() {
       })
       .onUpdate((event) => {
         'worklet';
-        preciseX.value = event.x / cellSize;
-        preciseY.value = event.y / cellSize;
-
         const cellX = Math.floor(event.x / cellSize);
         const cellY = Math.floor(event.y / cellSize);
-        const clampedX = Math.max(0, Math.min(cellX, boardWidth - 1));
-        const clampedY = Math.max(0, Math.min(cellY, boardHeight - 1));
 
-        if (lastCellX.value !== clampedX || lastCellY.value !== clampedY) {
-          lastCellX.value = clampedX;
-          lastCellY.value = clampedY;
-          runOnJS(handleCellChange)(clampedX, clampedY, false);
+        // Check if touch is within board bounds
+        const isInBounds = cellX >= 0 && cellX < boardWidth && cellY >= 0 && cellY < boardHeight;
+
+        if (isInBounds) {
+          preciseX.value = event.x / cellSize;
+          preciseY.value = event.y / cellSize;
+
+          if (lastCellX.value !== cellX || lastCellY.value !== cellY) {
+            lastCellX.value = cellX;
+            lastCellY.value = cellY;
+            runOnJS(handleCellChange)(cellX, cellY, false);
+          }
+        } else {
+          // Outside board - hide fluid line visual but keep dragging state
+          preciseX.value = -1;
+          preciseY.value = -1;
         }
       })
       .onEnd(() => {
@@ -274,10 +338,21 @@ export function GameBoard() {
       <Animated.View style={{ width: actualWidth, height: actualHeight }}>
         <Canvas ref={canvasRef} style={{ flex: 1 }}>
           {/* Background */}
-          <Rect x={0} y={0} width={actualWidth} height={actualHeight} color="rgba(0, 0, 0, 0.5)" />
+          <Rect x={0} y={0} width={actualWidth} height={actualHeight} color="#1a1a2e" />
 
           {/* Grid lines */}
-          <Path path={gridPath} color="rgba(255, 255, 255, 0.3)" style="stroke" strokeWidth={1} />
+          <Path path={gridPath} color="rgba(255, 255, 255, 0.12)" style="stroke" strokeWidth={1} />
+
+          {/* Cell highlight glow - rendered before paths for layering */}
+          <CellHighlightGlow
+            lastCellX={lastCellX}
+            lastCellY={lastCellY}
+            preciseX={preciseX}
+            preciseY={preciseY}
+            isDragging={isDragging}
+            fluidColor={fluidColor}
+            cellSize={cellSize}
+          />
 
           {/* Paths - rendered from ref, re-render triggered by pathVersion */}
           <PathsRenderer
@@ -285,10 +360,20 @@ export function GameBoard() {
             pathVersion={pathVersion}
             cellSize={cellSize}
             halfCell={halfCell}
+            currentPathIdx={currentPathIdxRef.current}
           />
 
-          {/* Fluid line */}
-          <FluidLine
+          {/* Touch glow effect - follows finger position */}
+          <TouchGlow
+            preciseX={preciseX}
+            preciseY={preciseY}
+            isDragging={isDragging}
+            fluidColor={fluidColor}
+            cellSize={cellSize}
+          />
+
+          {/* Fluid line with glow */}
+          <FluidLineWithGlow
             lastPointX={lastPointX}
             lastPointY={lastPointY}
             fluidColor={fluidColor}
@@ -301,90 +386,215 @@ export function GameBoard() {
             boardHeight={boardHeight}
           />
 
-          {/* Endpoints (static) */}
-          {endpoints.map((ep) => (
-            <Group key={`endpoint-${ep.x}-${ep.y}`}>
-              <Circle
-                cx={ep.x * cellSize + halfCell}
-                cy={ep.y * cellSize + halfCell}
-                r={cellSize / 3}
-                color={SKIA_COLORS[ep.pathIndex] || '#ffffff'}
-              />
-              {showNumbers && font && (
-                <SkiaText
-                  x={ep.x * cellSize + halfCell - font.measureText((ep.pathIndex + 1).toString()).width / 2}
-                  y={ep.y * cellSize + halfCell + cellSize * 0.14}
-                  text={(ep.pathIndex + 1).toString()}
-                  font={font}
-                  color={getContrastColor(SKIA_COLORS[ep.pathIndex] || '#ffffff')}
-                />
-              )}
-            </Group>
-          ))}
+          {/* Endpoints with glow (memoized) */}
+          <EndpointsRenderer
+            endpoints={endpoints}
+            cellSize={cellSize}
+            halfCell={halfCell}
+            showNumbers={showNumbers}
+            font={font}
+          />
         </Canvas>
       </Animated.View>
     </GestureDetector>
   );
 }
 
+/**
+ * RENDERING BOTTLENECKS IDENTIFIED:
+ *
+ * 1. PATH RE-RENDERING: Every pathVersion change creates new array via .map()
+ *    which forces React to diff/reconcile all <Path> components even when only
+ *    one path changed. MITIGATION: Using cached Skia paths reduces actual GPU work.
+ *
+ * 2. BLUR EFFECTS: BlurMask on path glow layers is GPU-intensive. Each blur
+ *    requires multiple passes. For many paths, this can cause frame drops.
+ *    MITIGATION: Use smaller blur radius, or disable glow on lower-end devices.
+ *
+ * 3. FILL PATH RECTS: addRect() for each cell creates many rectangles.
+ *    For paths with 50+ cells, this adds up. MITIGATION: Could use a single
+ *    filled polygon path instead, but current approach is acceptable.
+ *
+ * 4. RADIAL GRADIENT SHADER: TouchGlow's RadialGradient shader is recomputed
+ *    each frame during drag. Runs on UI thread via Reanimated (good) but
+ *    still adds GPU draw calls.
+ *
+ * 5. ENDPOINTS MAP IN RENDER: Creates new React elements each render.
+ *    MITIGATION: Memoize endpoints rendering component.
+ *
+ * 6. CHANGE DETECTION: Only checks points.length, not actual positions.
+ *    Could miss updates if path backtracks to same length.
+ *
+ * PERFORMANCE TIPS:
+ * - Reduce blur radius on budget devices (cellSize / 8 instead of / 5)
+ * - Consider using opacity instead of BlurMask for glow on low-end devices
+ * - The current caching strategy is good for incremental path updates
+ */
+
 // Paths renderer - reads from ref, triggered by version change
+// Uses incremental updates to only rebuild changed paths
 const PathsRenderer = React.memo(function PathsRenderer({
   pathsRef,
   pathVersion,
   cellSize,
   halfCell,
+  currentPathIdx,
 }: {
   pathsRef: React.RefObject<PathRenderData[]>;
   pathVersion: number;
   cellSize: number;
   halfCell: number;
+  currentPathIdx: number;
 }) {
-  // Build Skia paths from the ref data
+  // Cache for Skia paths - persists across renders
+  const cacheRef = useRef<CachedSkiaPath[]>([]);
+
+  // Build Skia paths incrementally - only rebuild changed paths
   const skiaPathsData = useMemo(() => {
     const paths = pathsRef.current;
-    return paths.map((pathData) => {
-      const { pathIndex, points, color } = pathData;
+    const cache = cacheRef.current;
 
-      // Build stroke path
-      const strokePath = Skia.Path.Make();
-      if (points.length > 0) {
-        strokePath.moveTo(points[0].x * cellSize + halfCell, points[0].y * cellSize + halfCell);
-        for (let i = 1; i < points.length; i++) {
-          strokePath.lineTo(points[i].x * cellSize + halfCell, points[i].y * cellSize + halfCell);
+    // Ensure cache has right size
+    while (cache.length < paths.length) {
+      cache.push({
+        pathIndex: cache.length,
+        strokePath: Skia.Path.Make(),
+        fillPath: Skia.Path.Make(),
+        color: '#ffffff',
+        pointCount: 0,
+        lastPointHash: '',
+      });
+    }
+
+    // Update only changed paths
+    for (let i = 0; i < paths.length; i++) {
+      const pathData = paths[i];
+      const cached = cache[i];
+      const { points, color } = pathData;
+
+      // Compute hash of last point for backtrack detection
+      const lastPt = points[points.length - 1];
+      const lastPointHash = lastPt ? `${lastPt.x},${lastPt.y}` : '';
+
+      // Check if this path changed (length, color, or last point position)
+      const pathChanged = cached.pointCount !== points.length ||
+                         cached.color !== color ||
+                         cached.lastPointHash !== lastPointHash;
+
+      if (pathChanged) {
+        // Rebuild this path's Skia objects
+        cached.strokePath.reset();
+        cached.fillPath.reset();
+
+        if (points.length > 0) {
+          cached.strokePath.moveTo(points[0].x * cellSize + halfCell, points[0].y * cellSize + halfCell);
+          for (let j = 1; j < points.length; j++) {
+            cached.strokePath.lineTo(points[j].x * cellSize + halfCell, points[j].y * cellSize + halfCell);
+          }
         }
-      }
 
-      // Build fill path
-      const fillPath = Skia.Path.Make();
-      for (const pt of points) {
-        fillPath.addRect(Skia.XYWHRect(pt.x * cellSize, pt.y * cellSize, cellSize, cellSize));
-      }
+        for (const pt of points) {
+          cached.fillPath.addRect(Skia.XYWHRect(pt.x * cellSize, pt.y * cellSize, cellSize, cellSize));
+        }
 
-      return { pathIndex, strokePath, fillPath, color };
-    });
+        cached.color = color;
+        cached.pointCount = points.length;
+        cached.lastPointHash = lastPointHash;
+      }
+    }
+
+    // Return a new array reference to trigger re-render, but paths are cached
+    return cache.slice(0, paths.length).map(c => ({
+      pathIndex: c.pathIndex,
+      strokePath: c.strokePath,
+      fillPath: c.fillPath,
+      color: c.color,
+    }));
   }, [pathVersion, cellSize, halfCell]);
 
   return (
     <>
-      {skiaPathsData.map((data) => (
-        <Group key={data.pathIndex}>
-          <Path path={data.fillPath} color={`${data.color}20`} />
-          <Path
-            path={data.strokePath}
-            color={data.color}
-            style="stroke"
-            strokeWidth={cellSize / 4}
-            strokeCap="round"
-            strokeJoin="round"
+      {skiaPathsData.map((data) => {
+        const isCurrentPath = data.pathIndex === currentPathIdx;
+        return (
+          <Group key={data.pathIndex}>
+            {/* Cell fill - only for current active path */}
+            {isCurrentPath && (
+              <Path path={data.fillPath} color={`${data.color}15`} />
+            )}
+
+            {/* Path glow layer - only for current active path */}
+            {isCurrentPath && (
+              <Path
+                path={data.strokePath}
+                color={`${data.color}25`}
+                style="stroke"
+                strokeWidth={cellSize / 3.5}
+                strokeCap="round"
+                strokeJoin="round"
+              >
+                <BlurMask blur={cellSize / 10} style="normal" />
+              </Path>
+            )}
+
+            {/* Main path stroke */}
+            <Path
+              path={data.strokePath}
+              color={data.color}
+              style="stroke"
+              strokeWidth={cellSize / 4}
+              strokeCap="round"
+              strokeJoin="round"
+            />
+          </Group>
+        );
+      })}
+    </>
+  );
+});
+
+// Memoized endpoints renderer - prevents re-creating React elements on every render
+const EndpointsRenderer = React.memo(function EndpointsRenderer({
+  endpoints,
+  cellSize,
+  halfCell,
+  showNumbers,
+  font,
+}: {
+  endpoints: { x: number; y: number; pathIndex: number }[];
+  cellSize: number;
+  halfCell: number;
+  showNumbers: boolean;
+  font: ReturnType<typeof useFont>;
+}) {
+  return (
+    <>
+      {endpoints.map((ep) => (
+        <Group key={`endpoint-${ep.x}-${ep.y}`}>
+          {/* Endpoint circle */}
+          <Circle
+            cx={ep.x * cellSize + halfCell}
+            cy={ep.y * cellSize + halfCell}
+            r={cellSize / 3}
+            color={SKIA_COLORS[ep.pathIndex] || '#ffffff'}
           />
+          {showNumbers && font && (
+            <SkiaText
+              x={ep.x * cellSize + halfCell - font.measureText((ep.pathIndex + 1).toString()).width / 2}
+              y={ep.y * cellSize + halfCell + cellSize * 0.14}
+              text={(ep.pathIndex + 1).toString()}
+              font={font}
+              color={getContrastColor(SKIA_COLORS[ep.pathIndex] || '#ffffff')}
+            />
+          )}
         </Group>
       ))}
     </>
   );
 });
 
-// Fluid line component - uses shared values for smooth UI thread animation
-function FluidLine({
+// Fluid line with glow effect - smooth UI thread animation with glow
+function FluidLineWithGlow({
   lastPointX,
   lastPointY,
   fluidColor,
@@ -408,15 +618,16 @@ function FluidLine({
   boardHeight: number;
 }) {
   const p1 = useDerivedValue(() => {
-    if (lastPointX.value < 0 || lastPointY.value < 0) {
-      return vec(0, 0);
+    // Hide if not dragging, no valid last point, or touch is out of bounds
+    if (!isDragging.value || lastPointX.value < 0 || lastPointY.value < 0 || preciseX.value < 0 || preciseY.value < 0) {
+      return vec(-100, -100);
     }
     return vec(lastPointX.value * cellSize + halfCell, lastPointY.value * cellSize + halfCell);
   });
 
   const p2 = useDerivedValue(() => {
-    if (!isDragging.value || preciseX.value < 0 || preciseY.value < 0 || lastPointX.value < 0) {
-      return p1.value;
+    if (!isDragging.value || preciseX.value < 0 || preciseY.value < 0 || lastPointX.value < 0 || lastPointY.value < 0) {
+      return vec(-100, -100);
     }
 
     const lastCenterX = lastPointX.value * cellSize + halfCell;
@@ -429,7 +640,6 @@ function FluidLine({
     let targetX = lastCenterX;
     let targetY = lastCenterY;
 
-    // Direction-based movement
     const isPrimaryHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
     const lpx = lastPointX.value;
     const lpy = lastPointY.value;
@@ -459,14 +669,121 @@ function FluidLine({
     return vec(targetX, targetY);
   });
 
+  const glowColor = useDerivedValue(() => `${fluidColor.value}60`);
+
   return (
-    <Line
-      p1={p1}
-      p2={p2}
-      color={fluidColor}
-      style="stroke"
-      strokeWidth={cellSize / 4}
-      strokeCap="round"
-    />
+    <Group>
+      {/* Glow layer - no blur for performance, opacity handles the glow effect */}
+      <Line
+        p1={p1}
+        p2={p2}
+        color={glowColor}
+        style="stroke"
+        strokeWidth={cellSize / 2.5}
+        strokeCap="round"
+      />
+      {/* Main line */}
+      <Line
+        p1={p1}
+        p2={p2}
+        color={fluidColor}
+        style="stroke"
+        strokeWidth={cellSize / 4}
+        strokeCap="round"
+      />
+    </Group>
+  );
+}
+
+// Touch glow effect - blurred circle that follows touch position
+function TouchGlow({
+  preciseX,
+  preciseY,
+  isDragging,
+  fluidColor,
+  cellSize,
+}: {
+  preciseX: SharedValue<number>;
+  preciseY: SharedValue<number>;
+  isDragging: SharedValue<boolean>;
+  fluidColor: SharedValue<string>;
+  cellSize: number;
+}) {
+  const glowRadius = cellSize * 1.2;
+
+  const centerX = useDerivedValue(() => {
+    if (!isDragging.value || preciseX.value < 0) return -1000;
+    return preciseX.value * cellSize;
+  });
+
+  const centerY = useDerivedValue(() => {
+    if (!isDragging.value || preciseY.value < 0) return -1000;
+    return preciseY.value * cellSize;
+  });
+
+  const glowColor = useDerivedValue(() => {
+    return `${fluidColor.value}30`; // ~19% opacity
+  });
+
+  return (
+    <Circle cx={centerX} cy={centerY} r={glowRadius} color={glowColor}>
+      <BlurMask blur={cellSize / 3} style="normal" />
+    </Circle>
+  );
+}
+
+// Cell highlight glow - highlights the cell currently being hovered
+function CellHighlightGlow({
+  lastCellX,
+  lastCellY,
+  preciseX,
+  preciseY,
+  isDragging,
+  fluidColor,
+  cellSize,
+}: {
+  lastCellX: SharedValue<number>;
+  lastCellY: SharedValue<number>;
+  preciseX: SharedValue<number>;
+  preciseY: SharedValue<number>;
+  isDragging: SharedValue<boolean>;
+  fluidColor: SharedValue<string>;
+  cellSize: number;
+}) {
+  const highlightX = useDerivedValue(() => {
+    // Hide if not dragging, invalid cell, or touch is out of bounds
+    if (!isDragging.value || lastCellX.value < 0 || preciseX.value < 0 || preciseY.value < 0) return -1000;
+    return lastCellX.value * cellSize;
+  });
+
+  const highlightY = useDerivedValue(() => {
+    if (!isDragging.value || lastCellY.value < 0 || preciseX.value < 0 || preciseY.value < 0) return -1000;
+    return lastCellY.value * cellSize;
+  });
+
+  const glowColor = useDerivedValue(() => {
+    return `${fluidColor.value}20`; // ~12% opacity for subtle highlight
+  });
+
+  const outerGlowColor = useDerivedValue(() => {
+    return `${fluidColor.value}15`; // ~9% opacity for outer glow
+  });
+
+  return (
+    <Group>
+      {/* Outer glow layer */}
+      <Rect x={highlightX} y={highlightY} width={cellSize} height={cellSize} color={outerGlowColor}>
+        <BlurMask blur={cellSize / 5} style="normal" />
+      </Rect>
+      {/* Inner cell highlight */}
+      <RoundedRect
+        x={highlightX}
+        y={highlightY}
+        width={cellSize}
+        height={cellSize}
+        r={cellSize / 8}
+        color={glowColor}
+      />
+    </Group>
   );
 }

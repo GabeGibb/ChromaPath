@@ -19,6 +19,7 @@ interface GameStore {
   boardWidth: number;
   boardHeight: number;
   showNumbers: boolean;
+  hapticsEnabled: boolean;
 
   // Internal
   game: ChromaPathGame | null;
@@ -35,20 +36,28 @@ interface GameStore {
   startTimer: () => void;
   stopTimer: () => void;
   setShowNumbers: (show: boolean) => void;
+  setHapticsEnabled: (enabled: boolean) => void;
 }
+
+// Track haptics enabled state (will be set by store)
+let hapticsEnabledRef = true;
 
 // Non-blocking haptic feedback service - uses setImmediate to not block JS thread
 const hapticService = {
   lightTap: () => {
+    if (!hapticsEnabledRef) return;
     setImmediate(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
   },
   mediumTap: () => {
+    if (!hapticsEnabledRef) return;
     setImmediate(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
   },
   heavyTap: () => {
+    if (!hapticsEnabledRef) return;
     setImmediate(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
   },
   success: () => {
+    if (!hapticsEnabledRef) return;
     setImmediate(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
   },
 };
@@ -73,6 +82,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   boardWidth: 5,
   boardHeight: 5,
   showNumbers: false,
+  hapticsEnabled: true,
   game: null,
   timerInterval: null,
 
@@ -198,5 +208,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setShowNumbers: (show: boolean) => {
     set({ showNumbers: show });
+  },
+
+  setHapticsEnabled: (enabled: boolean) => {
+    hapticsEnabledRef = enabled;
+    set({ hapticsEnabled: enabled });
   },
 }));
