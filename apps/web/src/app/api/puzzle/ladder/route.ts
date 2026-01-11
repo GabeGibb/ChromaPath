@@ -1,9 +1,8 @@
-import { BoardGenerator } from "@/shared";
+import { generateBoardParallel } from "@/shared";
 import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const boardGenerator = new BoardGenerator(null);
     const boards = [];
 
     // Generate boards with different square sizes
@@ -17,7 +16,7 @@ export async function GET() {
     ];
 
     for (const { width, height } of boardSizes) {
-      const board = await boardGenerator.generateBoard(width, height);
+      const board = await generateBoardParallel(width, height, 4);
       boards.push({
         board,
         width,

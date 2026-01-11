@@ -1,9 +1,9 @@
 import {
-  BoardGenerator,
   MAX_BOARD_WIDTH,
   MAX_BOARD_HEIGHT,
   MIN_BOARD_WIDTH,
   MIN_BOARD_HEIGHT,
+  generateBoardParallel,
 } from "@/shared";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -27,8 +27,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const boardGenerator = new BoardGenerator(null);
-    const board = await boardGenerator.generateBoard(width, height);
+    const board = await generateBoardParallel(width, height, 4);
 
     return NextResponse.json({
       board,
