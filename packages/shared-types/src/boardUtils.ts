@@ -293,13 +293,49 @@ export function countAdjacentWithSet(pathSet: Set<string>, point: Point): number
 }
 
 // Fast numeric version - avoids string allocation
-function countAdjacentNumeric(pathSet: Set<number>, x: number, y: number, width: number): number {
+export function countAdjacentNumeric(pathSet: Set<number>, x: number, y: number, width: number): number {
   let count = 0;
   for (const dir of adjacentDirections) {
     const key = (y + dir.y) * width + (x + dir.x);
     if (pathSet.has(key)) count++;
   }
   return count;
+}
+
+/**
+ * Incremental path validation - O(1) check when adding a new point.
+ * Checks if adding newPoint to an existing path (represented by pathSet) is valid.
+ * Requirements:
+ * - New point must have exactly 1 neighbor in the path (connects to previous point only)
+ * - Previous point should have at most 2 neighbors after addition (no branching)
+ */
+export function canAddPointToPath(
+  pathSet: Set<number>,
+  newX: number,
+  newY: number,
+  prevX: number,
+  prevY: number,
+  width: number
+): boolean {
+  // New point must connect to exactly 1 existing path point (the previous point)
+  const newPointNeighbors = countAdjacentNumeric(pathSet, newX, newY, width);
+  if (newPointNeighbors !== 1) {
+    return false;
+  }
+
+  // After adding new point, previous point would have it as additional neighbor
+  // Previous point should have at most 2 neighbors total (itself connected + new point)
+  // Since we're building a path, the previous point already has 1 neighbor (the one before it)
+  // Adding new point gives it 2, which is correct for a middle point
+  const prevPointNeighbors = countAdjacentNumeric(pathSet, prevX, prevY, width);
+  // prevPoint currently has 1 neighbor (the point before it in path, unless it's the start)
+  // After adding newPoint, it will have prevPointNeighbors + 1 neighbors
+  // For a valid path, middle points need exactly 2 neighbors
+  if (prevPointNeighbors >= 2) {
+    return false; // Would create a branch
+  }
+
+  return true;
 }
 
 // Legacy O(n) version - kept for compatibility
@@ -521,10 +557,11 @@ export function measureRegionSize(
   const boardWidth = board[0]?.length || 0;
   const visited = new Set<string>();
   const queue: Point[] = [start];
+  let queueIndex = 0;
   let size = 0;
 
-  while (queue.length > 0 && size < limit) {
-    const point = queue.shift()!;
+  while (queueIndex < queue.length && size < limit) {
+    const point = queue[queueIndex++];
     const key = `${point.x},${point.y}`;
 
     if (visited.has(key)) continue;
@@ -605,9 +642,10 @@ export function getEmptyRegions(board: Board): Point[][] {
     if (!visited.has(key)) {
       const region: Point[] = [];
       const queue: Point[] = [cell];
+      let queueIndex = 0;
 
-      while (queue.length > 0) {
-        const current = queue.shift()!;
+      while (queueIndex < queue.length) {
+        const current = queue[queueIndex++];
         const currentKey = `${current.x},${current.y}`;
 
         if (!visited.has(currentKey)) {

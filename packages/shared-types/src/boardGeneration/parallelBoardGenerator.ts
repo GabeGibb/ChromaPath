@@ -2,37 +2,21 @@ import { Board } from "../types";
 import { BoardGenerator } from "./boardGeneration";
 
 /**
- * Concurrent board generator using Promise.race.
- * Runs multiple generators concurrently and takes the first successful result.
- * While not true parallelism (single JS thread), this helps with variance -
- * if one generator gets unlucky with random paths, another might succeed faster.
+ * Board generator wrapper.
+ * Now that generateBoard is synchronous, parallelism isn't beneficial
+ * in the same JS thread. This wrapper is kept for API compatibility.
  */
-export async function generateBoardParallel(
+export function generateBoardParallel(
     width: number,
     height: number,
-    numAttempts: number = 4
-): Promise<Board> {
+    _numAttempts: number = 4
+): Board {
     const start = Date.now();
-
-    // For small boards, single attempt is fast enough
-    if (width * height < 64) {
-        const generator = new BoardGenerator();
-        return generator.generateBoard(width, height);
-    }
-
-    // Run multiple generators concurrently
-    const attempts = Array.from({ length: numAttempts }, async (_, i) => {
-        const generator = new BoardGenerator();
-        const board = await generator.generateBoard(width, height);
-        return { board, attemptId: i };
-    });
-
-    // Race - first to complete wins
-    const result = await Promise.race(attempts);
+    const generator = new BoardGenerator();
+    const board = generator.generateBoard(width, height);
     const elapsed = Date.now() - start;
-    console.log(`[PARALLEL] Success in ${elapsed}ms (attempt ${result.attemptId + 1})`);
-
-    return result.board;
+    console.log(`[GENERATOR] Success in ${elapsed}ms`);
+    return board;
 }
 
 export class ParallelBoardGenerator {
@@ -42,7 +26,7 @@ export class ParallelBoardGenerator {
         this.numAttempts = numAttempts;
     }
 
-    async generateBoard(width: number, height: number): Promise<Board> {
+    generateBoard(width: number, height: number): Board {
         return generateBoardParallel(width, height, this.numAttempts);
     }
 }
