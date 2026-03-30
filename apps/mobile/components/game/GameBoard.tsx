@@ -112,6 +112,14 @@ export function GameBoard() {
   const lastPointY = useSharedValue(-1);
   const fluidColor = useSharedValue('#ffffff');
 
+  // Track if we need a render
+  const needsRenderRef = useRef(false);
+  const lastRenderTimeRef = useRef(0);
+  const renderIntervalRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
+
+  // Debug timing
+  const debugTimingRef = useRef({ lastCellTime: 0, cellCount: 0, totalProcessTime: 0 });
+
   // Extract endpoints once when board changes
   useEffect(() => {
     const board = useGameStore.getState().board;
@@ -136,7 +144,8 @@ export function GameBoard() {
   }, [initialBoard]);
 
   // Update paths ref - returns true if anything changed
-  const updatePathsRef = useCallback((paths: Point[][], currentIdx: number): boolean => {
+  // skipRender: if true, don't trigger React re-render (for during-drag updates)
+  const updatePathsRef = useCallback((paths: Point[][], currentIdx: number, skipRender: boolean = false): boolean => {
     const oldPaths = pathsRef.current;
     let changed = false;
 
@@ -159,42 +168,55 @@ export function GameBoard() {
         color: SKIA_COLORS[idx] || '#ffffff',
         length: points.length,
       }));
+
+      // Track that we need a render when drag ends
+      if (skipRender) {
+        needsRenderRef.current = true;
+      }
     }
 
     currentPathIdxRef.current = currentIdx;
 
-    // Update fluid line shared values
-    if (currentIdx >= 0 && paths[currentIdx]?.length > 0) {
-      const currentPath = paths[currentIdx];
-      const lastPt = currentPath[currentPath.length - 1];
+    // Only update fluid line anchor when NOT skipping render
+    // This prevents the gap where fluid line jumps ahead of rendered path
+    if (!skipRender) {
+      if (currentIdx >= 0 && paths[currentIdx]?.length > 0) {
+        const currentPath = paths[currentIdx];
+        const lastPt = currentPath[currentPath.length - 1];
 
-      // Check if path is connected (last point is an endpoint and path has > 1 point)
-      // If connected, hide the fluid line
-      const endpoints = endpointsRef.current;
-      const isLastPointEndpoint = endpoints.some(
-        ep => ep.pathIndex === currentIdx && ep.x === lastPt.x && ep.y === lastPt.y
-      );
-      const pathConnected = currentPath.length > 1 && isLastPointEndpoint;
+        // Check if path is connected (last point is an endpoint and path has > 1 point)
+        const endpoints = endpointsRef.current;
+        const isLastPointEndpoint = endpoints.some(
+          ep => ep.pathIndex === currentIdx && ep.x === lastPt.x && ep.y === lastPt.y
+        );
+        const pathConnected = currentPath.length > 1 && isLastPointEndpoint;
 
-      if (pathConnected) {
-        // Path is connected, hide fluid line
+        if (pathConnected) {
+          lastPointX.value = -1;
+          lastPointY.value = -1;
+        } else {
+          lastPointX.value = lastPt.x;
+          lastPointY.value = lastPt.y;
+          fluidColor.value = SKIA_COLORS[currentIdx] || '#ffffff';
+        }
+      } else {
         lastPointX.value = -1;
         lastPointY.value = -1;
-      } else {
-        lastPointX.value = lastPt.x;
-        lastPointY.value = lastPt.y;
-        fluidColor.value = SKIA_COLORS[currentIdx] || '#ffffff';
       }
     } else {
-      lastPointX.value = -1;
-      lastPointY.value = -1;
+      // During skipRender, just update color if needed
+      if (currentIdx >= 0) {
+        fluidColor.value = SKIA_COLORS[currentIdx] || '#ffffff';
+      }
     }
 
     return changed;
   }, []);
 
-  // JS callbacks for game logic
-  const handleCellChange = useCallback((cellX: number, cellY: number, isStart: boolean) => {
+  // Process a single cell change
+  const processCellChange = useCallback((cellX: number, cellY: number, isStart: boolean): void => {
+    const startTime = performance.now();
+
     const state = useGameStore.getState();
     if (!state.game || state.isCompleted) return;
 
@@ -207,16 +229,64 @@ export function GameBoard() {
       if (completed) {
         state.stopTimer();
         useGameStore.setState({ isCompleted: true });
+        // Trigger immediate render for completion
+        const gameState = state.game.getState();
+        updatePathsRef(gameState.paths, gameState.currentPathIndex ?? -1, false);
+        setPathVersion(v => v + 1);
+        return;
       }
     }
 
-    // Update refs and trigger immediate render if paths changed
+    // Update refs but skip React re-render during drag - render loop handles it
     const gameState = state.game.getState();
-    const changed = updatePathsRef(gameState.paths, gameState.currentPathIndex ?? -1);
-    if (changed) {
-      setPathVersion(v => v + 1);
+    updatePathsRef(gameState.paths, gameState.currentPathIndex ?? -1, true);
+
+    // Debug timing
+    const elapsed = performance.now() - startTime;
+    debugTimingRef.current.cellCount++;
+    debugTimingRef.current.totalProcessTime += elapsed;
+    if (elapsed > 5) {
+      console.log(`[PERF] processCellChange took ${elapsed.toFixed(1)}ms`);
     }
   }, [updatePathsRef]);
+
+  // Sync fluid line anchor to match rendered path
+  const syncFluidLineAnchor = useCallback(() => {
+    const currentIdx = currentPathIdxRef.current;
+    const paths = pathsRef.current;
+
+    if (currentIdx >= 0 && paths[currentIdx]?.points.length > 0) {
+      const currentPath = paths[currentIdx].points;
+      const lastPt = currentPath[currentPath.length - 1];
+
+      // Check if path is connected
+      const endpoints = endpointsRef.current;
+      const isLastPointEndpoint = endpoints.some(
+        ep => ep.pathIndex === currentIdx && ep.x === lastPt.x && ep.y === lastPt.y
+      );
+      const pathConnected = currentPath.length > 1 && isLastPointEndpoint;
+
+      if (pathConnected) {
+        lastPointX.value = -1;
+        lastPointY.value = -1;
+      } else {
+        lastPointX.value = lastPt.x;
+        lastPointY.value = lastPt.y;
+      }
+    }
+  }, []);
+
+  // Process cell change immediately for responsive feedback
+  const handleCellChange = useCallback((cellX: number, cellY: number, isStart: boolean) => {
+    // Process immediately - no batching for maximum responsiveness
+    processCellChange(cellX, cellY, isStart);
+
+    // For start events, also sync fluid line and trigger immediate render
+    if (isStart) {
+      syncFluidLineAnchor();
+      setPathVersion(v => v + 1);
+    }
+  }, [processCellChange, syncFluidLineAnchor]);
 
   // Track if drag end was already handled to prevent double calls
   const dragEndHandledRef = useRef(false);
@@ -225,22 +295,78 @@ export function GameBoard() {
     dragEndHandledRef.current = false;
   }, []);
 
+  // Start render loop during drag using requestAnimationFrame for 60fps
+  const startPeriodicRender = useCallback(() => {
+    if (renderIntervalRef.current) return;
+    lastRenderTimeRef.current = Date.now();
+
+    const renderLoop = () => {
+      if (!renderIntervalRef.current) return; // Stop if cleared
+
+      if (needsRenderRef.current) {
+        const renderStart = performance.now();
+        syncFluidLineAnchor();
+        setPathVersion(v => v + 1);
+        needsRenderRef.current = false;
+        const renderElapsed = performance.now() - renderStart;
+        if (renderElapsed > 2) {
+          console.log(`[PERF] Render trigger took ${renderElapsed.toFixed(1)}ms`);
+        }
+        lastRenderTimeRef.current = Date.now();
+      }
+
+      // Continue loop
+      renderIntervalRef.current = requestAnimationFrame(renderLoop);
+    };
+
+    renderIntervalRef.current = requestAnimationFrame(renderLoop);
+  }, [syncFluidLineAnchor]);
+
+  // Stop render loop
+  const stopPeriodicRender = useCallback(() => {
+    if (renderIntervalRef.current) {
+      cancelAnimationFrame(renderIntervalRef.current);
+      renderIntervalRef.current = null;
+    }
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (renderIntervalRef.current) {
+        cancelAnimationFrame(renderIntervalRef.current);
+      }
+    };
+  }, []);
+
   const handleDragEnd = useCallback(() => {
     // Prevent double calls from onEnd and onFinalize
     if (dragEndHandledRef.current) return;
     dragEndHandledRef.current = true;
+
+    // Log debug stats
+    const debug = debugTimingRef.current;
+    if (debug.cellCount > 0) {
+      console.log(`[PERF] Drag ended: ${debug.cellCount} cells, avg ${(debug.totalProcessTime / debug.cellCount).toFixed(2)}ms per cell`);
+      debug.cellCount = 0;
+      debug.totalProcessTime = 0;
+    }
+
+    // Stop render loop
+    stopPeriodicRender();
 
     const state = useGameStore.getState();
     if (!state.game || state.isCompleted) return;
 
     state.game.endDrag();
 
-    // Update paths ref and trigger immediate render if changed
+    // Update paths ref (not skipping render this time)
     const gameState = state.game.getState();
-    const changed = updatePathsRef(gameState.paths, gameState.currentPathIndex ?? -1);
-    if (changed) {
-      setPathVersion(v => v + 1);
-    }
+    updatePathsRef(gameState.paths, gameState.currentPathIndex ?? -1, false);
+
+    // Trigger final render to ensure all path segments are shown
+    setPathVersion(v => v + 1);
+    needsRenderRef.current = false;
 
     // Update Zustand for stats
     useGameStore.setState({
@@ -248,7 +374,12 @@ export function GameBoard() {
       gameState: gameState,
       board: gameState.board,
     });
-  }, [updatePathsRef]);
+  }, [updatePathsRef, stopPeriodicRender]);
+
+  // Called from worklet to start periodic rendering
+  const handleDragStart = useCallback(() => {
+    startPeriodicRender();
+  }, [startPeriodicRender]);
 
   // Gesture handler
   const panGesture = useMemo(() =>
@@ -267,6 +398,7 @@ export function GameBoard() {
         lastCellY.value = clampedY;
 
         runOnJS(resetDragEndFlag)();
+        runOnJS(handleDragStart)();
         runOnJS(handleCellChange)(clampedX, clampedY, true);
       })
       .onUpdate((event) => {
@@ -310,7 +442,7 @@ export function GameBoard() {
         lastCellY.value = -1;
         runOnJS(handleDragEnd)();
       })
-  , [cellSize, boardWidth, boardHeight, handleCellChange, handleDragEnd, resetDragEndFlag]);
+  , [cellSize, boardWidth, boardHeight, handleCellChange, handleDragEnd, handleDragStart, resetDragEndFlag]);
 
   // Build grid path once
   const gridPath = useMemo(() => {
@@ -451,6 +583,7 @@ const PathsRenderer = React.memo(function PathsRenderer({
 
   // Build Skia paths incrementally - only rebuild changed paths
   const skiaPathsData = useMemo(() => {
+    const startTime = performance.now();
     const paths = pathsRef.current;
     const cache = cacheRef.current;
 
@@ -466,8 +599,19 @@ const PathsRenderer = React.memo(function PathsRenderer({
       });
     }
 
-    // Update only changed paths
+    // Update only the current path during drag (optimization)
+    // Other paths only get updated when explicitly needed
+    const indicesToCheck = currentPathIdx >= 0 ? [currentPathIdx] : [];
+
+    // Also check any path that doesn't have cached data yet
     for (let i = 0; i < paths.length; i++) {
+      if (cache[i].pointCount === 0 && paths[i].points.length > 0) {
+        indicesToCheck.push(i);
+      }
+    }
+
+    for (const i of indicesToCheck) {
+      if (i >= paths.length) continue;
       const pathData = paths[i];
       const cached = cache[i];
       const { points, color } = pathData;
@@ -504,13 +648,20 @@ const PathsRenderer = React.memo(function PathsRenderer({
     }
 
     // Return a new array reference to trigger re-render, but paths are cached
-    return cache.slice(0, paths.length).map(c => ({
+    const result = cache.slice(0, paths.length).map(c => ({
       pathIndex: c.pathIndex,
       strokePath: c.strokePath,
       fillPath: c.fillPath,
       color: c.color,
     }));
-  }, [pathVersion, cellSize, halfCell]);
+
+    const elapsed = performance.now() - startTime;
+    if (elapsed > 2) {
+      console.log(`[PERF] PathsRenderer useMemo took ${elapsed.toFixed(1)}ms`);
+    }
+
+    return result;
+  }, [pathVersion, cellSize, halfCell, currentPathIdx]);
 
   return (
     <>
@@ -695,7 +846,8 @@ function FluidLineWithGlow({
   );
 }
 
-// Touch glow effect - blurred circle that follows touch position
+// Touch glow effect - circle that follows touch position
+// Note: BlurMask removed for performance during drag - opacity provides sufficient glow effect
 function TouchGlow({
   preciseX,
   preciseY,
@@ -722,17 +874,16 @@ function TouchGlow({
   });
 
   const glowColor = useDerivedValue(() => {
-    return `${fluidColor.value}30`; // ~19% opacity
+    return `${fluidColor.value}40`; // Slightly higher opacity to compensate for no blur
   });
 
   return (
-    <Circle cx={centerX} cy={centerY} r={glowRadius} color={glowColor}>
-      <BlurMask blur={cellSize / 3} style="normal" />
-    </Circle>
+    <Circle cx={centerX} cy={centerY} r={glowRadius} color={glowColor} />
   );
 }
 
 // Cell highlight glow - highlights the cell currently being hovered
+// Note: Outer BlurMask layer removed for performance - inner highlight provides sufficient feedback
 function CellHighlightGlow({
   lastCellX,
   lastCellY,
@@ -762,28 +913,17 @@ function CellHighlightGlow({
   });
 
   const glowColor = useDerivedValue(() => {
-    return `${fluidColor.value}20`; // ~12% opacity for subtle highlight
-  });
-
-  const outerGlowColor = useDerivedValue(() => {
-    return `${fluidColor.value}15`; // ~9% opacity for outer glow
+    return `${fluidColor.value}25`; // Slightly higher opacity to compensate for no blur
   });
 
   return (
-    <Group>
-      {/* Outer glow layer */}
-      <Rect x={highlightX} y={highlightY} width={cellSize} height={cellSize} color={outerGlowColor}>
-        <BlurMask blur={cellSize / 5} style="normal" />
-      </Rect>
-      {/* Inner cell highlight */}
-      <RoundedRect
-        x={highlightX}
-        y={highlightY}
-        width={cellSize}
-        height={cellSize}
-        r={cellSize / 8}
-        color={glowColor}
-      />
-    </Group>
+    <RoundedRect
+      x={highlightX}
+      y={highlightY}
+      width={cellSize}
+      height={cellSize}
+      r={cellSize / 8}
+      color={glowColor}
+    />
   );
 }

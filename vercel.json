@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/puzzle/refill",
+      "schedule": "0 */6 * * *"
+    }
+  ]
+}

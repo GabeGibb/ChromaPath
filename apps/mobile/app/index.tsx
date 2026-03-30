@@ -1,19 +1,15 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useWindowDimensions } from 'react-native';
-import { YStack, XStack, Text, Button, Slider } from 'tamagui';
-import { Play } from '@tamagui/lucide-icons';
+import { useWindowDimensions, FlatList, Pressable } from 'react-native';
+import { YStack, XStack, Text, ScrollView } from 'tamagui';
+import { Lock, Check, ChevronLeft, ChevronRight } from '@tamagui/lucide-icons';
 
-import {
-  MIN_BOARD_WIDTH,
-  MAX_BOARD_WIDTH,
-  MIN_BOARD_HEIGHT,
-  MAX_BOARD_HEIGHT,
-} from '@chromapath/shared-types';
+import { CATEGORIES, Category, Level, getBoardForLevel } from '@/services/boardService';
+import { useProgressStore } from '@/stores/progressStore';
 import { useGameStore } from '@/stores/gameStore';
 
-// Rainbow colors for each letter of "ChromaPath"
+// Rainbow colors for title
 const TITLE_LETTERS = [
   { letter: 'C', color: '#ff0000' },
   { letter: 'h', color: '#ff4000' },
@@ -27,22 +23,178 @@ const TITLE_LETTERS = [
   { letter: 'h', color: '#8000ff' },
 ];
 
+function LevelButton({
+  level,
+  categoryId,
+  categoryColor,
+  onPress,
+}: {
+  level: Level;
+  categoryId: string;
+  categoryColor: string;
+  onPress: () => void;
+}) {
+  const isUnlocked = useProgressStore((s) => s.isLevelUnlocked(categoryId, level.id));
+  const isCompleted = useProgressStore((s) => s.isLevelCompleted(categoryId, level.id));
+  const bestTime = useProgressStore((s) => s.getBestTime(categoryId, level.id));
+
+  const formatTime = (ms: number) => {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return minutes > 0 ? `${minutes}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
+  };
+
+  return (
+    <Pressable onPress={isUnlocked ? onPress : undefined}>
+      <YStack
+        width={70}
+        height={70}
+        borderRadius="$3"
+        backgroundColor={isUnlocked ? (isCompleted ? categoryColor : '$backgroundHover') : '$background'}
+        borderWidth={2}
+        borderColor={isUnlocked ? categoryColor : '$borderColor'}
+        alignItems="center"
+        justifyContent="center"
+        opacity={isUnlocked ? 1 : 0.5}
+        margin="$1"
+      >
+        {!isUnlocked ? (
+          <Lock size={20} color="$placeholderColor" />
+        ) : isCompleted ? (
+          <>
+            <Check size={16} color="white" />
+            <Text fontSize="$5" fontWeight="bold" color="white">
+              {level.id}
+            </Text>
+            {bestTime && (
+              <Text fontSize="$1" color="white" opacity={0.8}>
+                {formatTime(bestTime)}
+              </Text>
+            )}
+          </>
+        ) : (
+          <>
+            <Text fontSize="$6" fontWeight="bold" color="$color">
+              {level.id}
+            </Text>
+            <Text fontSize="$1" color="$placeholderColor">
+              {level.label}
+            </Text>
+          </>
+        )}
+      </YStack>
+    </Pressable>
+  );
+}
+
+function CategoryPage({
+  category,
+  onLevelPress,
+}: {
+  category: Category;
+  onLevelPress: (level: Level) => void;
+}) {
+  const completedCount = useProgressStore((s) => s.getCompletedCount(category.id));
+  const totalLevels = category.levels.length;
+  const isCategoryUnlocked = useProgressStore((s) => s.isCategoryUnlocked(category.id));
+
+  // Group levels by size for visual sections
+  const levelsBySize: { [key: string]: Level[] } = {};
+  category.levels.forEach((level) => {
+    if (!levelsBySize[level.label]) {
+      levelsBySize[level.label] = [];
+    }
+    levelsBySize[level.label].push(level);
+  });
+
+  if (!isCategoryUnlocked) {
+    return (
+      <YStack flex={1} alignItems="center" justifyContent="center" padding="$4">
+        <Lock size={48} color="$placeholderColor" />
+        <Text fontSize="$6" color="$placeholderColor" marginTop="$4" textAlign="center">
+          Complete 10 levels in the previous category to unlock
+        </Text>
+      </YStack>
+    );
+  }
+
+  return (
+    <ScrollView flex={1} showsVerticalScrollIndicator={false}>
+      <YStack padding="$3" gap="$4">
+        {/* Progress bar */}
+        <YStack gap="$2">
+          <XStack justifyContent="space-between">
+            <Text fontSize="$3" color="$placeholderColor">
+              Progress
+            </Text>
+            <Text fontSize="$3" color={category.color} fontWeight="600">
+              {completedCount}/{totalLevels}
+            </Text>
+          </XStack>
+          <YStack
+            height={6}
+            backgroundColor="$backgroundHover"
+            borderRadius="$4"
+            overflow="hidden"
+          >
+            <YStack
+              height="100%"
+              width={`${(completedCount / totalLevels) * 100}%`}
+              backgroundColor={category.color}
+              borderRadius="$4"
+            />
+          </YStack>
+        </YStack>
+
+        {/* Levels grouped by size */}
+        {Object.entries(levelsBySize).map(([sizeLabel, levels]) => (
+          <YStack key={sizeLabel} gap="$2">
+            <Text fontSize="$4" fontWeight="600" color="$color">
+              {sizeLabel}
+            </Text>
+            <XStack flexWrap="wrap">
+              {levels.map((level) => (
+                <LevelButton
+                  key={level.id}
+                  level={level}
+                  categoryId={category.id}
+                  categoryColor={category.color}
+                  onPress={() => onLevelPress(level)}
+                />
+              ))}
+            </XStack>
+          </YStack>
+        ))}
+      </YStack>
+    </ScrollView>
+  );
+}
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
-  const { generateBoard } = useGameStore();
+  const { setCurrentLevel } = useGameStore();
 
-  const [boardWidth, setBoardWidth] = useState(5);
-  const [boardHeight, setBoardHeight] = useState(5);
+  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
 
-  const handleStartGame = async () => {
-    await generateBoard(boardWidth, boardHeight);
+  const currentCategory = CATEGORIES[currentCategoryIndex];
+  const titleFontSize = Math.min(screenWidth * 0.095, 48);
+
+  const handleLevelPress = async (level: Level) => {
+    const board = await getBoardForLevel(level);
+    setCurrentLevel(currentCategory.id, level, board);
     router.push('/game');
   };
 
-  // Calculate title size to fit the width - make it responsive
-  const titleFontSize = Math.min(screenWidth * 0.095, 48);
+  const goToCategory = (index: number) => {
+    if (index >= 0 && index < CATEGORIES.length) {
+      setCurrentCategoryIndex(index);
+      flatListRef.current?.scrollToIndex({ index, animated: true });
+    }
+  };
 
   return (
     <YStack
@@ -50,11 +202,9 @@ export default function HomeScreen() {
       backgroundColor="$background"
       paddingTop={insets.top + 10}
       paddingBottom={insets.bottom}
-      paddingHorizontal="$4"
-      justifyContent="space-between"
     >
-      {/* Header with Rainbow Title */}
-      <YStack alignItems="center" gap="$2">
+      {/* Header */}
+      <YStack alignItems="center" gap="$1" paddingHorizontal="$4">
         <XStack justifyContent="center" flexWrap="nowrap">
           {TITLE_LETTERS.map((item, index) => (
             <Text
@@ -68,117 +218,82 @@ export default function HomeScreen() {
             </Text>
           ))}
         </XStack>
-        <Text fontSize="$4" color="$placeholderColor">
-          Connect the colors
-        </Text>
       </YStack>
 
-      {/* Board Size Selection */}
-      <YStack gap="$5" paddingHorizontal="$2">
-        {/* Width Selector */}
-        <YStack gap="$2">
-          <XStack justifyContent="space-between" alignItems="center">
-            <Text fontSize="$5" color="$color" fontWeight="600">
-              Width
-            </Text>
-            <Text fontSize="$6" fontWeight="bold" color="$primary" minWidth={40} textAlign="center">
-              {boardWidth}
-            </Text>
-          </XStack>
-          <Slider
-            value={[boardWidth]}
-            onValueChange={(value) => setBoardWidth(value[0])}
-            min={MIN_BOARD_WIDTH}
-            max={MAX_BOARD_WIDTH}
-            step={1}
-            size="$4"
-          >
-            <Slider.Track backgroundColor="$backgroundHover">
-              <Slider.TrackActive backgroundColor="$primary" />
-            </Slider.Track>
-            <Slider.Thumb
-              index={0}
-              circular
-              size="$2"
-              backgroundColor="$primary"
-              borderWidth={0}
-            />
-          </Slider>
-          <XStack justifyContent="space-between">
-            <Text fontSize="$2" color="$placeholderColor">{MIN_BOARD_WIDTH}</Text>
-            <Text fontSize="$2" color="$placeholderColor">{MAX_BOARD_WIDTH}</Text>
-          </XStack>
-        </YStack>
+      {/* Category Tabs */}
+      <XStack
+        justifyContent="center"
+        alignItems="center"
+        paddingVertical="$3"
+        gap="$2"
+      >
+        <Pressable onPress={() => goToCategory(currentCategoryIndex - 1)}>
+          <ChevronLeft
+            size={28}
+            color={currentCategoryIndex > 0 ? '$color' : '$placeholderColor'}
+            opacity={currentCategoryIndex > 0 ? 1 : 0.3}
+          />
+        </Pressable>
 
-        {/* Height Selector */}
-        <YStack gap="$2">
-          <XStack justifyContent="space-between" alignItems="center">
-            <Text fontSize="$5" color="$color" fontWeight="600">
-              Height
-            </Text>
-            <Text fontSize="$6" fontWeight="bold" color="$primary" minWidth={40} textAlign="center">
-              {boardHeight}
-            </Text>
-          </XStack>
-          <Slider
-            value={[boardHeight]}
-            onValueChange={(value) => setBoardHeight(value[0])}
-            min={MIN_BOARD_HEIGHT}
-            max={MAX_BOARD_HEIGHT}
-            step={1}
-            size="$4"
-          >
-            <Slider.Track backgroundColor="$backgroundHover">
-              <Slider.TrackActive backgroundColor="$primary" />
-            </Slider.Track>
-            <Slider.Thumb
-              index={0}
-              circular
-              size="$2"
-              backgroundColor="$primary"
-              borderWidth={0}
-            />
-          </Slider>
-          <XStack justifyContent="space-between">
-            <Text fontSize="$2" color="$placeholderColor">{MIN_BOARD_HEIGHT}</Text>
-            <Text fontSize="$2" color="$placeholderColor">{MAX_BOARD_HEIGHT}</Text>
-          </XStack>
-        </YStack>
+        <XStack gap="$2" alignItems="center">
+          {CATEGORIES.map((cat, index) => (
+            <Pressable key={cat.id} onPress={() => goToCategory(index)}>
+              <YStack
+                paddingHorizontal="$3"
+                paddingVertical="$2"
+                borderRadius="$4"
+                backgroundColor={
+                  index === currentCategoryIndex ? cat.color : 'transparent'
+                }
+              >
+                <Text
+                  fontSize="$3"
+                  fontWeight={index === currentCategoryIndex ? 'bold' : 'normal'}
+                  color={index === currentCategoryIndex ? 'white' : '$placeholderColor'}
+                >
+                  {cat.name}
+                </Text>
+              </YStack>
+            </Pressable>
+          ))}
+        </XStack>
 
-        {/* Preview */}
-        <YStack
-          alignItems="center"
-          gap="$2"
-          backgroundColor="$backgroundHover"
-          padding="$4"
-          borderRadius="$4"
-        >
-          <Text fontSize="$3" color="$placeholderColor">
-            Board Size
-          </Text>
-          <Text fontSize="$8" fontWeight="bold" color="$color">
-            {boardWidth} × {boardHeight}
-          </Text>
-          <Text fontSize="$2" color="$placeholderColor">
-            {boardWidth * boardHeight} cells
-          </Text>
-        </YStack>
-      </YStack>
+        <Pressable onPress={() => goToCategory(currentCategoryIndex + 1)}>
+          <ChevronRight
+            size={28}
+            color={
+              currentCategoryIndex < CATEGORIES.length - 1
+                ? '$color'
+                : '$placeholderColor'
+            }
+            opacity={currentCategoryIndex < CATEGORIES.length - 1 ? 1 : 0.3}
+          />
+        </Pressable>
+      </XStack>
 
-      {/* Start Button */}
-      <YStack paddingBottom="$4">
-        <Button
-          size="$6"
-          backgroundColor="$primary"
-          color="white"
-          onPress={handleStartGame}
-          icon={<Play size={24} color="white" />}
-          fontWeight="bold"
-          fontSize="$6"
-        >
-          Play
-        </Button>
-      </YStack>
+      {/* Category Pages */}
+      <FlatList
+        ref={flatListRef}
+        data={CATEGORIES}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item) => item.id}
+        onMomentumScrollEnd={(e) => {
+          const index = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
+          setCurrentCategoryIndex(index);
+        }}
+        renderItem={({ item }) => (
+          <YStack width={screenWidth} flex={1}>
+            <CategoryPage category={item} onLevelPress={handleLevelPress} />
+          </YStack>
+        )}
+        getItemLayout={(_, index) => ({
+          length: screenWidth,
+          offset: screenWidth * index,
+          index,
+        })}
+      />
     </YStack>
   );
 }

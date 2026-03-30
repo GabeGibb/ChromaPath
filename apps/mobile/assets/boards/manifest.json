@@ -1,0 +1,66 @@
+{
+  "5x5": {
+    "count": 55,
+    "file": "boards-5x5.json"
+  },
+  "6x6": {
+    "count": 52,
+    "file": "boards-6x6.json"
+  },
+  "8x8": {
+    "count": 52,
+    "file": "boards-8x8.json"
+  },
+  "7x7": {
+    "count": 52,
+    "file": "boards-7x7.json"
+  },
+  "9x9": {
+    "count": 52,
+    "file": "boards-9x9.json"
+  },
+  "10x10": {
+    "count": 52,
+    "file": "boards-10x10.json"
+  },
+  "11x11": {
+    "count": 52,
+    "file": "boards-11x11.json"
+  },
+  "12x12": {
+    "count": 52,
+    "file": "boards-12x12.json"
+  },
+  "13x13": {
+    "count": 52,
+    "file": "boards-13x13.json"
+  },
+  "14x14": {
+    "count": 52,
+    "file": "boards-14x14.json"
+  },
+  "15x15": {
+    "count": 52,
+    "file": "boards-15x15.json"
+  },
+  "15x16": {
+    "count": 52,
+    "file": "boards-15x16.json"
+  },
+  "15x17": {
+    "count": 52,
+    "file": "boards-15x17.json"
+  },
+  "15x18": {
+    "count": 52,
+    "file": "boards-15x18.json"
+  },
+  "15x19": {
+    "count": 52,
+    "file": "boards-15x19.json"
+  },
+  "15x20": {
+    "count": 52,
+    "file": "boards-15x20.json"
+  }
+}

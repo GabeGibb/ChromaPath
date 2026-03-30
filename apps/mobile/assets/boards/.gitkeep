@@ -1,0 +1,3 @@
+# Pre-generated boards will be placed here by the generation script
+# Run: pnpm generate 100 4
+# Then: pnpm copy-boards

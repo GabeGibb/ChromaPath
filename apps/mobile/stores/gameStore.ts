@@ -2,10 +2,11 @@ import { create } from 'zustand';
 import {
   Board,
   GameState,
-  BoardGenerator,
 } from '@chromapath/shared-types';
 import { ChromaPathGame } from '@chromapath/game-logic';
 import * as Haptics from 'expo-haptics';
+import { Level } from '@/services/boardService';
+import { useProgressStore } from './progressStore';
 
 interface GameStore {
   // State
@@ -21,12 +22,16 @@ interface GameStore {
   showNumbers: boolean;
   hapticsEnabled: boolean;
 
+  // Current level info
+  currentCategoryId: string | null;
+  currentLevel: Level | null;
+
   // Internal
   game: ChromaPathGame | null;
   timerInterval: ReturnType<typeof setInterval> | null;
 
   // Actions
-  generateBoard: (width: number, height: number) => Promise<void>;
+  setCurrentLevel: (categoryId: string, level: Level, board: Board) => void;
   handleCellClick: (x: number, y: number) => void;
   handleDrag: (x: number, y: number) => boolean;
   handleMouseMove: (x: number, y: number) => void;
@@ -83,40 +88,38 @@ export const useGameStore = create<GameStore>((set, get) => ({
   boardHeight: 5,
   showNumbers: false,
   hapticsEnabled: true,
+  currentCategoryId: null,
+  currentLevel: null,
   game: null,
   timerInterval: null,
 
-  generateBoard: async (width: number, height: number) => {
-    set({ isGenerating: true, isCompleted: false, boardWidth: width, boardHeight: height });
+  setCurrentLevel: (categoryId: string, level: Level, board: Board) => {
     get().stopTimer();
 
-    try {
-      const generator = new BoardGenerator();
-      const board = await generator.generateBoard(width, height);
+    const game = new ChromaPathGame({
+      sound: soundService,
+      haptics: hapticService,
+    });
 
-      const game = new ChromaPathGame({
-        sound: soundService,
-        haptics: hapticService,
-      });
+    game.reset(board);
+    const state = game.getState();
 
-      game.reset(board);
-      const state = game.getState();
+    set({
+      board,
+      game,
+      gameState: state,
+      isGenerating: false,
+      isCompleted: false,
+      numConnectedPaths: state.numConnectedPaths,
+      totalPaths: state.paths.length,
+      timer: 0,
+      boardWidth: level.width,
+      boardHeight: level.height,
+      currentCategoryId: categoryId,
+      currentLevel: level,
+    });
 
-      set({
-        board,
-        game,
-        gameState: state,
-        isGenerating: false,
-        numConnectedPaths: state.numConnectedPaths,
-        totalPaths: state.paths.length,
-        timer: 0,
-      });
-
-      get().startTimer();
-    } catch (error) {
-      console.error('Failed to generate board:', error);
-      set({ isGenerating: false });
-    }
+    get().startTimer();
   },
 
   handleCellClick: (x: number, y: number) => {
@@ -128,7 +131,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   handleDrag: (x: number, y: number) => {
-    const { game } = get();
+    const { game, currentCategoryId, currentLevel, timer } = get();
     if (!game) return false;
 
     const completed = game.handleDrag(x, y);
@@ -138,6 +141,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
       get().stopTimer();
       set({ isCompleted: true });
       hapticService.success();
+
+      // Save progress
+      if (currentCategoryId && currentLevel) {
+        useProgressStore.getState().completeLevel(
+          currentCategoryId,
+          currentLevel.id,
+          timer
+        );
+      }
     }
 
     return completed;
