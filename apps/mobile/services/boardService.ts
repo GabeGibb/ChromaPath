@@ -2,6 +2,7 @@
  * Board Service for Mobile
  *
  * Fetches boards from the API queue, with bundled boards as offline fallback.
+ * Freeplay mode: all levels unlocked, endless boards via API.
  */
 
 import { Board, BoardGenerator } from '@chromapath/shared-types';
@@ -18,14 +19,12 @@ import boards12x12 from '../assets/boards/boards-12x12.json';
 import boards13x13 from '../assets/boards/boards-13x13.json';
 import boards14x14 from '../assets/boards/boards-14x14.json';
 import boards15x15 from '../assets/boards/boards-15x15.json';
-import boards15x16 from '../assets/boards/boards-15x16.json';
-import boards15x17 from '../assets/boards/boards-15x17.json';
-import boards15x18 from '../assets/boards/boards-15x18.json';
-import boards15x19 from '../assets/boards/boards-15x19.json';
-import boards15x20 from '../assets/boards/boards-15x20.json';
 
 // API base URL — set via EXPO_PUBLIC_API_URL env var, or defaults to production
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://chromapath.vercel.app';
+
+// How many levels to show per board size
+const LEVELS_PER_SIZE = 50;
 
 // Level definition
 export interface Level {
@@ -33,7 +32,7 @@ export interface Level {
   width: number;
   height: number;
   label: string;
-  boardIndex: number; // Which board from the pool to use
+  boardIndex: number; // Which board from the pool to use (fallback only)
 }
 
 // Category definition
@@ -44,6 +43,16 @@ export interface Category {
   levels: Level[];
 }
 
+function makeLevels(startId: number, count: number, width: number, height: number): Level[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: startId + i,
+    width,
+    height,
+    label: `${width}×${height}`,
+    boardIndex: i,
+  }));
+}
+
 // Define categories with their levels
 export const CATEGORIES: Category[] = [
   {
@@ -51,30 +60,9 @@ export const CATEGORIES: Category[] = [
     name: 'Easy',
     color: '#4CAF50',
     levels: [
-      // 5x5 levels (1-10)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: i + 1,
-        width: 5,
-        height: 5,
-        label: '5×5',
-        boardIndex: i,
-      })),
-      // 6x6 levels (11-20)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: i + 11,
-        width: 6,
-        height: 6,
-        label: '6×6',
-        boardIndex: i,
-      })),
-      // 7x7 levels (21-30)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: i + 21,
-        width: 7,
-        height: 7,
-        label: '7×7',
-        boardIndex: i,
-      })),
+      ...makeLevels(1, LEVELS_PER_SIZE, 5, 5),
+      ...makeLevels(LEVELS_PER_SIZE + 1, LEVELS_PER_SIZE, 6, 6),
+      ...makeLevels(LEVELS_PER_SIZE * 2 + 1, LEVELS_PER_SIZE, 7, 7),
     ],
   },
   {
@@ -82,30 +70,9 @@ export const CATEGORIES: Category[] = [
     name: 'Medium',
     color: '#FFC107',
     levels: [
-      // 8x8 levels (1-10)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: i + 1,
-        width: 8,
-        height: 8,
-        label: '8×8',
-        boardIndex: i,
-      })),
-      // 9x9 levels (11-20)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: i + 11,
-        width: 9,
-        height: 9,
-        label: '9×9',
-        boardIndex: i,
-      })),
-      // 10x10 levels (21-30)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: i + 21,
-        width: 10,
-        height: 10,
-        label: '10×10',
-        boardIndex: i,
-      })),
+      ...makeLevels(1, LEVELS_PER_SIZE, 8, 8),
+      ...makeLevels(LEVELS_PER_SIZE + 1, LEVELS_PER_SIZE, 9, 9),
+      ...makeLevels(LEVELS_PER_SIZE * 2 + 1, LEVELS_PER_SIZE, 10, 10),
     ],
   },
   {
@@ -113,30 +80,9 @@ export const CATEGORIES: Category[] = [
     name: 'Hard',
     color: '#FF9800',
     levels: [
-      // 11x11 levels (1-10)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: i + 1,
-        width: 11,
-        height: 11,
-        label: '11×11',
-        boardIndex: i,
-      })),
-      // 12x12 levels (11-20)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: i + 11,
-        width: 12,
-        height: 12,
-        label: '12×12',
-        boardIndex: i,
-      })),
-      // 13x13 levels (21-30)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: i + 21,
-        width: 13,
-        height: 13,
-        label: '13×13',
-        boardIndex: i,
-      })),
+      ...makeLevels(1, LEVELS_PER_SIZE, 11, 11),
+      ...makeLevels(LEVELS_PER_SIZE + 1, LEVELS_PER_SIZE, 12, 12),
+      ...makeLevels(LEVELS_PER_SIZE * 2 + 1, LEVELS_PER_SIZE, 13, 13),
     ],
   },
   {
@@ -144,69 +90,8 @@ export const CATEGORIES: Category[] = [
     name: 'Expert',
     color: '#F44336',
     levels: [
-      // 14x14 levels (1-10)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: i + 1,
-        width: 14,
-        height: 14,
-        label: '14×14',
-        boardIndex: i,
-      })),
-      // 15x15 levels (11-20)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: i + 11,
-        width: 15,
-        height: 15,
-        label: '15×15',
-        boardIndex: i,
-      })),
-    ],
-  },
-  {
-    id: 'master',
-    name: 'Master',
-    color: '#9C27B0',
-    levels: [
-      // 15x16 levels (1-10)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: i + 1,
-        width: 15,
-        height: 16,
-        label: '15×16',
-        boardIndex: i,
-      })),
-      // 15x17 levels (11-20)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: i + 11,
-        width: 15,
-        height: 17,
-        label: '15×17',
-        boardIndex: i,
-      })),
-      // 15x18 levels (21-30)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: i + 21,
-        width: 15,
-        height: 18,
-        label: '15×18',
-        boardIndex: i,
-      })),
-      // 15x19 levels (31-40)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: i + 31,
-        width: 15,
-        height: 19,
-        label: '15×19',
-        boardIndex: i,
-      })),
-      // 15x20 levels (41-50)
-      ...Array.from({ length: 10 }, (_, i) => ({
-        id: i + 41,
-        width: 15,
-        height: 20,
-        label: '15×20',
-        boardIndex: i,
-      })),
+      ...makeLevels(1, LEVELS_PER_SIZE, 14, 14),
+      ...makeLevels(LEVELS_PER_SIZE + 1, LEVELS_PER_SIZE, 15, 15),
     ],
   },
 ];
@@ -224,11 +109,6 @@ const BUNDLED_BOARDS: Record<string, Board[]> = {
   '13x13': boards13x13 as Board[],
   '14x14': boards14x14 as Board[],
   '15x15': boards15x15 as Board[],
-  '15x16': boards15x16 as Board[],
-  '15x17': boards15x17 as Board[],
-  '15x18': boards15x18 as Board[],
-  '15x19': boards15x19 as Board[],
-  '15x20': boards15x20 as Board[],
 };
 
 /**
@@ -269,11 +149,11 @@ function getBundledBoard(width: number, height: number, boardIndex: number): Boa
  * Tries the API first for a fresh puzzle, falls back to bundled boards.
  */
 export async function getBoardForLevel(level: Level): Promise<Board> {
-  // Try API first
+  // Try API first — always gives a fresh unique board
   const apiBoard = await fetchBoardFromAPI(level.width, level.height);
   if (apiBoard) return apiBoard;
 
-  // Fallback to bundled
+  // Fallback to bundled (wraps around if boardIndex > available boards)
   return getBundledBoard(level.width, level.height, level.boardIndex);
 }
 

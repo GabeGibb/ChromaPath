@@ -17,11 +17,6 @@ const BOARD_SIZES = [
   { width: 13, height: 13 },
   { width: 14, height: 14 },
   { width: 15, height: 15 },
-  { width: 15, height: 16 },
-  { width: 15, height: 17 },
-  { width: 15, height: 18 },
-  { width: 15, height: 19 },
-  { width: 15, height: 20 },
 ];
 
 function kvKey(width: number, height: number) {

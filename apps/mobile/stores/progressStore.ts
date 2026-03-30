@@ -54,28 +54,33 @@ export const useProgressStore = create<ProgressState>()(
         });
       },
 
-      isLevelUnlocked: (categoryId: string, levelId: number) => {
-        const state = get();
+      // FREEPLAY: everything unlocked for now
+      // TODO: Re-enable locking logic when ready
+      isLevelUnlocked: (_categoryId: string, _levelId: number) => {
+        return true;
 
-        // First level of first category is always unlocked
-        if (categoryId === 'easy' && levelId === 1) {
-          return true;
-        }
-
-        // Check if category is unlocked
-        if (!state.isCategoryUnlocked(categoryId)) {
-          return false;
-        }
-
-        // Level 1 of any unlocked category is unlocked
-        if (levelId === 1) {
-          return true;
-        }
-
-        // Previous level must be completed
-        const categoryProgress = state.progress[categoryId] || {};
-        const prevLevel = categoryProgress[levelId - 1];
-        return prevLevel?.completed === true;
+        // --- Original locking logic (commented out, not deleted) ---
+        // const state = get();
+        //
+        // // First level of first category is always unlocked
+        // if (categoryId === 'easy' && levelId === 1) {
+        //   return true;
+        // }
+        //
+        // // Check if category is unlocked
+        // if (!state.isCategoryUnlocked(categoryId)) {
+        //   return false;
+        // }
+        //
+        // // Level 1 of any unlocked category is unlocked
+        // if (levelId === 1) {
+        //   return true;
+        // }
+        //
+        // // Previous level must be completed
+        // const categoryProgress = state.progress[categoryId] || {};
+        // const prevLevel = categoryProgress[levelId - 1];
+        // return prevLevel?.completed === true;
       },
 
       isLevelCompleted: (categoryId: string, levelId: number) => {
@@ -84,27 +89,32 @@ export const useProgressStore = create<ProgressState>()(
         return categoryProgress[levelId]?.completed === true;
       },
 
-      isCategoryUnlocked: (categoryId: string) => {
-        // First category always unlocked
-        if (categoryId === 'easy') {
-          return true;
-        }
+      // FREEPLAY: all categories unlocked
+      // TODO: Re-enable locking logic when ready
+      isCategoryUnlocked: (_categoryId: string) => {
+        return true;
 
-        const state = get();
-        const categoryIndex = CATEGORIES.findIndex((c) => c.id === categoryId);
-
-        if (categoryIndex <= 0) {
-          return true;
-        }
-
-        // Previous category must have at least 10 levels completed
-        const prevCategory = CATEGORIES[categoryIndex - 1];
-        const prevProgress = state.progress[prevCategory.id] || {};
-        const completedCount = Object.values(prevProgress).filter(
-          (p) => p.completed
-        ).length;
-
-        return completedCount >= 10;
+        // --- Original locking logic (commented out, not deleted) ---
+        // // First category always unlocked
+        // if (categoryId === 'easy') {
+        //   return true;
+        // }
+        //
+        // const state = get();
+        // const categoryIndex = CATEGORIES.findIndex((c) => c.id === categoryId);
+        //
+        // if (categoryIndex <= 0) {
+        //   return true;
+        // }
+        //
+        // // Previous category must have at least 10 levels completed
+        // const prevCategory = CATEGORIES[categoryIndex - 1];
+        // const prevProgress = state.progress[prevCategory.id] || {};
+        // const completedCount = Object.values(prevProgress).filter(
+        //   (p) => p.completed
+        // ).length;
+        //
+        // return completedCount >= 10;
       },
 
       getBestTime: (categoryId: string, levelId: number) => {

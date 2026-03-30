@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useWindowDimensions, FlatList, Pressable } from 'react-native';
 import { YStack, XStack, Text, ScrollView } from 'tamagui';
-import { Lock, Check, ChevronLeft, ChevronRight } from '@tamagui/lucide-icons';
+import { Check, ChevronLeft, ChevronRight } from '@tamagui/lucide-icons';
 
 import { CATEGORIES, Category, Level, getBoardForLevel } from '@/services/boardService';
 import { useProgressStore } from '@/stores/progressStore';
@@ -34,7 +34,6 @@ function LevelButton({
   categoryColor: string;
   onPress: () => void;
 }) {
-  const isUnlocked = useProgressStore((s) => s.isLevelUnlocked(categoryId, level.id));
   const isCompleted = useProgressStore((s) => s.isLevelCompleted(categoryId, level.id));
   const bestTime = useProgressStore((s) => s.getBestTime(categoryId, level.id));
 
@@ -46,22 +45,19 @@ function LevelButton({
   };
 
   return (
-    <Pressable onPress={isUnlocked ? onPress : undefined}>
+    <Pressable onPress={onPress}>
       <YStack
         width={70}
         height={70}
         borderRadius="$3"
-        backgroundColor={isUnlocked ? (isCompleted ? categoryColor : '$backgroundHover') : '$background'}
+        backgroundColor={isCompleted ? categoryColor : '$backgroundHover'}
         borderWidth={2}
-        borderColor={isUnlocked ? categoryColor : '$borderColor'}
+        borderColor={categoryColor}
         alignItems="center"
         justifyContent="center"
-        opacity={isUnlocked ? 1 : 0.5}
         margin="$1"
       >
-        {!isUnlocked ? (
-          <Lock size={20} color="$placeholderColor" />
-        ) : isCompleted ? (
+        {isCompleted ? (
           <>
             <Check size={16} color="white" />
             <Text fontSize="$5" fontWeight="bold" color="white">
@@ -97,7 +93,6 @@ function CategoryPage({
 }) {
   const completedCount = useProgressStore((s) => s.getCompletedCount(category.id));
   const totalLevels = category.levels.length;
-  const isCategoryUnlocked = useProgressStore((s) => s.isCategoryUnlocked(category.id));
 
   // Group levels by size for visual sections
   const levelsBySize: { [key: string]: Level[] } = {};
@@ -107,17 +102,6 @@ function CategoryPage({
     }
     levelsBySize[level.label].push(level);
   });
-
-  if (!isCategoryUnlocked) {
-    return (
-      <YStack flex={1} alignItems="center" justifyContent="center" padding="$4">
-        <Lock size={48} color="$placeholderColor" />
-        <Text fontSize="$6" color="$placeholderColor" marginTop="$4" textAlign="center">
-          Complete 10 levels in the previous category to unlock
-        </Text>
-      </YStack>
-    );
-  }
 
   return (
     <ScrollView flex={1} showsVerticalScrollIndicator={false}>
